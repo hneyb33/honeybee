@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+@source '../../app/Livewire/**/*.php';
+@source '../../resources/**/*.blade.php';
+@source '../../resources/**/*.js';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-display: 'Fraunces', 'Georgia', serif;
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+
+    --color-ink-950: #2b2b2b;
+    --color-ebony-900: #2b2b2b;
+    --color-ebony-850: #3a3a3a;
+    --color-ivory-50: #fff8e8;
+    --color-gold-300: #e7c35a;
+    --color-gold-400: #dcc58e;
+    --color-gold-500: #dcdad9;
+    --color-caramel-500: #e7c35a;
+    --color-condo-400: #fff8e8;
+    --color-apartment-400: #dcc58e;
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-ink-950 text-ivory-50 font-sans antialiased;
+    }
+
+    button,
+    input,
+    select {
+        font: inherit;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+        @apply outline-2 outline-offset-2 outline-gold-400;
+    }
+}
+
+@layer components {
+    .glass-panel {
+        @apply border border-gold-400/20 bg-ebony-850/90 shadow-2xl shadow-black/30 backdrop-blur-xl;
+    }
+
+    .capsule-segment {
+        @apply min-w-38 cursor-pointer border-gold-400/20 px-6 py-3 transition-colors hover:bg-ivory-50/5;
+    }
+
+    .tier-badge {
+        @apply inline-flex items-center gap-1.5 rounded-full bg-ink-950/70 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide backdrop-blur-md;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
