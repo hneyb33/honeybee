@@ -1,7 +1,7 @@
 @props(['escort'])
 
 <a href="{{ route('escort.show', $escort) }}" class="group block">
-    <div class="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-ebony-850">
+    <div class="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-ebony-850 shadow-lg shadow-ink-950/10 ring-1 ring-gold-400/15">
         <span @class([
             'tier-badge absolute left-3 top-3 z-10',
             'text-condo-400' => $escort->tier === '',
@@ -29,23 +29,23 @@
             {{ $escort->review_count > 0 ? number_format((float) $escort->rating, 2) : 'New' }}
         </span>
     </div>
-    <div class="mt-3 flex flex-wrap gap-2 text-xs text-ivory-50/70">
+    <div class="mt-3 flex flex-wrap gap-2 text-xs text-ebony-900/75">
         @if ($escort->age)
-            <span class="rounded-full border border-gold-400/20 bg-ivory-50/5 px-2 py-1">{{ $escort->age }} yrs</span>
+            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ $escort->age }} yrs</span>
         @endif
         @if ($escort->gender)
-            <span class="rounded-full border border-gold-400/20 bg-ivory-50/5 px-2 py-1">{{ ucfirst($escort->gender) }}</span>
+            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ ucfirst($escort->gender) }}</span>
         @endif
         @if ($escort->height)
-            <span class="rounded-full border border-gold-400/20 bg-ivory-50/5 px-2 py-1">{{ $escort->height }}</span>
+            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ $escort->height }}</span>
         @endif
         @if ($escort->availability)
-            <span class="rounded-full border border-gold-400/20 bg-ivory-50/5 px-2 py-1">{{ $escort->availability }}</span>
+            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ $escort->availability }}</span>
         @endif
     </div>
-    <div class="mt-3 truncate text-sm text-ivory-50/60">{{ $escort->summary_line }}</div>
+    <div class="mt-3 truncate text-sm text-ebony-900/70">{{ $escort->summary_line }}</div>
     <div class="mt-3 flex items-center justify-between gap-3 text-sm">
         <span class="font-semibold">{{ $escort->price_label }}</span>
-        <span class="truncate text-ivory-50/50">{{ $escort->neighborhood }}, {{ $escort->city }}</span>
+        <span class="truncate text-ebony-900/60">{{ $escort->neighborhood }}, {{ $escort->city }}</span>
     </div>
 </a>

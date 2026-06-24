@@ -12,13 +12,35 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Owner\EscortController as OwnerEscortController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Escort;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
+Route::get('/age-check', function () {
+    return view('age-check');
+})->name('age-check');
+
+Route::post('/age-check', function (Request $request) {
+    if ($request->boolean('over_18')) {
+        session(['allowed_age' => true]);
+        return redirect()->intended('/');
+    }
+
+    return redirect()->route('age-check')->with('age_denied', true);
+})->name('age-check.submit');
+
+Route::get('/', function (Request $request) {
+    if (! $request->session()->get('allowed_age', false)) {
+        return redirect()->route('age-check');
+    }
+
     return view('pages.home');
 })->name('home');
 
-Route::get('/escorts/{escort:slug}', function (Escort $escort) {
+Route::get('/escorts/{escort:slug}', function (Request $request, Escort $escort) {
+    if (! $request->session()->get('allowed_age', false)) {
+        return redirect()->route('age-check');
+    }
+
     return view('pages.escort-detail', compact('escort'));
 })->name('escort.show');
 

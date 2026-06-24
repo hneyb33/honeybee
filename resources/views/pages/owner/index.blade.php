@@ -9,7 +9,7 @@
                 Add services
             </a>
         </div>
-S
+
         @if (session('status'))
             <div class="mb-6 rounded-2xl border border-gold-400/25 bg-gold-400/10 p-4 text-sm font-bold text-gold-300">
                 {{ session('status') }}
@@ -19,13 +19,13 @@ S
         @if ($escorts->isEmpty())
             <div class="rounded-2xl border border-gold-400/20 bg-ebony-850 p-8">
                 <h2 class="font-display text-2xl font-semibold">No listings yet</h2>
-                <p class="mt-2 max-w-xl text-sm leading-6 text-ivory-50/60">Create your first service listing with photos, pricing, details, amenities, and a direct WhatsApp contact.</p>
+                <p class="mt-2 max-w-xl text-sm leading-6 text-ebony-900/65">Create your first service listing with photos, pricing, details, amenities, and a direct WhatsApp contact.</p>
             </div>
         @else
             <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 @foreach ($escorts as $escort)
                     <div class="rounded-2xl border border-gold-400/20 bg-ebony-850 p-4">
-                        <div class="mb-4 aspect-[4/3] overflow-hidden rounded-xl bg-ink-950">
+                        <div class="mb-4 aspect-[4/3] overflow-hidden rounded-xl bg-ivory-50">
                             @if ($escort->cover_image)
                                 <img src="{{ $escort->cover_image }}" alt="{{ $escort->title }}" class="h-full w-full object-cover">
                             @endif
@@ -33,7 +33,7 @@ S
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <h2 class="font-bold">{{ $escort->title }}</h2>
-                                <p class="mt-1 text-sm text-ivory-50/55">{{ $escort->neighborhood }}, {{ $escort->city }}</p>
+                                <p class="mt-1 text-sm text-ebony-900/65">{{ $escort->neighborhood }}, {{ $escort->city }}</p>
                             </div>
                             <span class="rounded-full border border-gold-400/20 px-3 py-1 text-xs font-extrabold uppercase text-gold-400">{{ $escort->status }}</span>
                         </div>

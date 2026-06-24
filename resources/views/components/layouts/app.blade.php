@@ -12,7 +12,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-ink-950 text-ivory-50">
+<body class="min-h-screen bg-ivory-50 text-ink-950">
     <x-header />
 
     <main>

@@ -1,7 +1,7 @@
 <x-guest-layout>
-    <div class="mb-8 rounded-3xl border border-gold-400/20 bg-ebony-850 p-6 text-ivory-50">
+    <div class="mb-8 rounded-2xl border border-gold-400/20 bg-gold-300/10 p-6 text-ink-950">
         <h1 class="font-display text-3xl font-semibold">Join HoneyBee</h1>
-        <p class="mt-3 text-sm leading-6 text-ivory-50/70">Register your escort account to manage your profile, publish your service listing, and book new clients.</p>
+        <p class="mt-3 text-sm leading-6 text-ebony-900/70">Register your escort account to manage your profile, publish your service listing, and book new clients.</p>
     </div>
 
     <form method="POST" action="{{ route('register') }}">
@@ -45,7 +45,7 @@
         </div>
 
         <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('login') }}">
+            <a class="rounded-md text-sm text-ebony-900/70 underline hover:text-ink-950 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-offset-2" href="{{ route('login') }}">
                 {{ __('Already registered?') }}
             </a>
 

@@ -1,10 +1,10 @@
 <aside
-    class="sticky top-28 h-fit rounded-2xl border border-gold-400/20 bg-ebony-850 p-6 shadow-2xl shadow-black/35"
+    class="sticky top-28 h-fit rounded-2xl border border-gold-400/25 bg-ebony-850 p-6 shadow-2xl shadow-ink-950/12"
     x-data
     x-init="if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) gsap.from($el, { opacity: 0, y: 18, duration: 0.55, delay: 0.15, ease: 'power2.out' })"
 >
     <div class="mb-5 flex items-baseline justify-between gap-3">
-        <div class="text-xl font-extrabold">UGX {{ number_format($escort->monthly_price) }} <span class="text-sm font-medium text-ivory-50/50">/ hour</span></div>
+        <div class="text-xl font-extrabold">UGX {{ number_format($escort->monthly_price) }} <span class="text-sm font-medium text-ebony-900/55">/ hour</span></div>
         <div class="flex items-center gap-1 text-sm font-bold">
             <svg class="h-3 w-3 fill-gold-400" viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z"/></svg>
             {{ number_format((float) $escort->rating, 2) }}
@@ -15,11 +15,11 @@
         <div class="grid grid-cols-2">
             <label class="border-b border-r border-gold-400/20 p-3">
                 <span class="block text-[10px] font-extrabold uppercase tracking-wide text-gold-400">Appointment</span>
-                <input type="date" wire:model="appointmentDate" class="w-full bg-transparent p-0 text-sm text-ivory-50 focus:outline-none">
+                <input type="date" wire:model="appointmentDate" class="w-full bg-transparent p-0 text-sm text-ink-950 focus:outline-none">
             </label>
             <label class="border-b border-gold-400/20 p-3">
                 <span class="block text-[10px] font-extrabold uppercase tracking-wide text-gold-400">Duration</span>
-                <select wire:model="duration" class="w-full appearance-none bg-transparent p-0 text-sm text-ivory-50 focus:outline-none">
+                <select wire:model="duration" class="w-full appearance-none bg-transparent p-0 text-sm text-ink-950 focus:outline-none">
                     <option class="text-ink-950" value="1">1 hour</option>
                     <option class="text-ink-950" value="3">3 hours</option>
                     <option class="text-ink-950" value="6">6 hours</option>
@@ -28,7 +28,7 @@
         </div>
         <label class="block p-3">
             <span class="block text-[10px] font-extrabold uppercase tracking-wide text-gold-400">Experience type</span>
-            <select wire:model="experienceType" class="w-full appearance-none bg-transparent p-0 text-sm text-ivory-50 focus:outline-none">
+            <select wire:model="experienceType" class="w-full appearance-none bg-transparent p-0 text-sm text-ink-950 focus:outline-none">
                 <option class="text-ink-950" value="Incall">Incall</option>
                 <option class="text-ink-950" value="Outcall">Outcall</option>
                 <option class="text-ink-950" value="VIP">VIP</option>
@@ -54,11 +54,11 @@
         Chat on WhatsApp
     </a>
 
-    <p class="my-4 text-center text-xs text-ivory-50/40">You will not be charged yet</p>
+    <p class="my-4 text-center text-xs text-ebony-900/50">You will not be charged yet</p>
 
     <div class="border-t border-gold-400/20 pt-3 text-sm">
-        <div class="flex justify-between py-1.5 text-ivory-50/65"><span>Hourly Rate</span><span>UGX {{ number_format($escort->monthly_price) }}</span></div>
-        <div class="flex justify-between py-1.5 text-ivory-50/65"><span>Corporate Event</span><span>UGX {{ number_format($this->serviceFee) }}</span></div>
+        <div class="flex justify-between py-1.5 text-ebony-900/70"><span>Hourly Rate</span><span>UGX {{ number_format($escort->monthly_price) }}</span></div>
+        <div class="flex justify-between py-1.5 text-ebony-900/70"><span>Corporate Event</span><span>UGX {{ number_format($this->serviceFee) }}</span></div>
         <div class="mt-2 flex justify-between border-t border-gold-400/20 pt-3.5 font-extrabold"><span>Charge for your experience</span><span>UGX {{ number_format($this->total) }}</span></div>
     </div>
 </aside>

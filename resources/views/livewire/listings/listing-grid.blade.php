@@ -21,7 +21,7 @@
             @forelse ($popular as $escort)
                 <x-escort-card :escort="$escort" wire:key="escort-{{ $escort->id }}" />
             @empty
-                <div class="rounded-2xl border border-gold-400/20 bg-ebony-850 p-8 text-ivory-50/65 sm:col-span-2 lg:col-span-3 xl:col-span-5">
+                <div class="rounded-2xl border border-gold-400/20 bg-ebony-850 p-8 text-ebony-900/70 shadow-lg shadow-ink-950/5 sm:col-span-2 lg:col-span-3 xl:col-span-5">
                     No escorts match those filters yet. Try another location or budget.
                 </div>
             @endforelse
