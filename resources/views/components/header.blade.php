@@ -1,56 +1,54 @@
-<header class="sticky top-0 z-50 border-b border-gold-400/25 bg-ivory-50/90 shadow-sm shadow-ink-950/5 backdrop-blur-xl">
-    <div class="flex items-center justify-between gap-5 px-5 py-4 lg:px-10">
-        <a href="{{ route('home') }}" class="font-display text-xl font-semibold tracking-wide">
-            HoneyBee <span class="text-gold-400">Escorts</span>
+<header class="sticky top-0 z-50 border-b border-neutral-200 bg-white">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4">
+        <a href="{{ route('home') }}" class="shrink-0">
+            <img src="{{ asset('images/logo.jpeg') }}" alt="Honeybee" class="h-14 w-auto object-contain">
         </a>
 
-        <nav class="hidden items-end gap-9 md:flex" aria-label="Primary">
-            @foreach (['VIP', 'Corporate', 'Business'] as $tab)
-                <a href="{{ route('home') }}" @class([
-                    'flex flex-col items-center gap-1.5 border-b-2 pb-3 text-sm font-bold transition',
-                    'border-gold-400 text-ink-950' => $loop->first,
-                    'border-transparent text-ebony-900/65 hover:text-ink-950' => ! $loop->first,
-                ])>
-                    <span @class([
-                        'h-5 w-5 rounded-md',
-                        'bg-gold-400' => $loop->first,
-                        'bg-gold-300/25' => ! $loop->first,
-                    ])></span>
-                    {{ $tab }}
-                </a>
-            @endforeach
-        </nav>
+        <div class="hidden items-center gap-8 text-sm font-medium text-neutral-800 md:flex">
+            <a href="{{ route('home') }}" class="border-b-2 border-neutral-900 pb-2">Explore</a>
+            @auth
+                @if (auth()->user()->isSpecialist())
+                    <a href="{{ route('owner.escorts.index') }}" class="pb-2 text-neutral-500">Dashboard</a>
+                @else
+                    <a href="{{ route('dashboard') }}" class="pb-2 text-neutral-500">Trips</a>
+                @endif
+            @endauth
+        </div>
 
         <div class="flex items-center gap-3">
-            <a href="{{ route('owner.escorts.create') }}" class="hidden rounded-full px-4 py-2 text-sm font-bold text-ebony-900 transition hover:bg-gold-300/15 hover:text-ink-950 sm:inline-flex">
-                List your services
-            </a>
+            @auth
+                @if (auth()->user()->isSpecialist())
+                    <a href="{{ route('owner.escorts.create') }}" class="hidden text-sm font-medium text-neutral-800 sm:inline">List your profile</a>
+                @endif
+            @else
+                <a href="{{ route('register') }}" class="hidden text-sm font-medium text-neutral-800 sm:inline">Register as</a>
+            @endauth
             <div class="relative" x-data="{ open: false }">
-                <button type="button" @click="open = ! open" class="flex items-center gap-2 rounded-full border border-gold-400/20 px-3 py-2 transition hover:border-gold-400/60" aria-label="Open account menu">
+                <button type="button" @click="open = ! open" class="flex items-center gap-3 rounded-full border border-neutral-300 py-1 pl-3 pr-1 hover:shadow-md" aria-label="Account">
                     <span class="flex flex-col gap-1">
-                        <span class="h-0.5 w-4 rounded-full bg-ink-950/80"></span>
-                        <span class="h-0.5 w-4 rounded-full bg-ink-950/80"></span>
+                        <span class="h-0.5 w-4 rounded-full bg-neutral-800"></span>
+                        <span class="h-0.5 w-4 rounded-full bg-neutral-800"></span>
                     </span>
-                    <span class="h-8 w-8 rounded-full bg-gradient-to-br from-gold-400 to-caramel-500"></span>
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-700 text-xs font-semibold text-white">{{ strtoupper(substr(auth()->user()->name ?? 'G', 0, 1)) }}</span>
                 </button>
-
-                <div x-show="open" x-transition @click.outside="open = false" class="absolute right-0 mt-3 w-56 rounded-2xl border border-gold-400/20 bg-ebony-850 p-2 text-sm font-bold shadow-2xl shadow-ink-950/15">
+                <div x-show="open" x-transition @click.outside="open = false" class="absolute right-0 mt-2 w-56 rounded-xl border border-neutral-200 bg-white py-2 text-sm shadow-lg">
                     @auth
-                        <a href="{{ route('owner.escorts.index') }}" class="block rounded-xl px-4 py-3 text-ebony-900 hover:bg-gold-300/15 hover:text-ink-950">My Services</a>
-                        <a href="{{ route('owner.escorts.create') }}" class="block rounded-xl px-4 py-3 text-ebony-900 hover:bg-gold-300/15 hover:text-ink-950">Add Services</a>
+                        <a href="{{ route('dashboard') }}" class="block px-4 py-2.5 hover:bg-neutral-100">Dashboard</a>
+                        @if (auth()->user()->isClient() && ! auth()->user()->isPremiumClient())
+                            <a href="{{ route('subscribe') }}" class="block w-full px-4 py-2.5 text-left hover:bg-neutral-100">Upgrade to premium</a>
+                        @endif
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="block w-full rounded-xl px-4 py-3 text-left text-ebony-900 hover:bg-gold-300/15 hover:text-ink-950">Log out</button>
+                            <button type="submit" class="block w-full px-4 py-2.5 text-left hover:bg-neutral-100">Log out</button>
                         </form>
                     @else
-                        <a href="{{ route('login') }}" class="block rounded-xl px-4 py-3 text-ebony-900 hover:bg-gold-300/15 hover:text-ink-950">Log in</a>
-                        <a href="{{ route('register') }}" class="block rounded-xl px-4 py-3 text-ebony-900 hover:bg-gold-300/15 hover:text-ink-950">Create account</a>
+                        <a href="{{ route('login') }}" class="block px-4 py-2.5 font-semibold hover:bg-neutral-100">Log in</a>
+                        <a href="{{ route('register') }}" class="block px-4 py-2.5 hover:bg-neutral-100">Register as</a>
                     @endauth
                 </div>
             </div>
         </div>
     </div>
-
     <livewire:search.capsule-search />
     <livewire:listings.tier-filter />
 </header>

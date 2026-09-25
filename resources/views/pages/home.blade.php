@@ -1,10 +1,7 @@
 <x-layouts.app>
-    <section class="px-5 py-10 lg:px-10">
-        <div class="max-w-3xl">
-            <p class="mb-3 text-xs font-extrabold uppercase tracking-[0.22em] text-gold-400">Connect • Relax • Reignite</p>
-            <h1 class="font-display text-4xl font-semibold leading-tight md:text-6xl">Premium escorts with a sensual touch.</h1>
-        </div>
+    <section class="mx-auto max-w-7xl px-6 pb-6 pt-10">
+        <h1 class="max-w-2xl text-4xl font-semibold tracking-tight text-neutral-900 md:text-5xl">Find a verified specialist near you</h1>
+        <p class="mt-3 max-w-xl text-neutral-600">Escorts and home services in Kampala. Only verified, subscribed profiles are shown.</p>
     </section>
-
     <livewire:listings.listing-grid />
 </x-layouts.app>

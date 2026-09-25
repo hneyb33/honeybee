@@ -17,9 +17,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(RolesAndPermissionsSeeder::class);
+
         $amenities = [
             ['title' => 'Gated and secure', 'body' => '24/7 access control, private compound entry, and verified neighborhood security.'],
-            ['title' => 'Verified listing', 'body' => 'Inspected by Real Estates UG before publishing.'],
+            ['title' => 'Verified listing', 'body' => 'Reviewed by Honeybee before publishing.'],
             ['title' => 'Flexible move-in', 'body' => 'Clear lease terms and responsive agent support from first inquiry.'],
         ];
 
@@ -52,10 +54,13 @@ class DatabaseSeeder extends Seeder
                 'monthly_price' => 150000,
                 'rating' => 0,
                 'review_count' => 0,
-                'bedrooms' => 0,
-                'bathrooms' => 0,
-                'plot_size' => null,
-                'parking' => 0,
+                'kind' => 'escort',
+                'escort_tier' => 'vip',
+                'hourly_rate' => 150000,
+                'latitude' => 0.347596,
+                'longitude' => 32.582520,
+                'telegram' => 'honeybee_demo',
+                'verification_status' => 'verified',
                 'summary_line' => '25-year-old female escort in Kampala',
                 'description' => 'I take pride in creating a relaxed, friendly, and discreet atmosphere where you can truly unwind and feel comfortable. Whether you’re looking for companionship, good conversation, or a soothing moment away from your busy schedule, I’m here to make every meeting special. If you’re in Makindye and searching for a reliable, attractive, and welcoming escort, I’m always available to give you a memorable time.',
                 'about_me' => '25 year old Female from Kyaliwajjala, Kampala. I take pride in creating a relaxed, friendly, and discreet atmosphere where you can truly unwind and feel comfortable.',
@@ -116,10 +121,13 @@ class DatabaseSeeder extends Seeder
                 'monthly_price' => 150000,
                 'rating' => 0,
                 'review_count' => 0,
-                'bedrooms' => 0,
-                'bathrooms' => 0,
-                'plot_size' => null,
-                'parking' => 0,
+                'kind' => 'escort',
+                'escort_tier' => 'premium',
+                'hourly_rate' => 150000,
+                'latitude' => 0.313611,
+                'longitude' => 32.581111,
+                'telegram' => 'honeybee_demo',
+                'verification_status' => 'verified',
                 'summary_line' => '21-year-old male companion in Kampala',
                 'description' => 'Hey everyone. I provide discreet and welcoming companionship with a focus on comfort, trust, and a memorable time.',
                 'about_me' => '21 year old Male from Kampala, Uganda. Hey everyone.',
@@ -162,10 +170,30 @@ class DatabaseSeeder extends Seeder
             ],
         ];
 
-        $user = User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $user = User::query()->firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => 'password',
+                'email_verified_at' => now(),
+            ],
+        );
+        $user->assignRole('provider_free');
+        $user->activatePlan(\App\Models\Subscription::PLAN_SPECIALIST);
+
+        foreach (\App\Models\Escort::OFFERED_SERVICES as $name) {
+            \App\Models\CatalogService::updateOrCreate(
+                ['slug' => \Illuminate\Support\Str::slug($name)],
+                ['name' => $name, 'group' => 'escort', 'is_active' => true],
+            );
+        }
+
+        foreach (['private-chef' => 'Private chef', 'home-laundry' => 'Home laundry', 'private-massage' => 'Private massage'] as $slug => $name) {
+            \App\Models\CatalogService::updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'group' => 'home', 'is_active' => true],
+            );
+        }
 
         foreach ($escorts as $escort) {
             Escort::updateOrCreate(

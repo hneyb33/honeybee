@@ -8,7 +8,6 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -18,9 +17,15 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        $role = $request->route('role');
+
+        if (! in_array($role, ['client', 'model', 'specialist'], true)) {
+            return view('auth.register-choice');
+        }
+
+        return view('auth.register', ['role' => $role]);
     }
 
     /**
@@ -34,18 +39,27 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'account_type' => ['required', 'in:client,model,specialist'],
         ]);
 
+        $kind = $request->input('account_type');
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
+            'account_kind' => $kind,
         ]);
+
+        $user->assignRole($kind === 'client' ? 'client_free' : 'provider_free');
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect()->route('owner.escorts.create');
+        return redirect()->route(match ($kind) {
+            'client' => 'home',
+            'specialist' => 'provider.onboard',
+            default => 'owner.escorts.create',
+        });
     }
 }

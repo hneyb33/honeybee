@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ config('app.name', 'HoneyBee Escorts') }}</title>
+        <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,12 +20,12 @@
     <body class="font-sans text-ink-950 antialiased">
         <div class="flex min-h-screen flex-col items-center bg-ivory-50 px-4 pt-8 sm:justify-center sm:pt-0">
             <div>
-                <a href="/" class="font-display text-2xl font-semibold tracking-wide">
-                    HoneyBee <span class="text-gold-400">Escorts</span>
-                </a>
+            <a href="/">
+                <img src="{{ asset('images/logo.jpeg') }}" alt="Honeybee" class="h-16 w-auto object-contain">
+            </a>
             </div>
 
-            <div class="mt-6 w-full overflow-hidden rounded-2xl border border-gold-400/20 bg-ebony-850 px-6 py-5 shadow-2xl shadow-ink-950/10 sm:max-w-md">
+            <div class="mt-6 w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white px-6 py-5 sm:max-w-md">
                 {{ $slot }}
             </div>
         </div>

@@ -1,0 +1,34 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+@theme {
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --color-primary-50: #f7f7f7;
+    --color-primary-100: #ebebeb;
+    --color-primary-200: #dddddd;
+    --color-primary-300: #c1c1c1;
+    --color-primary-400: #717171;
+    --color-primary-500: #222222;
+    --color-primary-600: #222222;
+    --color-primary-700: #111111;
+    --color-primary-800: #111111;
+    --color-primary-900: #000000;
+    --color-primary-950: #000000;
+}
+
+.fi-body {
+    background: #ffffff;
+    color: #222222;
+}
+
+.fi-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #ebebeb;
+}
+
+.fi-topbar {
+    background: #ffffff;
+    border-bottom: 1px solid #ebebeb;
+}

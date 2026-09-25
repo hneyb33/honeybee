@@ -1,0 +1,385 @@
+1. Don't make registration one huge form
+
+Use a staged onboarding flow:
+
+Create account → Personal details → Services → Location → Experience → Verification → Payment → Review
+
+A provider should be able to save and continue later.
+
+Step 1 — Basic account
+
+Keep the initial signup lightweight:
+
+First name
+Middle name — optional
+Last name
+Mobile number
+Email — optional initially, but recommended
+Password
+Preferred language
+Account type:
+Individual provider
+Registered business/company
+Accept Terms of Service
+Accept Privacy Policy
+
+
+2. Personal profile
+
+
+Personal information
+Field	Required?
+Full legal name	Yes
+Profile/display name	Yes
+Profile photo	Yes
+Date of birth	Yes
+Gender	Depending on service/use case
+Primary phone	Yes
+Alternative phone	Optional
+Email	Recommended
+Nationality	Yes
+Languages spoken	Yes
+Short professional bio	Yes
+
+For example:
+
+"Professional electrician with 7 years' experience in residential wiring, solar installation, fault diagnosis and appliance repair."
+
+Don't expose DOB, NIN, ID images, residential address, or similar verification information publicly.
+
+3. Location and service coverage
+
+Ugandan addresses are often better represented using administrative areas + landmarks + map coordinates, rather than assuming everyone has a conventional street address.
+
+Collect:
+
+Home/base location
+
+District
+City/Municipality
+Division/Sub-county
+Parish
+Village/Zone
+Nearby landmark
+GPS/map location — optional but useful
+
+Then separately ask:
+
+Where can you work?
+
+For example:
+
+Service area
+☑ Kira
+☑ Najjera
+☑ Ntinda
+☑ Bukoto
+☑ Kyaliwajjala
+☑ Kampala Central
+
+Also allow:
+
+Maximum travel distance: 5 km / 10 km / 20 km / 50 km / Anywhere
+
+This becomes extremely useful for job matching later.
+
+4. Services offered
+
+the provider type their occupation into a generic text field once,  then include in the database to update services later
+
+Use a structured taxonomy.
+
+For example:
+
+Category: Private chef
+
+Services:
+functions, birthdays,picnics, events, family dinner etc
+
+
+Allow multiple categories where appropriate.
+
+Each service can have:
+
+Service name
+Years of experience
+Starting price
+Pricing model
+Description
+Available for emergency calls?
+Equipment/tools available?
+
+Pricing models could be:
+
+Hourly / Daily / Fixed price / Inspection fee / Quote required
+
+For example:
+
+Bithday party — UGX 30,000
+function — From UGX 40,000
+Family dinner — Quote required
+
+5. Skills, experience and qualifications
+
+Collect structured professional information.
+
+Experience
+Primary occupation
+Years of experience
+Description of experience
+Qualifications
+
+
+
+But don't require formal certificates for every occupation. An experienced gardener, cleaner or carpenter shouldn't necessarily be excluded because they lack a formal qualification.
+
+6. Portfolio
+
+This will be important for tradespeople.
+
+Allow providers to upload:
+
+Before / After / Completed work as part of the images/video catalog
+
+For example, a private chef could show meals/recipe while a private dobbi/laudary shows a photo/video during or after work.
+
+Each portfolio item:
+
+Title
+Description
+Photos
+Service category
+Completion date
+Location — optional
+
+The provider profile can then have:
+
+John K.
+Electrician
+★ 4.8 (37 reviews)
+Verified
+Kira • Serves Kampala & Wakiso
+7 years experience
+
+Cooking • Private laudary • private show • decoration etc
+
+23 jobs completed
+
+That is much stronger than simply listing a phone number.
+
+7. Identity verification
+
+This is particularly important because you're facilitating access to private homes.
+
+I'd create several verification levels rather than a single verified=true.
+
+Identity verification is doone by the admin before verifying profile and Background verification done before verifying subscription
+
+rather than simply showing:
+
+✓ Verified
+
+That tells the customer exactly what was checked.
+
+8. References
+
+For someone entering private residences, references are useful.
+
+Allow 1–3:
+
+Referee name
+Relationship
+Phone
+Organisation — optional
+Years known
+
+But don't automatically publish referee information.
+
+Ideally:
+
+Pending → Contacted → Confirmed
+
+
+10. Availability
+
+This deserves its own onboarding step.
+
+Something like:
+
+Day	Available
+Monday	08:00–18:00
+Tuesday	08:00–18:00
+Wednesday	Not available
+Thursday	08:00–18:00
+Friday	08:00–18:00
+Saturday	09:00–16:00
+Sunday	Emergency only
+
+Also:
+
+Current status
+
+🟢 Available
+🟡 Busy
+⚫ Offline
+
+And options:
+
+Same-day jobs
+Emergency jobs
+Overnight jobs, where appropriate
+Recurring jobs
+Long-term contracts
+
+12. What the provider dashboard should look like
+
+I would build it as an operations dashboard, not merely a profile page.
+
+Desktop:
+
+┌─────────────────────────────────────────────────────────────┐
+│ LOGO       Search                         🔔   John K. ▼    │
+├───────────────┬─────────────────────────────────────────────┤
+│               │ Good morning, John                         │
+│ Dashboard     │ 🟢 Available          Profile 85% complete │
+│               │                                             │
+│ Job Requests  │ ┌─────────┐ ┌─────────┐ ┌───────────────┐ │
+│ My Jobs       │ │  3      │ │ UGX     │ │ 4.8 ★         │ │
+│ Calendar      │ │ Requests│ │ 480,000 │ │ Rating        │ │
+│               │ │ Today   │ │ Earnings│ │ 37 reviews    │ │
+│ Messages      │ └─────────┘ └─────────┘ └───────────────┘ │
+│               │                                             │
+│ Services      │ NEW JOB REQUESTS                            │
+│ Portfolio     │ ┌─────────────────────────────────────────┐ │
+│ Reviews       │ │ Electrical Repair                      │ │
+│               │ │ Najjera • 3.4km away                  │ │
+│ Earnings      │ │ Today 2:30 PM                          │ │
+│ Withdrawals   │ │ Est. UGX 80,000                        │ │
+│               │ │ [View Job]      [Accept] [Decline]    │ │
+│ Verification  │ └─────────────────────────────────────────┘ │
+│ Settings      │                                             │
+│               │ TODAY'S SCHEDULE                            │
+│ Help          │ 10:00  Socket repair — Kira                │
+│ Logout        │ 14:30  Wiring inspection — Najjera         │
+└───────────────┴─────────────────────────────────────────────┘
+
+On mobile, those sidebar sections become bottom navigation:
+
+Home | Jobs | Messages | Earnings | Profile
+
+13. Dashboard home
+
+The first screen should answer five questions immediately:
+
+Do I have work? Where? When? How much am I earning? Is my account okay?
+
+So show:
+
+Top status card
+
+Good morning, John
+🟢 You're available for jobs
+Profile strength: 85%
+
+Then KPIs:
+
+New Requests — 3
+
+Active Jobs — 2
+
+Rating — ★4.8
+
+Below that:
+
+Incoming jobs
+
+Birthday catering
+
+Customer: Sarah M.
+Kira • 2.7 km away
+Today • 2:00 PM
+Budget: UGX 50,000–80,000
+
+[View details] [Decline] [Accept Job]
+
+Don't expose the customer's precise home address before the workflow actually requires it.
+
+14. My Jobs
+
+Give jobs a proper lifecycle:
+
+REQUESTED
+   ↓
+ACCEPTED
+   ↓
+CONFIRMED
+   ↓
+TRAVELLING
+   ↓
+ARRIVED
+   ↓
+IN PROGRESS
+   ↓
+COMPLETED
+   ↓
+CUSTOMER CONFIRMED
+   ↓
+PAID
+
+Then exceptional states:
+
+DECLINED
+CANCELLED
+DISPUTED
+REFUNDED
+
+This becomes extremely valuable administratively.
+
+15. Individual job screen
+
+Once accepted:
+
+Job #HS-20481
+
+Family Dinner
+
+Customer
+Sarah M.
+
+Appointment
+24 September
+2:30 PM
+
+Location
+Kira, Wakiso
+[Open map]
+
+Customer description
+"Prepare decent meals for a family of five."
+
+Photos
+[photo] [photo]
+
+Agreed price
+UGX 65,000
+
+Payment
+Secured
+
+[Call] [Message]
+
+[Start Journey]
+
+Once there:
+
+[I've Arrived]
+
+Then:
+
+[Start Job]
+
+And finally:
+
+[Complete Job]
+
+That creates an auditable service history rather than relying on phone calls.

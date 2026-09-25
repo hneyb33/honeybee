@@ -6,7 +6,7 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-ink-950" />
+                        <img src="{{ asset('images/logo.jpeg') }}" alt="Honeybee" class="block h-9 w-auto object-contain">
                     </a>
                 </div>
 

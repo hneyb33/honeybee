@@ -3,6 +3,7 @@
 namespace App\Livewire\Listings;
 
 use App\Models\Escort;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -13,8 +14,15 @@ class ListingGrid extends Component
 
     public string $tier = 'all';
 
-    /** @var array<string, string|null> */
+    /** @var array<string, mixed> */
     public array $searchFilters = [];
+
+    public $escorts;
+
+    public function mount(): void
+    {
+        $this->escorts = $this->baseQuery()->latest()->take(12)->get();
+    }
 
     #[On('tier-changed')]
     public function updateTier(string $tier): void
@@ -32,27 +40,39 @@ class ListingGrid extends Component
 
     public function render()
     {
-        $query = Escort::query()
-            ->when($this->tier !== 'all', fn ($query) => $query->where('tier', $this->tier))
-            ->when($this->searchFilters['location'] ?? null, function ($query, string $location) {
-                $query->where(function ($query) use ($location) {
+        return view('livewire.listings.listing-grid', [
+            'popular' => $this->baseQuery()->paginate(12),
+        ]);
+    }
+
+    private function baseQuery(): Builder
+    {
+        $latitude = isset($this->searchFilters['latitude']) ? (float) $this->searchFilters['latitude'] : null;
+        $longitude = isset($this->searchFilters['longitude']) ? (float) $this->searchFilters['longitude'] : null;
+
+        return Escort::query()
+            ->visibleTo(auth()->user())
+            ->when($this->tier === 'vip' || $this->tier === 'premium', fn (Builder $query) => $query->where('kind', Escort::KIND_ESCORT)->where('escort_tier', $this->tier))
+            ->when($this->tier === 'service', fn (Builder $query) => $query->where('kind', Escort::KIND_SERVICE))
+            ->when($this->searchFilters['location'] ?? null, function (Builder $query, string $location) {
+                $query->where(function (Builder $query) use ($location) {
                     $query->where('neighborhood', 'like', "%{$location}%")
                         ->orWhere('city', 'like', "%{$location}%")
                         ->orWhere('title', 'like', "%{$location}%");
                 });
             })
-            ->when($this->searchFilters['type'] ?? null, fn ($query, string $type) => $query->where('tier', $type))
-            ->when($this->searchFilters['budget'] ?? null, function ($query, string $budget) {
-                [$min, $max] = array_pad(explode('-', $budget), 2, null);
-                $query->when($min !== null, fn ($query) => $query->where('monthly_price', '>=', (int) $min))
-                    ->when($max !== null, fn ($query) => $query->where('monthly_price', '<=', (int) $max));
-            })
-            ->orderByDesc('is_featured')
-            ->orderByDesc('rating');
-
-        return view('livewire.listings.listing-grid', [
-            'popular' => (clone $query)->paginate(10),
-            'apartments' => Escort::query()->where('tier', 'apartment')->orderByDesc('rating')->limit(5)->get(),
-        ]);
+            ->when($this->searchFilters['kind'] ?? null, fn (Builder $query, string $kind) => $query->where('kind', $kind))
+            ->when($this->searchFilters['service_type'] ?? null, fn (Builder $query, string $type) => $query->where('service_type', $type))
+            ->when($latitude && $longitude, function (Builder $query) use ($latitude, $longitude) {
+                $query->whereNotNull('latitude')
+                    ->select('escorts.*')
+                    ->selectRaw(
+                        '(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) as distance_km',
+                        [$latitude, $longitude, $latitude],
+                    )
+                    ->orderBy('distance_km');
+            }, function (Builder $query) {
+                $query->orderByDesc('is_featured')->latest();
+            });
     }
 }

@@ -1,57 +1,40 @@
 <x-guest-layout>
-    <div class="mb-8 rounded-2xl border border-gold-400/20 bg-gold-300/10 p-6 text-ink-950">
-        <h1 class="font-display text-3xl font-semibold">Join HoneyBee</h1>
-        <p class="mt-3 text-sm leading-6 text-ebony-900/70">Register your escort account to manage your profile, publish your service listing, and book new clients.</p>
-    </div>
+    @php
+        $copy = [
+            'client' => ['Join as a client', 'Browse verified profiles, request bookings, and leave reviews.'],
+            'model' => ['Join as a model', 'Create an escort profile with your services, rates, and photos.'],
+            'specialist' => ['Join as a specialist', 'Offer a home service such as private chef, laundry, or massage.'],
+        ][$role];
+    @endphp
+    <h1 class="text-2xl font-semibold text-neutral-900">{{ $copy[0] }}</h1>
+    <p class="mt-2 text-sm text-neutral-600">{{ $copy[1] }}</p>
 
-    <form method="POST" action="{{ route('register') }}">
+    <form method="POST" action="{{ route('register') }}" class="mt-6">
         @csrf
+        <input type="hidden" name="account_type" value="{{ $role }}">
 
-        <!-- Name -->
         <div>
             <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
+            <x-text-input id="name" class="mt-1 block w-full" type="text" name="name" :value="old('name')" required autofocus />
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
-
-        <!-- Email Address -->
         <div class="mt-4">
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
+            <x-text-input id="email" class="mt-1 block w-full" type="email" name="email" :value="old('email')" required />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
-
-        <!-- Password -->
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
+            <x-text-input id="password" class="mt-1 block w-full" type="password" name="password" required />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
-
-        <!-- Confirm Password -->
         <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+            <x-input-label for="password_confirmation" :value="__('Confirm password')" />
+            <x-text-input id="password_confirmation" class="mt-1 block w-full" type="password" name="password_confirmation" required />
         </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <a class="rounded-md text-sm text-ebony-900/70 underline hover:text-ink-950 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-offset-2" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
-
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
+        <div class="mt-6 flex items-center justify-between">
+            <a href="{{ route('register') }}" class="text-sm text-neutral-600 underline">Back</a>
+            <x-primary-button>Create account</x-primary-button>
         </div>
     </form>
 </x-guest-layout>

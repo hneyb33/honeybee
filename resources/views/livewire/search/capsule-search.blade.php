@@ -1,48 +1,27 @@
-<div class="px-5 pb-5 lg:px-10 lg:pb-7">
-    <div class="mx-auto max-w-4xl" x-data="{ openSegment: null }">
-        <div class="flex flex-col overflow-visible rounded-3xl border border-gold-400/25 bg-ebony-850 shadow-2xl shadow-ink-950/10 md:flex-row md:rounded-full">
-            <div class="capsule-segment border-b md:border-r md:border-b-0 md:rounded-l-full" @click="openSegment = openSegment === 'location' ? null : 'location'">
-                <div class="text-[11px] font-extrabold uppercase tracking-wide text-gold-400">Location</div>
-                <div @class(['truncate text-sm', $location ? 'text-ink-950' : 'text-ebony-900/55'])>{{ $location ?: 'Search Kampala, Entebbe...' }}</div>
-                <div x-show="openSegment === 'location'" x-collapse @click.outside="openSegment = null" class="glass-panel absolute left-5 right-5 mt-4 rounded-2xl p-4 md:left-auto md:right-auto md:w-80">
-                    <input type="text" wire:model.live.debounce.300ms="location" placeholder="Kololo, Naguru, Bukoto..." class="w-full rounded-xl border border-gold-400/25 bg-ivory-50 px-4 py-3 text-sm text-ink-950 placeholder:text-ebony-900/40">
-                </div>
-            </div>
-
-            <div class="capsule-segment border-b md:border-r md:border-b-0" @click="openSegment = openSegment === 'date' ? null : 'date'">
-                <div class="text-[11px] font-extrabold uppercase tracking-wide text-gold-400">Taste the honey</div>
-                <div @class(['truncate text-sm', $moveInDate ? 'text-ink-950' : 'text-ebony-900/55'])>{{ $moveInDate ?: 'Add date' }}</div>
-                <div x-show="openSegment === 'date'" x-collapse @click.outside="openSegment = null" class="glass-panel absolute left-5 right-5 mt-4 rounded-2xl p-4 md:left-auto md:right-auto">
-                    <input type="date" wire:model.live="moveInDate" class="rounded-xl border border-gold-400/25 bg-ivory-50 px-4 py-3 text-sm text-ink-950">
-                </div>
-            </div>
-
-            <label class="capsule-segment border-b md:border-r md:border-b-0">
-                <span class="block text-[11px] font-extrabold uppercase tracking-wide text-gold-400">Type</span>
-                <select wire:model.live="propertyType" class="w-full appearance-none bg-transparent p-0 text-sm text-ebony-900 focus:outline-none">
-                    <option class="text-ink-950" value="">Straight</option>
-                    <option class="text-ink-950" value="lesbian">Lesbian</option>
-                    <option class="text-ink-950" value="gay">Gay</option>
-                    <option class="text-ink-950" value="Bi-sexual">Bi-sexual</option>
-                </select>
-            </label>
-
-            <label class="capsule-segment border-b md:border-0">
-                <span class="block text-[11px] font-extrabold uppercase tracking-wide text-gold-400">Budget</span>
-                <select wire:model.live="budget" class="w-full appearance-none bg-transparent p-0 text-sm text-ebony-900 focus:outline-none">
-                    <option class="text-ink-950" value="">Any</option>
-                    <option class="text-ink-950" value="0-100000">Under 100K</option>
-                    <option class="text-ink-950" value="100000-300000">100K - 300K</option>
-                    <option class="text-ink-950" value="300000-999999999">300K+</option>
-                    <option class="text-ink-950" value="Bargain">Custom</option>
-                </select>
-            </label>
-
-            <button wire:click="search" type="button" class="m-3 inline-flex items-center justify-center gap-2 rounded-full bg-gold-400 px-6 py-3 text-sm font-extrabold text-ink-950 transition hover:bg-gold-300" wire:loading.attr="disabled">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <span wire:loading.remove>Search</span>
-                <span wire:loading>Searching</span>
-            </button>
-        </div>
+<div class="px-6 pb-6">
+    <div class="mx-auto flex max-w-3xl items-center rounded-full border border-neutral-300 bg-white py-2 pl-6 pr-2 shadow-sm">
+        <label class="min-w-0 flex-1">
+            <span class="block text-[11px] font-semibold text-neutral-900">Where</span>
+            <input type="text" wire:model.live.debounce.300ms="location" placeholder="Kampala, Kololo, Entebbe" class="w-full border-0 bg-transparent p-0 text-sm text-neutral-600 placeholder:text-neutral-400 focus:ring-0">
+        </label>
+        <label class="hidden min-w-32 border-l border-neutral-200 px-4 sm:block">
+            <span class="block text-[11px] font-semibold text-neutral-900">Kind</span>
+            <select wire:model.live="kind" class="w-full border-0 bg-transparent p-0 text-sm text-neutral-600 focus:ring-0">
+                <option value="">Any</option>
+                <option value="escort">Escort</option>
+                <option value="service">Service</option>
+            </select>
+        </label>
+        <label class="hidden min-w-40 border-l border-neutral-200 px-4 md:block">
+            <span class="block text-[11px] font-semibold text-neutral-900">Service</span>
+            <select wire:model.live="serviceType" class="w-full border-0 bg-transparent p-0 text-sm text-neutral-600 focus:ring-0">
+                <option value="">Any</option>
+                <option value="private_chef">Private chef</option>
+                <option value="home_laundry">Home laundry</option>
+                <option value="private_massage">Private massage</option>
+            </select>
+        </label>
+        <button type="button" wire:click="search" class="ml-2 rounded-full bg-neutral-900 px-4 py-3 text-sm font-semibold text-white">Search</button>
+        <button type="button" class="ml-2 hidden rounded-full border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-900 sm:inline" x-data @click="navigator.geolocation.getCurrentPosition((pos) => { $wire.set('latitude', pos.coords.latitude); $wire.set('longitude', pos.coords.longitude); $wire.search(); })">Near you</button>
     </div>
 </div>

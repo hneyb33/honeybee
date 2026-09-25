@@ -12,16 +12,16 @@
     --bg-page: var(--color-ivory-50);
     --text-page: var(--color-ink-950);
     --accent-highlight: var(--color-gold-400);
-    --color-ink-950: #111111;
-    --color-ebony-900: #5f5d59;
-    --color-ebony-850: #7a7773;
-    --color-ivory-50: #f8f3ea;
-    --color-gold-300: #e8bf6b;
-    --color-gold-400: #d8a443;
-    --color-gold-500: #c6912a;
-    --color-caramel-500: #d8b69f;
-    --color-condo-400: #d6d3d1;
-    --color-apartment-400: #cbb19a;
+    --color-ink-950: #222222;
+    --color-ebony-900: #717171;
+    --color-ebony-850: #f7f7f7;
+    --color-ivory-50: #ffffff;
+    --color-gold-300: #222222;
+    --color-gold-400: #222222;
+    --color-gold-500: #000000;
+    --color-caramel-500: #dddddd;
+    --color-condo-400: #ebebeb;
+    --color-apartment-400: #c1c1c1;
 }
 
 @layer base {
@@ -57,7 +57,7 @@
     }
 
     .capsule-segment {
-        @apply min-w-38 cursor-pointer border-gold-400/20 bg-condo-400/10 px-6 py-3 transition-colors text-ink-950 hover:bg-ivory-50/10;
+        @apply min-w-38 cursor-pointer border-gold-400/20 bg-ink-950 px-6 py-3 transition-colors text-ink-950 hover:bg-ivory-50/10;
     }
 
     .tier-badge {

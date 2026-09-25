@@ -10,22 +10,24 @@ class CapsuleSearch extends Component
     #[Url(as: 'q')]
     public string $location = '';
 
-    #[Url(as: 'type')]
-    public string $propertyType = '';
+    #[Url(as: 'kind')]
+    public string $kind = '';
 
-    #[Url(as: 'budget')]
-    public string $budget = '';
+    #[Url(as: 'service')]
+    public string $serviceType = '';
 
-    #[Url(as: 'move_in')]
-    public ?string $moveInDate = null;
+    public ?float $latitude = null;
+
+    public ?float $longitude = null;
 
     public function search(): void
     {
         $this->dispatch('filters-updated', filters: [
             'location' => $this->location,
-            'type' => $this->propertyType,
-            'budget' => $this->budget,
-            'moveInDate' => $this->moveInDate,
+            'kind' => $this->kind,
+            'service_type' => $this->serviceType,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
         ]);
     }
 

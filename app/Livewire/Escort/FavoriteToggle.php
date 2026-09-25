@@ -11,6 +11,8 @@ class FavoriteToggle extends Component
 
     public bool $isFavorited = false;
 
+    public bool $inline = false;
+
     public function mount(Escort $escort): void
     {
         $this->escort = $escort;

@@ -1,51 +1,24 @@
 @props(['escort'])
 
 <a href="{{ route('escort.show', $escort) }}" class="group block">
-    <div class="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-ebony-850 shadow-lg shadow-ink-950/10 ring-1 ring-gold-400/15">
-        <span @class([
-            'tier-badge absolute left-3 top-3 z-10',
-            'text-condo-400' => $escort->tier === '',
-            'text-gold-400' => $escort->tier === 'vip',
-            'text-apartment-400' => $escort->tier === 'corporate',
-        ])>
-            <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
-            {{ ucfirst($escort->tier) }}
-        </span>
-
+    <div class="relative mb-3 aspect-square overflow-hidden rounded-xl bg-neutral-100">
+        <span class="absolute left-3 top-3 z-10 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-neutral-900 shadow-sm">{{ $escort->tag() }}</span>
         <livewire:escort.favorite-toggle :escort="$escort" :key="'favorite-'.$escort->id" />
-
         @if ($escort->cover_image)
-            <img src="{{ $escort->cover_image }}" alt="{{ $escort->title }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+            <img src="{{ $escort->cover_image }}" alt="{{ $escort->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
         @else
-            <div class="h-full w-full bg-gradient-to-br from-gold-400/25 via-ebony-850 to-ink-950"></div>
-        @endif
-        <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink-950/45 to-transparent"></div>
-    </div>
-
-    <div class="flex items-baseline justify-between gap-3 text-sm font-bold">
-        <span class="truncate">{{ $escort->title }}</span>
-        <span class="flex shrink-0 items-center gap-1 font-semibold">
-            <svg class="h-3 w-3 fill-gold-400" viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z"/></svg>
-            {{ $escort->review_count > 0 ? number_format((float) $escort->rating, 2) : 'New' }}
-        </span>
-    </div>
-    <div class="mt-3 flex flex-wrap gap-2 text-xs text-ebony-900/75">
-        @if ($escort->age)
-            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ $escort->age }} yrs</span>
-        @endif
-        @if ($escort->gender)
-            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ ucfirst($escort->gender) }}</span>
-        @endif
-        @if ($escort->height)
-            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ $escort->height }}</span>
-        @endif
-        @if ($escort->availability)
-            <span class="rounded-full border border-gold-400/20 bg-ebony-850 px-2 py-1">{{ $escort->availability }}</span>
+            <div class="flex h-full w-full items-center justify-center text-sm text-neutral-400">No photo</div>
         @endif
     </div>
-    <div class="mt-3 truncate text-sm text-ebony-900/70">{{ $escort->summary_line }}</div>
-    <div class="mt-3 flex items-center justify-between gap-3 text-sm">
-        <span class="font-semibold">{{ $escort->price_label }}</span>
-        <span class="truncate text-ebony-900/60">{{ $escort->neighborhood }}, {{ $escort->city }}</span>
+    <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+            <div class="truncate font-medium text-neutral-900">{{ $escort->title }}</div>
+            <div class="truncate text-sm text-neutral-500">{{ $escort->serviceLabel() ?: $escort->neighborhood }}, {{ $escort->city }}</div>
+            @if (isset($escort->distance_km))
+                <div class="text-sm text-neutral-500">{{ number_format((float) $escort->distance_km, 1) }} km away</div>
+            @endif
+        </div>
+        <div class="shrink-0 text-sm text-neutral-900">{{ $escort->review_count > 0 ? number_format((float) $escort->rating, 1) : 'New' }}</div>
     </div>
+    <div class="mt-1 text-sm text-neutral-900"><span class="font-semibold">{{ $escort->price_label }}</span> <span class="text-neutral-500">/ hour</span></div>
 </a>
