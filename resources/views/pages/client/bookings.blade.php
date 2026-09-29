@@ -1,6 +1,6 @@
 <x-layouts.app title="Your bookings - Honeybee">
     <section class="mx-auto max-w-3xl px-6 py-10">
-        <h1 class="text-3xl font-semibold text-neutral-900">Your bookings</h1>
+        <h1 class="inline-flex items-center gap-2 text-3xl font-semibold text-neutral-900"><x-lucide name="calendar" /> Your bookings</h1>
         @if (session('status'))
             <p class="mt-4 rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-800">{{ session('status') }}</p>
         @endif

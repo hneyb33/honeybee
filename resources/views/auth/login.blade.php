@@ -1,7 +1,7 @@
 <x-guest-layout>
-    <div class="mb-8 rounded-2xl border border-neutral-200 bg-neutral-900/10 p-6 text-neutral-900">
-        <h1 class="font-display text-3xl font-semibold">Welcome back</h1>
-        <p class="mt-3 text-sm leading-6 text-ebony-900/70">Login to update your escort profile, manage availability, and respond to new bookings.</p>
+    <div class="mb-8">
+        <h1 class="font-display text-3xl font-semibold text-[#0f0a0a] dark:text-white">Welcome back</h1>
+        <p class="mt-3 text-sm leading-6 text-[#767f88]">Login to update your escort profile, manage availability, and respond to new bookings.</p>
     </div>
 
     <!-- Session Status -->
@@ -19,10 +19,7 @@
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+            <x-password-input id="password" name="password" class="mt-1" autocomplete="current-password" />
 
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
@@ -30,20 +27,20 @@
         <!-- Remember Me -->
         <div class="block mt-4">
             <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gold-400/30 bg-white text-gold-500 shadow-sm focus:ring-gold-400" name="remember">
-                <span class="ms-2 text-sm text-ebony-900/70">{{ __('Remember me') }}</span>
+                <input id="remember_me" type="checkbox" class="rounded border-[#767f88] bg-white text-[#0f0a0a] shadow-sm focus:ring-[#767f88]" name="remember">
+                <span class="ms-2 text-sm text-[#767f88]">{{ __('Remember me') }}</span>
             </label>
         </div>
 
         <div class="flex items-center justify-end mt-4">
             @if (Route::has('password.request'))
-                <a class="rounded-md text-sm text-ebony-900/70 underline hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:ring-offset-2" href="{{ route('password.request') }}">
+                <a class="rounded-md text-sm text-[#767f88] underline hover:text-[#0f0a0a] focus:outline-none focus:ring-2 focus:ring-[#767f88] focus:ring-offset-2 dark:hover:text-white" href="{{ route('password.request') }}">
                     {{ __('Forgot your password?') }}
                 </a>
             @endif
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
+            <x-primary-button class="ms-3 gap-2">
+                <x-lucide name="log-in" /> {{ __('Log in') }}
             </x-primary-button>
         </div>
     </form>

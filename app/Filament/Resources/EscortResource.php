@@ -8,11 +8,14 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use App\Support\UgandaLocations;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -49,12 +52,38 @@ class EscortResource extends Resource
             ])->required(),
             Select::make('build')->options(array_combine(Escort::BODY_TYPES, Escort::BODY_TYPES)),
             Select::make('sexual_orientation')->options(array_combine(Escort::ORIENTATIONS, Escort::ORIENTATIONS)),
-            TextInput::make('city')->required(),
-            TextInput::make('neighborhood'),
+            Select::make('nationality')->options(array_combine(Escort::NATIONALITIES, Escort::NATIONALITIES))->searchable(),
+            Select::make('city')
+                ->options(fn (): array => array_combine(UgandaLocations::cities(), UgandaLocations::cities()))
+                ->searchable()
+                ->live()
+                ->required()
+                ->afterStateUpdated(fn (Set $set) => $set('neighborhood', null)),
+            Select::make('neighborhood')
+                ->label('Area')
+                ->options(function (Get $get): array {
+                    $areas = UgandaLocations::areas((string) ($get('city') ?: 'Kampala'));
+
+                    return array_combine($areas, $areas);
+                })
+                ->searchable()
+                ->required(),
+            CheckboxList::make('languages')
+                ->options(array_combine(Escort::LANGUAGES, Escort::LANGUAGES))
+                ->columns(2)
+                ->formatStateUsing(function ($state): array {
+                    if (! is_array($state) || $state === []) {
+                        return [];
+                    }
+
+                    return array_is_list($state) ? array_values($state) : array_keys($state);
+                }),
             TextInput::make('hourly_rate')->numeric()->label('UGX per hour')->required(),
             TextInput::make('phone'),
+            Select::make('whatsapp_code')->options(Escort::DIAL_CODES)->default('+256'),
             TextInput::make('whatsapp_number'),
-            TextInput::make('telegram'),
+            Select::make('telegram_code')->options(Escort::DIAL_CODES)->default('+256'),
+            TextInput::make('telegram')->label('Telegram number'),
             CheckboxList::make('services_offered')->options(array_combine(Escort::offeredServices(), Escort::offeredServices()))->columns(2),
             Select::make('verification_status')->options([
                 'pending' => 'Pending',
@@ -75,7 +104,12 @@ class EscortResource extends Resource
                 Tables\Columns\TextColumn::make('title')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('escort_tier')->badge(),
                 Tables\Columns\TextColumn::make('verification_status')->badge()->sortable(),
+                Tables\Columns\TextColumn::make('nationality')->toggleable(),
                 Tables\Columns\TextColumn::make('city')->searchable(),
+                Tables\Columns\TextColumn::make('neighborhood')->label('Area')->searchable(),
+                Tables\Columns\TextColumn::make('whatsapp_number')
+                    ->label('WhatsApp')
+                    ->formatStateUsing(fn ($state, Escort $record): string => trim(($record->whatsapp_code ?: '+256').' '.$state)),
                 Tables\Columns\TextColumn::make('hourly_rate')->label('UGX/hour'),
             ])
             ->recordActions([

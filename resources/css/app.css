@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../app/Livewire/**/*.php';
 @source '../../resources/**/*.blade.php';
 @source '../../resources/**/*.js';
@@ -9,37 +11,52 @@
 @theme {
     --font-display: 'Fraunces', 'Georgia', serif;
     --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-    --bg-page: var(--color-ivory-50);
-    --text-page: var(--color-ink-950);
-    --accent-highlight: var(--color-gold-400);
-    --color-ink-950: #222222;
-    --color-ebony-900: #717171;
-    --color-ebony-850: #f7f7f7;
+    --bg-page: #ffffff;
+    --text-page: #0f0a0a;
+    --accent-highlight: #0f0a0a;
+    --color-ink-950: #0f0a0a;
+    --color-ebony-900: #767f88;
+    --color-ebony-850: #f4f5f6;
     --color-ivory-50: #ffffff;
-    --color-gold-300: #222222;
-    --color-gold-400: #222222;
-    --color-gold-500: #000000;
-    --color-caramel-500: #dddddd;
-    --color-condo-400: #ebebeb;
-    --color-apartment-400: #c1c1c1;
+    --color-gold-300: #767f88;
+    --color-gold-400: #0f0a0a;
+    --color-gold-500: #0f0a0a;
+    --color-caramel-500: #ffffff;
+    --color-condo-400: #e6e8ea;
+    --color-apartment-400: #767f88;
 }
 
 @layer base {
     html {
         scroll-behavior: smooth;
+        color-scheme: light;
+    }
+
+    html.dark {
+        color-scheme: dark;
+    }
+
+    [x-cloak] {
+        display: none !important;
     }
 
     body {
-        background-color: var(--bg-page);
-        color: var(--text-page);
+        background-color: #ffffff;
+        color: #0f0a0a;
         font-family: var(--font-sans);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
 
+    html.dark body {
+        background-color: #0f0a0a;
+        color: #ffffff;
+    }
+
     button,
     input,
-    select {
+    select,
+    textarea {
         font: inherit;
     }
 
@@ -47,22 +64,94 @@
     button:focus-visible,
     input:focus-visible,
     select:focus-visible {
-        @apply outline-2 outline-offset-2 outline-gold-400;
+        outline: 2px solid #767f88;
+        outline-offset: 2px;
     }
 }
 
 @layer components {
     .glass-panel {
-        @apply border border-gold-400/20 bg-ivory-50/5 text-ink-950 shadow-2xl shadow-ink-950/30 backdrop-blur-xl;
+        @apply border border-condo-400 bg-ivory-50 text-ink-950 shadow-sm;
     }
 
     .capsule-segment {
-        @apply min-w-38 cursor-pointer border-gold-400/20 bg-ink-950 px-6 py-3 transition-colors text-ink-950 hover:bg-ivory-50/10;
+        @apply min-w-38 cursor-pointer border-condo-400 bg-ivory-50 px-6 py-3 text-ink-950 transition-colors hover:bg-ebony-850;
     }
 
     .tier-badge {
-        @apply inline-flex items-center gap-1.5 rounded-full bg-gold-300/15 px-3 py-1.5 text-ink-950 font-extrabold uppercase tracking-wide backdrop-blur-md;
+        @apply inline-flex items-center gap-1.5 rounded-full bg-ebony-850 px-3 py-1.5 font-extrabold uppercase tracking-wide text-ink-950;
     }
+}
+
+html.dark .bg-ivory-50 {
+    background-color: #0f0a0a;
+}
+
+html.dark .bg-white {
+    background-color: #1a1414;
+}
+
+html.dark .bg-ebony-850,
+html.dark .bg-neutral-50,
+html.dark .bg-neutral-100,
+html.dark .bg-slate-50 {
+    background-color: #241e1e;
+}
+
+html.dark .text-ink-950,
+html.dark .text-neutral-900,
+html.dark .text-neutral-800,
+html.dark .text-slate-900,
+html.dark .text-black {
+    color: #ffffff;
+}
+
+html.dark .text-ebony-900,
+html.dark .text-neutral-700,
+html.dark .text-neutral-600,
+html.dark .text-neutral-500,
+html.dark .text-neutral-400,
+html.dark .text-slate-500,
+html.dark .text-slate-600 {
+    color: #767f88;
+}
+
+html.dark .border-neutral-200,
+html.dark .border-neutral-300,
+html.dark .border-slate-200,
+html.dark .border-condo-400 {
+    border-color: rgba(118, 127, 136, 0.55);
+}
+
+html.dark .bg-neutral-900,
+html.dark .bg-gold-400,
+html.dark .bg-gold-500 {
+    background-color: #ffffff;
+    color: #0f0a0a;
+}
+
+html.dark .bg-neutral-700,
+html.dark .bg-neutral-800 {
+    background-color: #767f88;
+    color: #ffffff;
+}
+
+html.dark .hover\:bg-neutral-100:hover,
+html.dark .hover\:bg-neutral-50:hover,
+html.dark .hover\:bg-ebony-850:hover {
+    background-color: #2a2424;
+}
+
+html.dark .hover\:bg-neutral-900:hover,
+html.dark .hover\:bg-gold-300:hover,
+html.dark .hover\:bg-gold-400:hover {
+    background-color: #767f88;
+    color: #ffffff;
+}
+
+html.dark .hover\:text-neutral-900:hover,
+html.dark .hover\:text-ink-950:hover {
+    color: #ffffff;
 }
 
 @media (prefers-reduced-motion: reduce) {

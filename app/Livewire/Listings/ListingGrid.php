@@ -21,6 +21,20 @@ class ListingGrid extends Component
 
     public function mount(): void
     {
+        $location = (string) request()->query('where', '');
+        $category = request()->query('category');
+        $service = request()->query('service');
+
+        if ($location !== '' || $category !== null || $service !== null) {
+            $this->searchFilters = [
+                'location' => $location,
+                'category' => (string) ($category ?? ''),
+                'service_type' => (string) ($service ?? ''),
+                'latitude' => null,
+                'longitude' => null,
+            ];
+        }
+
         $this->escorts = $this->baseQuery()->latest()->take(12)->get();
     }
 
@@ -55,22 +69,52 @@ class ListingGrid extends Component
             ->when($this->tier === 'vip' || $this->tier === 'premium', fn (Builder $query) => $query->where('kind', Escort::KIND_ESCORT)->where('escort_tier', $this->tier))
             ->when($this->tier === 'service', fn (Builder $query) => $query->where('kind', Escort::KIND_SERVICE))
             ->when($this->searchFilters['location'] ?? null, function (Builder $query, string $location) {
-                $query->where(function (Builder $query) use ($location) {
-                    $query->where('neighborhood', 'like', "%{$location}%")
-                        ->orWhere('city', 'like', "%{$location}%")
-                        ->orWhere('title', 'like', "%{$location}%");
-                });
+                $parts = array_values(array_filter(preg_split('/\|+/', $location) ?: []));
+
+                if (count($parts) >= 2) {
+                    $query->where('city', 'like', '%'.$parts[0].'%')
+                        ->where('neighborhood', 'like', '%'.$parts[1].'%');
+                } elseif ($parts !== []) {
+                    $query->where(function (Builder $query) use ($parts) {
+                        $query->where('city', 'like', '%'.$parts[0].'%')
+                            ->orWhere('neighborhood', 'like', '%'.$parts[0].'%');
+                    });
+                }
             })
-            ->when($this->searchFilters['kind'] ?? null, fn (Builder $query, string $kind) => $query->where('kind', $kind))
-            ->when($this->searchFilters['service_type'] ?? null, fn (Builder $query, string $type) => $query->where('service_type', $type))
+            ->when(
+                ($this->searchFilters['category'] ?? null) || ($this->searchFilters['service_type'] ?? null),
+                function (Builder $query) {
+                    $category = $this->searchFilters['category'] ?? null;
+                    $service = $this->searchFilters['service_type'] ?? null;
+
+                    $query->where(function (Builder $query) use ($category, $service) {
+                        if ($category) {
+                            $query->orWhere(function (Builder $escort) use ($category) {
+                                $escort->where('kind', Escort::KIND_ESCORT)
+                                    ->whereIn('sexual_orientation', Escort::orientationMatches($category));
+                            });
+                        }
+
+                        if ($service) {
+                            $aliases = array_values(array_unique([
+                                $service,
+                                str_replace('_', '-', $service),
+                                str_replace('-', '_', $service),
+                            ]));
+
+                            $query->orWhere(function (Builder $serviceQuery) use ($aliases) {
+                                $serviceQuery->where('kind', Escort::KIND_SERVICE)
+                                    ->whereIn('service_type', $aliases);
+                            });
+                        }
+                    });
+                },
+            )
             ->when($latitude && $longitude, function (Builder $query) use ($latitude, $longitude) {
-                $query->whereNotNull('latitude')
-                    ->select('escorts.*')
-                    ->selectRaw(
-                        '(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) as distance_km',
-                        [$latitude, $longitude, $latitude],
-                    )
-                    ->orderBy('distance_km');
+                $query->select('escorts.*')->selectRaw(
+                    'CASE WHEN latitude IS NULL OR longitude IS NULL THEN NULL ELSE (6371 * acos(MIN(1, MAX(-1, cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))))) END as distance_km',
+                    [$latitude, $longitude, $latitude],
+                )->orderByRaw('CASE WHEN distance_km IS NULL THEN 1 ELSE 0 END')->orderBy('distance_km');
             }, function (Builder $query) {
                 $query->orderByDesc('is_featured')->latest();
             });

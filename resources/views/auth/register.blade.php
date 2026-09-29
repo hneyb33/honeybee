@@ -25,16 +25,16 @@
         </div>
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="mt-1 block w-full" type="password" name="password" required />
+            <x-password-input id="password" name="password" class="mt-1" autocomplete="new-password" />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
         <div class="mt-4">
             <x-input-label for="password_confirmation" :value="__('Confirm password')" />
-            <x-text-input id="password_confirmation" class="mt-1 block w-full" type="password" name="password_confirmation" required />
+            <x-password-input id="password_confirmation" name="password_confirmation" class="mt-1" autocomplete="new-password" />
         </div>
         <div class="mt-6 flex items-center justify-between">
             <a href="{{ route('register') }}" class="text-sm text-neutral-600 underline">Back</a>
-            <x-primary-button>Create account</x-primary-button>
+            <x-primary-button class="gap-2"><x-lucide name="user-plus" /> Create account</x-primary-button>
         </div>
     </form>
 </x-guest-layout>

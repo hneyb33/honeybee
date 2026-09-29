@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5e89e54f482d0cf3ec41ab8969db7c27",
+    "content-hash": "c418bf089217b2f460ae8718aed8114d",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -1552,6 +1552,75 @@
                 }
             ],
             "time": "2025-12-03T09:33:47+00:00"
+        },
+        {
+            "name": "gp10devhts/ug-village-locations",
+            "version": "v1.0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/GP10DevHTS/ug-village-locations",
+                "reference": "cd3c200049e56e2a4262a5d2824309f9f0387251"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/GP10DevHTS/ug-village-locations/zipball/cd3c200049e56e2a4262a5d2824309f9f0387251",
+                "reference": "cd3c200049e56e2a4262a5d2824309f9f0387251",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^10.0||^11.0||^12.0||^13.0",
+                "php": "^8.2|^8.3|^8.4",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "require-dev": {
+                "larastan/larastan": "^3.0",
+                "laravel/pint": "^1.14",
+                "nunomaduro/collision": "^8.8",
+                "orchestra/testbench": "^11.0.0||^10.0.0||^9.0.0",
+                "pestphp/pest": "^3.0",
+                "pestphp/pest-plugin-arch": "^3.1",
+                "pestphp/pest-plugin-laravel": "^3.0",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan-deprecation-rules": "^2.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "spatie/laravel-ray": "^1.35"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "UgVillageLocations": "Gp10devhts\\UgVillageLocations\\Facades\\UgVillageLocations"
+                    },
+                    "providers": [
+                        "Gp10devhts\\UgVillageLocations\\UgVillageLocationsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Gp10devhts\\UgVillageLocations\\": "src/",
+                    "Gp10devhts\\UgVillageLocations\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ahairwe Jordan",
+                    "email": "jordankatetegirwe@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "village locations package for uganda",
+            "homepage": "https://github.com/gp10devhts/ug-village-locations",
+            "keywords": [
+                "gp10devhts",
+                "laravel",
+                "ug-village-locations"
+            ],
+            "time": "2026-06-30T07:48:23+00:00"
         },
         {
             "name": "graham-campbell/result-type",
@@ -11951,8 +12020,8 @@
     "platform": {
         "php": "^8.4",
         "ext-intl": "*",
-        "ext-zip": "*",
-        "ext-pdo_pgsql": "*"
+        "ext-pdo_pgsql": "*",
+        "ext-zip": "*"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"

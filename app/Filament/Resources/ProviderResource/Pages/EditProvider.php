@@ -21,4 +21,9 @@ class EditProvider extends EditRecord
 
         return ProviderResource::prepareRecord($data);
     }
+
+    protected function afterSave(): void
+    {
+        ProviderResource::syncServices($this->record);
+    }
 }

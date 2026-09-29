@@ -10,6 +10,12 @@
             </label>
         </section>
         <section class="space-y-3">
+            <h2 class="text-lg font-semibold">Merchant codes</h2>
+            <p class="text-sm text-gray-500">These codes appear on the subscription payment page. Leave both blank to activate plans without collecting payment. A saved code overrides the Railway variable for that network.</p>
+            <label class="block text-sm">MTN MoMoPay merchant code<input wire:model="data.mtn_momo_merchant_code" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
+            <label class="block text-sm">Airtel Money Pay merchant code<input wire:model="data.airtel_money_merchant_code" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
+        </section>
+        <section class="space-y-3">
             <h2 class="text-lg font-semibold">Payment channels</h2>
             <label class="block text-sm">Mobile money name<input wire:model="data.mobile_money_name" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
             <label class="block text-sm">Mobile money number<input wire:model="data.mobile_money_number" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
@@ -20,7 +26,7 @@
         <section class="space-y-3">
             <h2 class="text-lg font-semibold">Subscription prices (UGX)</h2>
             <p class="text-sm text-gray-500">Daily, monthly, yearly, and custom periods on the public subscription page use these prices.</p>
-            @foreach (['client_premium' => 'Client premium', 'specialist' => 'Specialist'] as $plan => $label)
+            @foreach (['client_premium' => 'Client premium', 'escort_vip' => 'VIP escort', 'specialist' => 'Specialist'] as $plan => $label)
                 <h3 class="font-medium">{{ $label }}</h3>
                 <div class="grid gap-3 md:grid-cols-2">
                     <label class="text-sm">Daily<input wire:model="data.{{ $plan }}_daily_price" class="mt-1 w-full rounded-lg border px-3 py-2"></label>

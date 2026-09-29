@@ -7,6 +7,7 @@
 
         <title>{{ config('app.name', 'HoneyBee Escorts') }}</title>
         <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
+        @include('partials.theme-script')
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">

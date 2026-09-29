@@ -41,10 +41,24 @@ class RoleAccessTest extends TestCase
 
         Escort::create($this->profile($specialist, [
             'verification_status' => 'verified',
-            'slug' => 'unsubscribed-profile',
+            'escort_tier' => 'premium',
+            'slug' => 'free-premium',
+        ]));
+        Escort::create($this->profile($specialist, [
+            'verification_status' => 'verified',
+            'escort_tier' => 'vip',
+            'tier' => 'vip',
+            'slug' => 'unsubscribed-vip',
+        ]));
+        Escort::create($this->profile($specialist, [
+            'verification_status' => 'verified',
+            'kind' => 'service',
+            'escort_tier' => null,
+            'service_type' => 'private_chef',
+            'slug' => 'unsubscribed-service',
         ]));
 
-        $this->assertSame(0, Escort::query()->published()->count());
+        $this->assertSame(['free-premium'], Escort::query()->published()->orderBy('slug')->pluck('slug')->all());
     }
 
     public function test_verified_subscribed_profiles_are_published(): void

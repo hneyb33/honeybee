@@ -2,22 +2,53 @@
 
 namespace App\Models;
 
+use App\Enums\SubscriptionStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'plan', 'period', 'price_amount', 'custom_days', 'status', 'starts_at', 'ends_at'])]
+#[Fillable(['user_id', 'plan', 'period', 'price_amount', 'custom_days', 'status', 'starts_at', 'ends_at', 'payment_id', 'activated_by', 'activated_at'])]
 class Subscription extends Model
 {
     public const PLAN_SPECIALIST = 'specialist';
 
     public const PLAN_CLIENT_PREMIUM = 'client_premium';
 
+    public const PLAN_ESCORT_VIP = 'escort_vip';
+
+    public static function planFor(User $user): ?string
+    {
+        if ($user->isClient()) {
+            return self::PLAN_CLIENT_PREMIUM;
+        }
+
+        if ($user->isModel()) {
+            return self::PLAN_ESCORT_VIP;
+        }
+
+        if ($user->isSpecialist()) {
+            return self::PLAN_SPECIALIST;
+        }
+
+        return null;
+    }
+
+    public static function activationMessage(string $plan): string
+    {
+        return match ($plan) {
+            self::PLAN_CLIENT_PREMIUM => 'Premium access is active.',
+            self::PLAN_ESCORT_VIP => 'VIP subscription is active. Submit your profile for verification to be listed.',
+            default => 'Specialist subscription is active. Submit your profile for verification to be listed.',
+        };
+    }
+
     protected function casts(): array
     {
         return [
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
+            'activated_at' => 'datetime',
             'price_amount' => 'integer',
             'custom_days' => 'integer',
         ];
@@ -26,6 +57,23 @@ class Subscription extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query
+            ->where('status', SubscriptionStatus::Active->value)
+            ->where(function (Builder $query) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function (Builder $query) {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            });
     }
 
     protected static function booted(): void
@@ -43,20 +91,26 @@ class Subscription extends Model
             return;
         }
 
-        if ($this->isCurrent()) {
-            if ($this->plan === self::PLAN_SPECIALIST && $user->isSpecialist()) {
-                $user->syncRoles(['provider_premium']);
-            }
+        $providerPlans = [self::PLAN_SPECIALIST, self::PLAN_ESCORT_VIP];
 
-            if ($this->plan === self::PLAN_CLIENT_PREMIUM && ($user->account_kind === 'client' || $user->isClient())) {
-                $user->syncRoles(['client_premium']);
+        if (in_array($this->plan, $providerPlans, true) && $user->isSpecialist()) {
+            $stillListed = $user->subscriptions()->whereIn('plan', $providerPlans)->active()->exists();
+
+            if ($this->isCurrent() || $stillListed) {
+                $user->syncRoles(['provider_premium']);
+            } elseif ($user->hasRole('provider_premium')) {
+                $user->syncRoles(['provider_free']);
             }
 
             return;
         }
 
-        if ($this->plan === self::PLAN_SPECIALIST && $user->hasRole('provider_premium')) {
-            $user->syncRoles(['provider_free']);
+        if ($this->isCurrent()) {
+            if ($this->plan === self::PLAN_CLIENT_PREMIUM && ($user->account_kind === 'client' || $user->isClient())) {
+                $user->syncRoles(['client_premium']);
+            }
+
+            return;
         }
 
         if ($this->plan === self::PLAN_CLIENT_PREMIUM && $user->hasRole('client_premium')) {

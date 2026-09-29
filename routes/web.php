@@ -12,7 +12,9 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Owner\EscortController as OwnerEscortController;
 use App\Http\Controllers\Owner\ProviderOnboardingController;
+use App\Http\Controllers\ReferenceConfirmationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SubscriptionPaymentController;
 use App\Models\Escort;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -44,11 +46,29 @@ Route::get('/escorts/{escort:slug}', function (Request $request, Escort $escort)
     }
 
     $owns = $request->user()?->id === $escort->user_id;
-    $published = $escort->isVerified() && $escort->owner?->hasActiveSpecialistSubscription();
+    $freePremium = $escort->kind === Escort::KIND_ESCORT && $escort->escort_tier === Escort::TIER_PREMIUM;
+    $published = $escort->isVerified() && ($freePremium || $escort->owner?->hasActiveVipSubscription());
+    $escort->load(['media', 'offerings', 'references']);
 
     abort_unless($owns || $published || $request->user()?->isAdmin(), 404);
 
     if (! $owns && ! $request->user()?->isAdmin() && $escort->isVip() && ! $request->user()?->isPremiumClient()) {
+        $viewer = $request->user();
+
+        if (! $viewer) {
+            session(['url.intended' => route('subscribe')]);
+
+            return redirect()->route('login')->with('status', 'Log in to subscribe and browse VIP profiles.');
+        }
+
+        if ($viewer->isClient() || $viewer->isModel()) {
+            return redirect()
+                ->route('subscribe')
+                ->with('status', $viewer->isModel()
+                    ? 'Choose a VIP plan to list a VIP profile.'
+                    : 'A premium subscription is required to browse VIP profiles.');
+        }
+
         abort(404);
     }
 
@@ -68,6 +88,9 @@ Route::get('/terms', function () {
         'body' => \App\Models\Setting::get('terms', 'Terms will be published by the admin.'),
     ]);
 })->name('legal.terms');
+
+Route::get('/references/{token}', [ReferenceConfirmationController::class, 'show'])->name('references.confirm');
+Route::post('/references/{token}', [ReferenceConfirmationController::class, 'store'])->name('references.confirm.store');
 
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
@@ -95,9 +118,12 @@ Route::middleware('auth')->group(function () {
 
         return app(ClientController::class)->index(request());
     })->name('dashboard');
-    Route::get('/subscribe', function () {
-        return view('pages.subscribe');
-    })->name('subscribe');
+    Route::get('/subscribe', [SubscriptionPaymentController::class, 'plans'])->name('subscribe');
+    Route::get('/payments/{payment}', [SubscriptionPaymentController::class, 'show'])->name('payments.show');
+    Route::post('/payments/{payment}', [SubscriptionPaymentController::class, 'submit'])
+        ->middleware('throttle:5,1')
+        ->name('payments.submit');
+    Route::get('/payments/{payment}/proof', [SubscriptionPaymentController::class, 'proof'])->name('payments.proof');
     Route::post('/client/subscribe', [ClientController::class, 'subscribe'])->name('client.subscribe');
     Route::post('/client/bookings/{booking}/review', [ClientController::class, 'review'])->name('client.reviews.store');
     Route::get('/owner/escorts', [OwnerEscortController::class, 'index'])->name('owner.escorts.index');

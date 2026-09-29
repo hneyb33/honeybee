@@ -7,6 +7,7 @@
 
         <title>{{ config('app.name', 'HoneyBee Escorts') }}</title>
         <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
+        @include('partials.theme-script')
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,6 +20,9 @@
     </head>
     <body class="font-sans text-ink-950 antialiased">
         <div class="flex min-h-screen flex-col items-center bg-ivory-50 px-4 pt-8 sm:justify-center sm:pt-0">
+            <div class="absolute right-4 top-4">
+                <x-theme-toggle />
+            </div>
             <div>
             <a href="/">
                 <img src="{{ asset('images/logo.jpeg') }}" alt="Honeybee" class="h-16 w-auto object-contain">

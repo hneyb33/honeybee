@@ -38,6 +38,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Subscription::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'client_id');
@@ -88,15 +93,15 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasActivePlan(Subscription::PLAN_SPECIALIST);
     }
 
+    public function hasActiveVipSubscription(): bool
+    {
+        return $this->hasActivePlan(Subscription::PLAN_ESCORT_VIP)
+            || $this->hasActivePlan(Subscription::PLAN_SPECIALIST);
+    }
+
     public function hasActivePlan(string $plan): bool
     {
-        return $this->subscriptions()
-            ->where('plan', $plan)
-            ->where('status', 'active')
-            ->where(function ($query) {
-                $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
-            })
-            ->exists();
+        return $this->subscriptions()->where('plan', $plan)->active()->exists();
     }
 
     public function activatePlan(string $plan, string $period = 'monthly'): Subscription
@@ -122,7 +127,7 @@ class User extends Authenticatable implements FilamentUser
             ],
         );
 
-        if ($plan === Subscription::PLAN_SPECIALIST) {
+        if (in_array($plan, [Subscription::PLAN_SPECIALIST, Subscription::PLAN_ESCORT_VIP], true)) {
             $this->syncRoles(['provider_premium']);
         }
 

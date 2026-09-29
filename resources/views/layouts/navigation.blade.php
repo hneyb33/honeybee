@@ -13,13 +13,14 @@
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                        <x-lucide name="layout-dashboard" class="me-1" /> {{ __('Dashboard') }}
                     </x-nav-link>
                 </div>
             </div>
 
             <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
+            <div class="hidden sm:flex sm:items-center sm:ms-6 sm:gap-3">
+                <x-theme-toggle />
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-ebony-900/65 bg-ebony-850 hover:text-ink-950 focus:outline-none transition ease-in-out duration-150">
@@ -35,7 +36,7 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
+                            <span class="inline-flex items-center gap-2"><x-lucide name="user" /> {{ __('Profile') }}</span>
                         </x-dropdown-link>
 
                         <!-- Authentication -->
@@ -45,7 +46,7 @@
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
                                                 this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                                <span class="inline-flex items-center gap-2"><x-lucide name="log-out" /> {{ __('Log Out') }}</span>
                             </x-dropdown-link>
                         </form>
                     </x-slot>
@@ -68,7 +69,7 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+                <span class="inline-flex items-center gap-2"><x-lucide name="layout-dashboard" /> {{ __('Dashboard') }}</span>
             </x-responsive-nav-link>
         </div>
 
@@ -81,7 +82,7 @@
 
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
+                    <span class="inline-flex items-center gap-2"><x-lucide name="user" /> {{ __('Profile') }}</span>
                 </x-responsive-nav-link>
 
                 <!-- Authentication -->
@@ -91,7 +92,7 @@
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
                                         this.closest('form').submit();">
-                        {{ __('Log Out') }}
+                        <span class="inline-flex items-center gap-2"><x-lucide name="log-out" /> {{ __('Log Out') }}</span>
                     </x-responsive-nav-link>
                 </form>
             </div>

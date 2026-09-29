@@ -50,6 +50,11 @@ class CatalogAndSettingsSeeder extends Seeder
             'specialist_yearly_price' => '800000',
             'specialist_custom_price' => '150000',
             'specialist_custom_days' => '14',
+            'escort_vip_daily_price' => '25000',
+            'escort_vip_monthly_price' => '120000',
+            'escort_vip_yearly_price' => '900000',
+            'escort_vip_custom_price' => '180000',
+            'escort_vip_custom_days' => '14',
         ];
 
         foreach ($defaults as $key => $value) {

@@ -58,9 +58,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'rating',
     'review_count',
     'whatsapp_number',
+    'whatsapp_code',
     'telegram',
+    'telegram_code',
     'onboarding_step',
     'onboarding_data',
+    'experience_band',
+    'learning_methods',
+    'has_certificate',
+    'certificate_type',
+    'certificate_path',
+    'weekly_hours',
+    'travel_km',
     'cover_image',
     'images',
     'is_featured',
@@ -115,10 +124,84 @@ class Escort extends Model
     ];
 
     public const ORIENTATIONS = [
-        'normal',
-        'gay',
+        'straight',
         'lesbian',
+        'gay',
         'bi-sexual',
+    ];
+
+    /**
+     * @return array<int, string>
+     */
+    public static function orientationMatches(string $category): array
+    {
+        $category = strtolower($category);
+
+        if (in_array($category, ['bi-sexual', 'bisexual'], true)) {
+            return ['bi-sexual', 'bisexual', 'Bisexual', 'Bi-sexual'];
+        }
+
+        return [$category, ucfirst($category)];
+    }
+
+    public const LANGUAGES = [
+        'English',
+        'Swahili',
+        'Luganda',
+        'Lusoga',
+        'Runyankore-Rukiga',
+        'Rutooro',
+        'Ateso',
+        'Acholi/Lango',
+        'Lugbara',
+    ];
+
+    public const NATIONALITIES = [
+        'Uganda',
+        'Kenya',
+        'Tanzania',
+        'Rwanda',
+        'Burundi',
+        'South Sudan',
+        'Ethiopia',
+        'Somalia',
+        'Djibouti',
+        'Eritrea',
+        'Zambia',
+        'Zimbabwe',
+        'Malawi',
+        'Mozambique',
+        'Madagascar',
+        'Comoros',
+        'Mauritius',
+        'Seychelles',
+        'South Africa',
+        'Nigeria',
+        'Ghana',
+    ];
+
+    public const DIAL_CODES = [
+        '+256' => 'Uganda +256',
+        '+254' => 'Kenya +254',
+        '+255' => 'Tanzania +255',
+        '+250' => 'Rwanda +250',
+        '+257' => 'Burundi +257',
+        '+211' => 'South Sudan +211',
+        '+251' => 'Ethiopia +251',
+        '+252' => 'Somalia +252',
+        '+253' => 'Djibouti +253',
+        '+291' => 'Eritrea +291',
+        '+260' => 'Zambia +260',
+        '+263' => 'Zimbabwe +263',
+        '+265' => 'Malawi +265',
+        '+258' => 'Mozambique +258',
+        '+261' => 'Madagascar +261',
+        '+269' => 'Comoros +269',
+        '+230' => 'Mauritius +230',
+        '+248' => 'Seychelles +248',
+        '+27' => 'South Africa +27',
+        '+234' => 'Nigeria +234',
+        '+233' => 'Ghana +233',
     ];
 
     public static function offeredServices(): array
@@ -169,6 +252,9 @@ class Escort extends Model
             'longitude' => 'decimal:7',
             'onboarding_step' => 'string',
             'onboarding_data' => 'array',
+            'learning_methods' => 'array',
+            'has_certificate' => 'boolean',
+            'weekly_hours' => 'array',
         ];
     }
 
@@ -180,6 +266,16 @@ class Escort extends Model
     public function media(): HasMany
     {
         return $this->hasMany(ProfileMedia::class)->orderBy('sort_order');
+    }
+
+    public function offerings(): HasMany
+    {
+        return $this->hasMany(EscortOffering::class)->orderBy('sort_order');
+    }
+
+    public function references(): HasMany
+    {
+        return $this->hasMany(EscortReference::class);
     }
 
     public function bookings(): HasMany
@@ -196,13 +292,20 @@ class Escort extends Model
     {
         return $query
             ->where('verification_status', self::VERIFIED)
-            ->whereHas('owner.subscriptions', function (Builder $subscription) {
-                $subscription
-                    ->where('plan', Subscription::PLAN_SPECIALIST)
-                    ->where('status', 'active')
-                    ->where(function (Builder $window) {
-                        $window->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            ->where(function (Builder $listed) {
+                $listed->where(function (Builder $freePremium) {
+                    $freePremium->where('kind', self::KIND_ESCORT)
+                        ->where('escort_tier', self::TIER_PREMIUM);
+                })->orWhere(function (Builder $paid) {
+                    $paid->where(function (Builder $requiresPlan) {
+                        $requiresPlan->where('kind', '!=', self::KIND_ESCORT)
+                            ->orWhere('escort_tier', '!=', self::TIER_PREMIUM);
+                    })->whereHas('owner.subscriptions', function (Builder $subscription) {
+                        $subscription
+                            ->active()
+                            ->whereIn('plan', [Subscription::PLAN_SPECIALIST, Subscription::PLAN_ESCORT_VIP]);
                     });
+                });
             });
     }
 
@@ -245,12 +348,141 @@ class Escort extends Model
             return null;
         }
 
-        return self::homeServices()[$this->service_type] ?? null;
+        if ($this->service_type === 'other') {
+            return $this->occupation ?: 'Home service';
+        }
+
+        return \App\Support\HomeServiceCatalog::OCCUPATIONS[$this->service_type]
+            ?? self::homeServices()[$this->service_type]
+            ?? $this->occupation;
+    }
+
+    public function experienceLabel(): ?string
+    {
+        return \App\Support\HomeServiceCatalog::EXPERIENCE[$this->experience_band] ?? null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function learningLabels(): array
+    {
+        return collect($this->learning_methods ?? [])
+            ->map(fn (string $key): string => \App\Support\HomeServiceCatalog::LEARNING[$key] ?? $key)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{label: string, on: bool, from: string, to: string}>
+     */
+    public function availabilityLines(): array
+    {
+        $hours = $this->weekly_hours ?? [];
+        $lines = [];
+
+        foreach (\App\Support\HomeServiceCatalog::DAYS as $key => $label) {
+            $day = $hours[$key] ?? [];
+            $lines[] = [
+                'label' => $label,
+                'on' => filter_var($day['on'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'from' => (string) ($day['from'] ?? ''),
+                'to' => (string) ($day['to'] ?? ''),
+            ];
+        }
+
+        return $lines;
     }
 
     public function rateAmount(): int
     {
         return (int) ($this->hourly_rate ?: $this->monthly_price);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function spokenLanguages(): array
+    {
+        $languages = $this->languages ?? [];
+
+        if ($languages === []) {
+            return [];
+        }
+
+        if (array_is_list($languages)) {
+            return array_values(array_filter($languages));
+        }
+
+        return array_keys($languages);
+    }
+
+    public function whatsappLabel(): string
+    {
+        $digits = $this->internationalDigits($this->whatsapp_code, $this->whatsapp_number);
+
+        return $digits ? '+'.$digits : '';
+    }
+
+    public function telegramLabel(): string
+    {
+        $raw = trim((string) $this->telegram);
+
+        if ($raw !== '' && preg_match('/[A-Za-z]/', $raw)) {
+            return '@'.ltrim($raw, '@');
+        }
+
+        $digits = $this->internationalDigits($this->telegram_code, $raw);
+
+        return $digits ? '+'.$digits : '';
+    }
+
+    public function whatsappUrl(): ?string
+    {
+        $digits = $this->internationalDigits($this->whatsapp_code, $this->whatsapp_number);
+
+        return $digits !== null ? 'https://wa.me/'.$digits : null;
+    }
+
+    public function telegramUrl(): ?string
+    {
+        $raw = trim((string) $this->telegram);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/[A-Za-z]/', $raw)) {
+            return 'https://t.me/'.ltrim($raw, '@');
+        }
+
+        $digits = $this->internationalDigits($this->telegram_code, $raw);
+
+        return $digits !== null ? 'https://t.me/+'.$digits : null;
+    }
+
+    private function internationalDigits(?string $code, ?string $number): ?string
+    {
+        $local = preg_replace('/\D/', '', (string) $number) ?? '';
+        $local = ltrim($local, '0');
+
+        if ($local === '') {
+            return null;
+        }
+
+        $codeDigits = preg_replace('/\D/', '', $code ?: '+256') ?: '256';
+
+        if (str_starts_with($local, $codeDigits)) {
+            return $local;
+        }
+
+        return $codeDigits.$local;
+    }
+
+    public function profileVideo(): ?ProfileMedia
+    {
+        return $this->media->firstWhere('kind', 'video')
+            ?? $this->media()->where('kind', 'video')->first();
     }
 
     protected function priceLabel(): Attribute

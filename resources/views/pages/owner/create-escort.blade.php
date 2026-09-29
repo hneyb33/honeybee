@@ -19,22 +19,22 @@
                     <div class="grid gap-5 md:grid-cols-2">
                         <label class="md:col-span-2">
                             <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Display name</span>
-                            <input name="title" value="{{ old('title') }}" required placeholder="Dohna" class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900">
+                            <input name="title" value="{{ old('title') }}" required placeholder="Name" class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900">
                             @error('title') <span class="mt-2 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
                         </label>
-                        <label class="md:col-span-2">
-                            <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Photos and videos</span>
-                            <input type="file" name="photos[]" multiple accept="image/*,video/*" class="w-full text-sm">
-                        </label>
+                        <div class="md:col-span-2">
+                            @include('pages.owner.partials.media-dropzone')
+                        </div>
 
                         <input type="hidden" name="kind" value="escort">
                         <input type="hidden" name="category" value="escort">
-                        <label>
+                        <label class="md:col-span-2">
                             <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Listing tier</span>
                             <select name="tier" required class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900">
-                                <option value="premium" @selected(old('tier', 'premium') === 'premium')>Premium</option>
-                                <option value="vip" @selected(old('tier') === 'vip')>VIP</option>
+                                <option value="premium" @selected(old('tier', 'premium') === 'premium')>Premium — free</option>
+                                <option value="vip" @selected(old('tier') === 'vip')>VIP — subscription required</option>
                             </select>
+                            <span class="mt-2 block text-xs text-[#767f88]">Premium is listed for free after approval. VIP continues to the subscription page.</span>
                         </label>
                     </div>
                 </section>
@@ -64,7 +64,11 @@
 
                         <label>
                             <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Nationality</span>
-                            <input name="nationality" value="{{ old('nationality') }}" placeholder="Ugandan" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                            <select name="nationality" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                                @foreach (\App\Models\Escort::NATIONALITIES as $country)
+                                    <option value="{{ $country }}" @selected(old('nationality', 'Uganda') === $country)>{{ $country }}</option>
+                                @endforeach
+                            </select>
                             @error('nationality') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                         </label>
                     </div>
@@ -84,7 +88,7 @@
                             <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Category</span>
                             <select name="sexual_orientation" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
                                 @foreach (\App\Models\Escort::ORIENTATIONS as $orientation)
-                                    <option value="{{ $orientation }}" @selected(old('sexual_orientation') === $orientation)>{{ ucfirst($orientation) }}</option>
+                                    <option value="{{ $orientation }}" @selected(old('sexual_orientation', 'straight') === $orientation)>{{ ucfirst($orientation) }}</option>
                                 @endforeach
                             </select>
                         </label>
@@ -109,15 +113,9 @@
                             </div>
                         </div>
 
-                        <label>
-                            <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">WhatsApp number</span>
-                            <input name="whatsapp_number" value="{{ old('whatsapp_number') }}" required placeholder="256700000000" class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900">
-                            @error('whatsapp_number') <span class="mt-2 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
-                        </label>
-                        <label>
-                            <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Telegram</span>
-                            <input name="telegram" value="{{ old('telegram') }}" placeholder="username" class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900">
-                        </label>
+                        <div class="md:col-span-2">
+                            @include('pages.owner.partials.contact-fields')
+                        </div>
                     </div>
                     <label class="block">
                         <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Phone</span>
@@ -151,19 +149,17 @@
                             <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Price (UGX per hour)</span>
                             <input name="monthly_price" type="number" min="100000" value="{{ old('monthly_price') }}" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm">
                         </label>
-                        <label class="block">
-                            <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Area</span>
-                            <input name="neighborhood" value="{{ old('neighborhood') }}" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm">
-                        </label>
+                        <div class="md:col-span-2">
+                            @include('pages.owner.partials.location-fields')
+                        </div>
                         <label class="block md:col-span-2">
-                            <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">City</span>
-                            <input name="city" value="{{ old('city', 'Kampala') }}" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm">
-                        </label>
-
-                        <label class="block">
                             <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Languages</span>
-                            <textarea name="languages_text" rows="5" placeholder="English: Fluent\nFrench: Conversational" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-900/35">{{ old('languages_text') }}</textarea>
-                            @error('languages_text') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
+                            <select name="languages[]" multiple required class="h-40 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                                @foreach (\App\Models\Escort::LANGUAGES as $language)
+                                    <option value="{{ $language }}" @selected(in_array($language, old('languages', []), true))>{{ $language }}</option>
+                                @endforeach
+                            </select>
+                            @error('languages') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                         </label>
                     </div>
                 </section>
@@ -175,7 +171,7 @@
                     </div>
                     <label class="block">
                         <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Profile description</span>
-                        <textarea name="description" rows="8" required placeholder="Introduce yourself, your preferred appointments, and what makes the experience special." class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-7 text-neutral-900 placeholder:text-neutral-900/35">{{ old('description') }}</textarea>
+                        <textarea name="description" rows="4" required placeholder="Introduce yourself, your preferred appointments, and what makes the experience special." class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm leading-7 text-neutral-900 placeholder:text-neutral-900/35">{{ old('description') }}</textarea>
                         @error('description') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                     </label>
                 </section>
@@ -183,7 +179,7 @@
 
             <aside class="h-fit rounded-2xl border border-neutral-200 bg-white p-5 lg:sticky lg:top-28">
                 <h2 class="text-2xl font-semibold text-neutral-900">Submit for review</h2>
-                <p class="mt-2 text-sm leading-6 text-neutral-600">The profile stays hidden until an admin verifies it and your specialist subscription is active.</p>
+                <p class="mt-2 text-sm leading-6 text-neutral-600">The profile stays hidden until an admin verifies it. Premium listings are free. VIP listings also need a subscription.</p>
                 <div class="my-5 space-y-3 border-y border-neutral-200 py-5 text-sm text-neutral-600">
                     <div class="flex justify-between gap-4"><span>Visibility</span><span class="font-semibold text-neutral-900">After approval</span></div>
                     <div class="flex justify-between gap-4"><span>Contact</span><span class="font-semibold text-neutral-900">WhatsApp / Telegram</span></div>

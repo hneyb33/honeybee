@@ -3,15 +3,15 @@
 namespace App\Filament\Resources\PaymentResource\Pages;
 
 use App\Filament\Resources\PaymentResource;
-use Filament\Actions\CreateAction;
+use App\Filament\Resources\PaymentResource\Widgets\PaymentOverview;
 use Filament\Resources\Pages\ListRecords;
 
 class ListPayments extends ListRecords
 {
     protected static string $resource = PaymentResource::class;
 
-    protected function getHeaderActions(): array
+    protected function getHeaderWidgets(): array
     {
-        return [CreateAction::make()];
+        return [PaymentOverview::class];
     }
 }

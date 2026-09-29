@@ -3,7 +3,7 @@
 @php
     $uploaded = $escort->relationLoaded('media') ? $escort->media : $escort->media()->get();
     $images = collect($escort->images ?: [])
-        ->merge($uploaded->map(fn ($media) => $media->url()))
+        ->merge($uploaded->where('kind', '!=', 'video')->map(fn ($media) => $media->url()))
         ->filter()
         ->take(5)
         ->values();

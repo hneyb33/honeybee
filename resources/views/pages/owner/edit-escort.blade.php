@@ -34,8 +34,8 @@
                         <label>
                             <span class="mb-2 block text-xs font-semibold uppercase text-neutral-500">Tier</span>
                             <select name="tier" required class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm">
-                                <option value="premium" @selected(old('tier', $escort->escort_tier) === 'premium')>Premium</option>
-                                <option value="vip" @selected(old('tier', $escort->escort_tier) === 'vip')>VIP</option>
+                                <option value="premium" @selected(old('tier', $escort->escort_tier) === 'premium')>Premium — free</option>
+                                <option value="vip" @selected(old('tier', $escort->escort_tier) === 'vip')>VIP — subscription required</option>
                             </select>
                         </label>
                         <label>
@@ -78,7 +78,11 @@
 
                         <label>
                             <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Nationality</span>
-                            <input name="nationality" value="{{ old('nationality', $escort->nationality) }}" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                            <select name="nationality" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                                @foreach (\App\Models\Escort::NATIONALITIES as $country)
+                                    <option value="{{ $country }}" @selected(old('nationality', $escort->nationality ?: 'Uganda') === $country)>{{ $country }}</option>
+                                @endforeach
+                            </select>
                             @error('nationality') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                         </label>
                     </div>
@@ -116,7 +120,11 @@
 
                         <label>
                             <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Orientation</span>
-                            <input name="sexual_orientation" value="{{ old('sexual_orientation', $escort->sexual_orientation) }}" placeholder="Bisexual" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                            <select name="sexual_orientation" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                                @foreach (\App\Models\Escort::ORIENTATIONS as $orientation)
+                                    <option value="{{ $orientation }}" @selected(old('sexual_orientation', $escort->sexual_orientation ?: 'straight') === $orientation)>{{ ucfirst($orientation) }}</option>
+                                @endforeach
+                            </select>
                             @error('sexual_orientation') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                         </label>
                     </div>
@@ -142,19 +150,12 @@
                         </div>
                             @error('availability') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                         </label>
-                        <label>
-                            <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Phone / WhatsApp</span>
-                            <input name="whatsapp_number" value="{{ old('whatsapp_number', $escort->whatsapp_number) }}" required placeholder="256700000000" class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm">
-                        </label>
-                        <label>
-                            <span class="mb-2 block text-xs font-semibold uppercase text-neutral-500">Telegram</span>
-                            <input name="telegram" value="{{ old('telegram', $escort->telegram) }}" placeholder="username" class="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm">
-                        </label>
-                        <label class="md:col-span-2">
-                            <span class="mb-2 block text-xs font-semibold uppercase text-neutral-500">Add photos or videos</span>
-                            <input type="file" name="photos[]" multiple accept="image/*,video/*" class="w-full text-sm">
-                            @error('photos') <span class="mt-2 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
-                        </label>
+                        <div class="md:col-span-2">
+                            @include('pages.owner.partials.contact-fields', ['escort' => $escort])
+                        </div>
+                        <div class="md:col-span-2">
+                            @include('pages.owner.partials.media-dropzone')
+                        </div>
                     </div>
                 </section>
 
@@ -166,15 +167,6 @@
                             $ratesText .= "{$key}: {$value}\n";
                         }
                         $ratesText = rtrim($ratesText, "\n");
-                    }
-
-                    $languagesText = old('languages_text');
-                    if ($languagesText === null) {
-                        $languagesText = '';
-                        foreach ($escort->languages ?: [] as $key => $value) {
-                            $languagesText .= "{$key}: {$value}\n";
-                        }
-                        $languagesText = rtrim($languagesText, "\n");
                     }
                 @endphp
 
@@ -188,10 +180,17 @@
                             <textarea name="rates_text" rows="4" placeholder="30 minutes: 100 EUR\n1 hour: 180 EUR" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-900/35">{{ $ratesText }}</textarea>
                             @error('rates_text') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                         </label>
+                        <div>
+                            @include('pages.owner.partials.location-fields', ['escort' => $escort])
+                        </div>
                         <label class="block">
                             <span class="mb-2 block text-xs font-extrabold uppercase tracking-wide text-neutral-500">Languages spoken</span>
-                            <textarea name="languages_text" rows="4" placeholder="English: Fluent\nFrench: Conversational" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 placeholder:text-neutral-900/35">{{ $languagesText }}</textarea>
-                            @error('languages_text') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
+                            <select name="languages[]" multiple required class="h-40 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+                                @foreach (\App\Models\Escort::LANGUAGES as $language)
+                                    <option value="{{ $language }}" @selected(in_array($language, old('languages', $escort->spokenLanguages()), true))>{{ $language }}</option>
+                                @endforeach
+                            </select>
+                            @error('languages') <span class="mt-2 block text-xs font-bold text-red-300">{{ $message }}</span> @enderror
                         </label>
                     </div>
                 </section>

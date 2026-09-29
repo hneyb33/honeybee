@@ -13,4 +13,9 @@ class CreateProvider extends CreateRecord
     {
         return ProviderResource::prepareRecord($data);
     }
+
+    protected function afterCreate(): void
+    {
+        ProviderResource::syncServices($this->record);
+    }
 }

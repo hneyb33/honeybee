@@ -24,6 +24,8 @@ class Settings extends Page
     {
         $this->data = Setting::bag([
             'support_email',
+            'mtn_momo_merchant_code',
+            'airtel_money_merchant_code',
             'mobile_money_name',
             'mobile_money_number',
             'bank_name',
@@ -39,6 +41,11 @@ class Settings extends Page
             'specialist_yearly_price',
             'specialist_custom_price',
             'specialist_custom_days',
+            'escort_vip_daily_price',
+            'escort_vip_monthly_price',
+            'escort_vip_yearly_price',
+            'escort_vip_custom_price',
+            'escort_vip_custom_days',
         ]);
     }
 

@@ -3,15 +3,17 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\SubscriptionPaymentController;
 use App\Models\Booking;
 use App\Models\Escort;
 use App\Models\ProfileMedia;
-use App\Models\Subscription;
+use App\Support\UgandaLocations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class EscortController extends Controller
@@ -40,12 +42,8 @@ class EscortController extends Controller
     public function subscribe(Request $request): RedirectResponse
     {
         abort_unless($request->user()->isSpecialist(), 403);
-        $request->validate([
-            'period' => ['in:daily,monthly,yearly,custom'],
-        ]);
-        $request->user()->activatePlan(Subscription::PLAN_SPECIALIST, $request->input('period', 'monthly'));
 
-        return back()->with('status', 'Specialist subscription is active. Submit your profile for verification to be listed.');
+        return app(SubscriptionPaymentController::class)->begin($request);
     }
 
     public function respond(Request $request, Booking $booking): RedirectResponse
@@ -61,11 +59,17 @@ class EscortController extends Controller
         return back()->with('status', 'Booking updated.');
     }
 
-    public function edit(Escort $escort): View
+    public function edit(Escort $escort): View|RedirectResponse
     {
         abort_unless($escort->user_id === Auth::id(), 403);
 
         if ($escort->kind === Escort::KIND_SERVICE) {
+            if ($escort->onboarding_step !== 'complete') {
+                return redirect()->route('provider.onboard');
+            }
+
+            $escort->load('offerings', 'references', 'media');
+
             return view('pages.owner.specialist-form', ['escort' => $escort]);
         }
 
@@ -78,8 +82,8 @@ class EscortController extends Controller
     {
         abort_unless($request->user()->isSpecialist(), 403);
 
-        if ($request->user()->isHomeSpecialist()) {
-            return $this->storeHomeService($request);
+        if (Auth::user()->isHomeSpecialist()) {
+            return redirect()->route('provider.onboard');
         }
 
         $validated = $request->validate([
@@ -90,16 +94,20 @@ class EscortController extends Controller
             'telegram' => ['nullable', 'string', 'max:80'],
             'latitude' => ['nullable', 'numeric'],
             'longitude' => ['nullable', 'numeric'],
-            'photos' => ['nullable', 'array', 'max:8'],
-            'photos.*' => ['file', 'max:20480'],
+            'photos' => ['nullable', 'array', 'max:9'],
+            'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif,mp4,webm,mov', 'max:51200'],
             'category' => ['required', 'in:escort,service'],
-            'neighborhood' => ['required', 'string', 'max:80'],
-            'city' => ['required', 'string', 'max:80'],
+            'neighborhood' => ['required', Rule::in(UgandaLocations::areas((string) $request->input('city', 'Kampala')))],
+            'city' => ['required', Rule::in(UgandaLocations::cities())],
+            'whatsapp_code' => ['required', Rule::in(array_keys(Escort::DIAL_CODES))],
+            'telegram_code' => ['nullable', Rule::in(array_keys(Escort::DIAL_CODES))],
+            'languages' => ['required', 'array', 'min:1'],
+            'languages.*' => [Rule::in(Escort::LANGUAGES)],
             'monthly_price' => ['required', 'integer', 'min:100000', 'max:999999999'],
             'age' => ['required', 'integer', 'min:18', 'max:100'],
             'gender' => ['required', 'string', 'max:20'],
             'ethnicity' => ['nullable', 'string', 'max:80'],
-            'nationality' => ['nullable', 'string', 'max:80'],
+            'nationality' => ['required', Rule::in(Escort::NATIONALITIES)],
             'height' => ['nullable', 'string', 'max:40'],
             'weight' => ['nullable', 'string', 'max:40'],
             'hair_color' => ['nullable', 'string', 'max:40'],
@@ -123,17 +131,12 @@ class EscortController extends Controller
             'description' => ['required', 'string', 'min:80', 'max:2500'],
             'services' => ['required', 'array', 'min:1'],
             'services.*' => ['string'],
-            'languages_text' => ['nullable', 'string'],
             'rates_text' => ['nullable', 'string'],
         ]);
 
-        $slug = $this->uniqueSlug($validated['title']);
+        $this->assertProfileMedia($request, null);
 
-        if (count($request->file('photos', [])) < 3) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'photos' => 'Upload at least 3 photos before submitting for review.',
-            ]);
-        }
+        $slug = $this->uniqueSlug($validated['title']);
 
         $images = $this->parseLines($validated['image_urls'] ?? '')
             ->filter(fn (string $line) => filter_var($line, FILTER_VALIDATE_URL))
@@ -187,21 +190,29 @@ class EscortController extends Controller
             'country' => 'Uganda',
             'phone' => $validated['phone'] ?? null,
             'whatsapp_number' => $validated['whatsapp_number'],
+            'whatsapp_code' => $validated['whatsapp_code'] ?? '+256',
             'telegram' => $validated['telegram'] ?? null,
+            'telegram_code' => $validated['telegram_code'] ?? '+256',
             'cover_image' => $validated['cover_image'] ?? ($images[0] ?? null),
             'images' => $images,
             'amenities' => $this->parseAmenities($validated['amenities_text'] ?? ''),
             'services_offered' => array_values(array_intersect($validated['services'] ?? [], Escort::offeredServices())),
-            'languages' => $this->parseKeyValueLines($validated['languages_text'] ?? ''),
+            'languages' => array_values($validated['languages'] ?? []),
             'rates' => $this->parseKeyValueLines($validated['rates_text'] ?? ''),
             'is_featured' => false,
         ]);
 
         $this->storePhotos($request, $escort);
 
+        if ($validated['tier'] === Escort::TIER_VIP) {
+            return redirect()
+                ->route('subscribe')
+                ->with('status', 'Profile submitted. VIP listings need a subscription before they can go live. Premium listings are free after approval.');
+        }
+
         return redirect()
             ->route('owner.escorts.index')
-            ->with('status', 'Profile submitted for verification. It stays hidden until an admin approves it.');
+            ->with('status', 'Profile submitted for verification. Premium listings are free and stay hidden until an admin approves them.');
     }
 
     public function update(Request $request, Escort $escort): RedirectResponse
@@ -209,9 +220,10 @@ class EscortController extends Controller
         abort_unless($escort->user_id === Auth::id(), 403);
 
         if ($escort->kind === Escort::KIND_SERVICE) {
-            $validated = $this->validateHomeService($request, false);
-            $escort->update($this->homeServiceAttributes($validated));
-            $this->storePhotos($request, $escort);
+            $validated = \App\Support\ProviderProfile::validateAll($request, $escort);
+            \App\Support\ProviderProfile::apply($escort, $validated, $request);
+            $escort->save();
+            \App\Support\ProviderProfile::storePhotos($request, $escort);
 
             return redirect()->route('owner.escorts.index')->with('status', 'Service profile updated.');
         }
@@ -224,16 +236,20 @@ class EscortController extends Controller
             'telegram' => ['nullable', 'string', 'max:80'],
             'latitude' => ['nullable', 'numeric'],
             'longitude' => ['nullable', 'numeric'],
-            'photos' => ['nullable', 'array', 'max:8'],
-            'photos.*' => ['file', 'max:20480'],
+            'photos' => ['nullable', 'array', 'max:9'],
+            'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif,mp4,webm,mov', 'max:51200'],
             'category' => ['required', 'in:escort,service'],
-            'neighborhood' => ['required', 'string', 'max:80'],
-            'city' => ['required', 'string', 'max:80'],
+            'neighborhood' => ['required', Rule::in(UgandaLocations::areas((string) $request->input('city', 'Kampala')))],
+            'city' => ['required', Rule::in(UgandaLocations::cities())],
+            'whatsapp_code' => ['required', Rule::in(array_keys(Escort::DIAL_CODES))],
+            'telegram_code' => ['nullable', Rule::in(array_keys(Escort::DIAL_CODES))],
+            'languages' => ['required', 'array', 'min:1'],
+            'languages.*' => [Rule::in(Escort::LANGUAGES)],
             'monthly_price' => ['required', 'integer', 'min:100000', 'max:999999999'],
             'age' => ['required', 'integer', 'min:18', 'max:100'],
             'gender' => ['required', 'string', 'max:20'],
             'ethnicity' => ['nullable', 'string', 'max:80'],
-            'nationality' => ['nullable', 'string', 'max:80'],
+            'nationality' => ['required', Rule::in(Escort::NATIONALITIES)],
             'height' => ['nullable', 'string', 'max:40'],
             'weight' => ['nullable', 'string', 'max:40'],
             'hair_color' => ['nullable', 'string', 'max:40'],
@@ -256,9 +272,10 @@ class EscortController extends Controller
             'amenities_text' => ['nullable', 'string'],
             'description' => ['required', 'string', 'min:80', 'max:2500'],
             'services_text' => ['nullable', 'string'],
-            'languages_text' => ['nullable', 'string'],
             'rates_text' => ['nullable', 'string'],
         ]);
+
+        $this->assertProfileMedia($request, $escort);
 
         $images = $this->parseLines($validated['image_urls'] ?? '')
             ->filter(fn (string $line) => filter_var($line, FILTER_VALIDATE_URL))
@@ -305,16 +322,24 @@ class EscortController extends Controller
             'availability' => implode(', ', $validated['availability'] ?? []),
             'phone' => $validated['phone'] ?? null,
             'whatsapp_number' => $validated['whatsapp_number'],
+            'whatsapp_code' => $validated['whatsapp_code'] ?? $escort->whatsapp_code ?? '+256',
             'telegram' => $validated['telegram'] ?? $escort->telegram,
+            'telegram_code' => $validated['telegram_code'] ?? $escort->telegram_code ?? '+256',
             'cover_image' => $validated['cover_image'] ?? ($images[0] ?? $escort->cover_image),
             'images' => $images ?: $escort->images,
             'amenities' => $this->parseAmenities($validated['amenities_text'] ?? ''),
             'services_offered' => $this->parseLines($validated['services_text'] ?? '')->all(),
-            'languages' => $this->parseKeyValueLines($validated['languages_text'] ?? ''),
+            'languages' => array_values($validated['languages'] ?? []),
             'rates' => $this->parseKeyValueLines($validated['rates_text'] ?? ''),
         ]);
 
         $this->storePhotos($request, $escort);
+
+        if ($validated['tier'] === Escort::TIER_VIP && ! $request->user()->hasActiveVipSubscription()) {
+            return redirect()
+                ->route('subscribe')
+                ->with('status', 'VIP listings need a subscription. Premium listings stay free.');
+        }
 
         return redirect()
             ->route('owner.escorts.index')
@@ -399,18 +424,44 @@ class EscortController extends Controller
             return;
         }
 
+        $coverSet = filled($escort->cover_image);
+
         foreach ($request->file('photos') as $index => $file) {
+            $isVideo = str_starts_with((string) $file->getMimeType(), 'video');
             $path = $file->store('profiles/'.$escort->id, 'public');
             ProfileMedia::create([
                 'escort_id' => $escort->id,
                 'path' => $path,
-                'kind' => str_starts_with((string) $file->getMimeType(), 'video') ? 'video' : 'image',
+                'kind' => $isVideo ? 'video' : 'image',
                 'sort_order' => $index,
             ]);
 
-            if ($index === 0) {
+            if (! $isVideo && ! $coverSet) {
                 $escort->update(['cover_image' => Storage::disk('public')->url($path)]);
+                $coverSet = true;
             }
+        }
+    }
+
+    private function assertProfileMedia(Request $request, ?Escort $escort): void
+    {
+        $images = $escort?->media()->where('kind', 'image')->count() ?? 0;
+        $videos = $escort?->media()->where('kind', 'video')->count() ?? 0;
+
+        foreach ($request->file('photos', []) as $file) {
+            $mime = (string) $file->getMimeType();
+
+            if (str_starts_with($mime, 'video')) {
+                $videos++;
+            } elseif (str_starts_with($mime, 'image')) {
+                $images++;
+            }
+        }
+
+        if ($images < 3 || $videos < 1) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'photos' => 'Add at least 3 photos and one video.',
+            ]);
         }
     }
 

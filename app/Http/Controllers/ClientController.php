@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\SubscriptionPaymentController;
 use App\Models\Booking;
 use App\Models\Review;
-use App\Models\Subscription;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -28,14 +28,7 @@ class ClientController extends Controller
     {
         abort_unless($request->user()->isClient(), 403);
 
-        $period = $request->input('period', 'monthly');
-        $request->validate([
-            'period' => ['in:daily,monthly,yearly,custom'],
-        ]);
-
-        $request->user()->activatePlan(Subscription::PLAN_CLIENT_PREMIUM, $period);
-
-        return back()->with('status', 'Premium access is active.');
+        return app(SubscriptionPaymentController::class)->begin($request);
     }
 
     public function review(Request $request, Booking $booking): RedirectResponse

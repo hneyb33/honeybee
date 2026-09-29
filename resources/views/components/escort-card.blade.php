@@ -13,7 +13,7 @@
     <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
             <div class="truncate font-medium text-neutral-900">{{ $escort->title }}</div>
-            <div class="truncate text-sm text-neutral-500">{{ $escort->serviceLabel() ?: $escort->neighborhood }}, {{ $escort->city }}</div>
+            <div class="flex items-center gap-1 truncate text-sm text-neutral-500"><x-lucide name="map-pin" /> {{ $escort->serviceLabel() ?: $escort->neighborhood }}, {{ $escort->city }}</div>
             @if (isset($escort->distance_km))
                 <div class="text-sm text-neutral-500">{{ number_format((float) $escort->distance_km, 1) }} km away</div>
             @endif

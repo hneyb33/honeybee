@@ -4,10 +4,12 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
 use App\Filament\Auth\RegisterSuperAdmin;
+use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -32,10 +34,36 @@ class AdminPanelProvider extends PanelProvider
             ->registration(RegisterSuperAdmin::class)
             ->sidebarCollapsibleOnDesktop()
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->defaultThemeMode(ThemeMode::Light)
+            ->renderHook(PanelsRenderHook::HEAD_START, fn () => view('partials.theme-script'))
             ->colors([
-                'primary' => '#222222',
+                'primary' => [
+                    50 => '#ffffff',
+                    100 => '#f4f5f6',
+                    200 => '#e6e8ea',
+                    300 => '#d0d4d8',
+                    400 => '#767f88',
+                    500 => '#5e666e',
+                    600 => '#0f0a0a',
+                    700 => '#0f0a0a',
+                    800 => '#0f0a0a',
+                    900 => '#0f0a0a',
+                    950 => '#0f0a0a',
+                ],
                 'danger' => '#dc2626',
-                'gray' => '#222222',
+                'gray' => [
+                    50 => '#f7f7f8',
+                    100 => '#eceef0',
+                    200 => '#d9dde1',
+                    300 => '#c5cad0',
+                    400 => '#767f88',
+                    500 => '#767f88',
+                    600 => '#5c646c',
+                    700 => '#3c434a',
+                    800 => '#2a2222',
+                    900 => '#1a1414',
+                    950 => '#0f0a0a',
+                ],
                 'success' => '#059669',
             ])
             ->brandName('HoneyBee Admin')
