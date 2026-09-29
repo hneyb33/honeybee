@@ -1,4 +1,4 @@
-<div class="px-6 pb-6">
+<div class="px-4 pb-4 sm:px-6 sm:pb-6">
     <style>
         .hb-search { width: 100%; max-width: 56rem; }
         @media (min-width: 640px) {

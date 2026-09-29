@@ -45,28 +45,32 @@ Route::get('/escorts/{escort:slug}', function (Request $request, Escort $escort)
         return redirect()->route('age-check');
     }
 
-    $owns = $request->user()?->id === $escort->user_id;
-    $freePremium = $escort->kind === Escort::KIND_ESCORT && $escort->escort_tier === Escort::TIER_PREMIUM;
-    $published = $escort->isVerified() && ($freePremium || $escort->owner?->hasActiveVipSubscription());
+    $viewer = $request->user();
+    $owns = $viewer?->id === $escort->user_id;
+    $published = $escort->isVerified() && (bool) $escort->owner?->hasActiveListingSubscription();
     $escort->load(['media', 'offerings', 'references']);
 
-    abort_unless($owns || $published || $request->user()?->isAdmin(), 404);
+    abort_unless($owns || $published || $viewer?->isAdmin(), 404);
 
-    if (! $owns && ! $request->user()?->isAdmin() && $escort->isVip() && ! $request->user()?->isPremiumClient()) {
-        $viewer = $request->user();
+    $locked = $escort->isVip()
+        ? ! $viewer?->isPremiumClient()
+        : ($escort->isPremiumEscort() && ! $viewer?->canBrowsePremium());
+
+    if (! $owns && ! $viewer?->isAdmin() && $locked) {
+        $tier = $escort->isVip() ? 'VIP' : 'premium';
 
         if (! $viewer) {
             session(['url.intended' => route('subscribe')]);
 
-            return redirect()->route('login')->with('status', 'Log in to subscribe and browse VIP profiles.');
+            return redirect()->route('login')->with('status', 'Log in to subscribe and browse '.$tier.' profiles.');
         }
 
         if ($viewer->isClient() || $viewer->isModel()) {
             return redirect()
                 ->route('subscribe')
                 ->with('status', $viewer->isModel()
-                    ? 'Choose a VIP plan to list a VIP profile.'
-                    : 'A premium subscription is required to browse VIP profiles.');
+                    ? 'Choose a plan to list a '.$tier.' profile.'
+                    : 'A subscription is required to browse '.$tier.' profiles.');
         }
 
         abort(404);

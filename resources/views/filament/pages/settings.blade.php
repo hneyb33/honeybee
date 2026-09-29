@@ -26,7 +26,13 @@
         <section class="space-y-3">
             <h2 class="text-lg font-semibold">Subscription prices (UGX)</h2>
             <p class="text-sm text-gray-500">Daily, monthly, yearly, and custom periods on the public subscription page use these prices.</p>
-            @foreach (['client_premium' => 'Client premium', 'escort_vip' => 'VIP escort', 'specialist' => 'Specialist'] as $plan => $label)
+            @foreach ([
+                'client_basic' => 'Client — browse premium escorts',
+                'client_premium' => 'Client — browse VIP and premium escorts',
+                'escort_premium' => 'Escort — premium listing',
+                'escort_vip' => 'Escort — VIP listing',
+                'specialist' => 'Home service specialist',
+            ] as $plan => $label)
                 <h3 class="font-medium">{{ $label }}</h3>
                 <div class="grid gap-3 md:grid-cols-2">
                     <label class="text-sm">Daily<input wire:model="data.{{ $plan }}_daily_price" class="mt-1 w-full rounded-lg border px-3 py-2"></label>

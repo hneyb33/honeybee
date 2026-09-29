@@ -22,10 +22,10 @@ class SubscriptionPaymentController extends Controller
         $user = $request->user();
         abort_unless($user->isClient() || $user->isSpecialist(), 403);
 
-        $plan = Subscription::planFor($user) ?? Subscription::PLAN_SPECIALIST;
+        $plans = Subscription::plansFor($user) ?: [Subscription::PLAN_SPECIALIST];
 
         return view('pages.subscribe', [
-            'plan' => $plan,
+            'plans' => $plans,
             'paymentsEnabled' => $this->payments->paymentsEnabled(),
             'providers' => $this->payments->availableProviders(),
             'openPayment' => Payment::query()
@@ -39,11 +39,12 @@ class SubscriptionPaymentController extends Controller
     public function begin(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $plan = Subscription::planFor($user);
-        abort_unless($plan, 403);
+        $allowed = Subscription::plansFor($user);
+        abort_unless($allowed !== [], 403);
 
         $rules = [
             'period' => ['required', 'in:daily,monthly,yearly,custom'],
+            'plan' => ['nullable', Rule::in($allowed)],
         ];
 
         if ($this->payments->paymentsEnabled()) {
@@ -51,6 +52,7 @@ class SubscriptionPaymentController extends Controller
         }
 
         $validated = $request->validate($rules);
+        $plan = $validated['plan'] ?? $allowed[0];
 
         if (! $this->payments->paymentsEnabled()) {
             $user->activatePlan($plan, $validated['period']);

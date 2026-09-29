@@ -1,4 +1,4 @@
-<div class="flex flex-wrap justify-center gap-2 px-6 pb-4">
+<div class="flex flex-wrap justify-center gap-2 px-4 pb-3 sm:px-6 sm:pb-4">
     @foreach (['all' => ['All', 'layout-grid'], 'vip' => ['VIP', 'crown'], 'premium' => ['Premium', 'sparkles'], 'service' => ['Services', 'chef-hat']] as $tier => [$label, $icon])
         <button type="button" wire:click="setTier('{{ $tier }}')" @class([
             'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium',

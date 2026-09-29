@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="mb-8">
         <h1 class="font-display text-3xl font-semibold text-[#0f0a0a] dark:text-white">Welcome back</h1>
-        <p class="mt-3 text-sm leading-6 text-[#767f88]">Login to update your escort profile, manage availability, and respond to new bookings.</p>
+        <p class="mt-3 text-sm leading-6 text-[#767f88]">Log in with the phone number you registered with to update your profile, manage availability, and respond to new bookings.</p>
     </div>
 
     <!-- Session Status -->
@@ -10,9 +10,9 @@
     <form method="POST" action="{{ route('login') }}">
         @csrf
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-input-label for="phone" :value="__('Phone number')" />
+            <x-text-input id="phone" class="block mt-1 w-full" type="tel" inputmode="tel" name="phone" :value="old('phone')" placeholder="0771234567" required autofocus autocomplete="tel" />
+            <x-input-error :messages="$errors->get('phone')" class="mt-2" />
         </div>
 
         <!-- Password -->

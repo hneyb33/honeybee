@@ -5,7 +5,7 @@
         </h2>
 
         <p class="mt-1 text-sm text-ebony-900/70">
-            {{ __("Update your account's profile information and email address.") }}
+            {{ __("Update your account's profile information and login phone number.") }}
         </p>
     </header>
 
@@ -24,8 +24,15 @@
         </div>
 
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+            <x-input-label for="phone" :value="__('Phone number')" />
+            <x-text-input id="phone" name="phone" type="tel" inputmode="tel" class="mt-1 block w-full" :value="old('phone', $user->phone)" placeholder="0771234567" required autocomplete="tel" />
+            <p class="mt-1 text-sm text-ebony-900/70">{{ __('You log in with this number.') }}</p>
+            <x-input-error class="mt-2" :messages="$errors->get('phone')" />
+        </div>
+
+        <div>
+            <x-input-label for="email" :value="__('Email (optional)')" />
+            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" autocomplete="email" />
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())

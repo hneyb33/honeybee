@@ -41,6 +41,7 @@ class BookingRequestTest extends TestCase
 
         $client = User::factory()->create();
         $client->assignRole('client_free');
+        $client->activatePlan(\App\Models\Subscription::PLAN_CLIENT_BASIC);
 
         Livewire::actingAs($client)
             ->test(\App\Livewire\Escort\BookingDock::class, ['escort' => $escort])

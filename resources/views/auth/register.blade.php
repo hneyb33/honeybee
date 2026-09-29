@@ -19,8 +19,15 @@
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
         <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="mt-1 block w-full" type="email" name="email" :value="old('email')" required />
+            <x-input-label for="phone" :value="__('Phone number')" />
+            <x-text-input id="phone" class="mt-1 block w-full" type="tel" inputmode="tel" name="phone" :value="old('phone')" placeholder="0771234567" required autocomplete="tel" />
+            <p class="mt-1 text-xs text-neutral-500">You will use this number to log in.</p>
+            <x-input-error :messages="$errors->get('phone')" class="mt-2" />
+        </div>
+        <div class="mt-4">
+            <x-input-label for="email" :value="__('Email (optional)')" />
+            <x-text-input id="email" class="mt-1 block w-full" type="email" name="email" :value="old('email')" autocomplete="email" />
+            <p class="mt-1 text-xs text-neutral-500">Only needed if you want to reset your password by email.</p>
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
         <div class="mt-4">

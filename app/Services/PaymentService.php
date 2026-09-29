@@ -15,6 +15,7 @@ use App\Models\Setting;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payments\ManualMerchantGateway;
+use App\Support\PhoneNumber;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -331,19 +332,7 @@ class PaymentService
 
     public function normalizePhone(string $phone): string
     {
-        $digits = preg_replace('/\D+/', '', $phone) ?? '';
-
-        if (str_starts_with($digits, '256')) {
-            return $digits;
-        }
-
-        $digits = ltrim($digits, '0');
-
-        if (strlen($digits) === 9) {
-            return '256'.$digits;
-        }
-
-        return $digits;
+        return PhoneNumber::normalize($phone);
     }
 
     /**
@@ -366,11 +355,7 @@ class PaymentService
         };
 
         return [
-            'plan_name' => match ($plan) {
-                Subscription::PLAN_CLIENT_PREMIUM => 'Premium',
-                Subscription::PLAN_ESCORT_VIP => 'VIP',
-                default => 'Specialist',
-            },
+            'plan_name' => Subscription::label($plan),
             'duration_label' => $label,
             'duration_days' => $days,
             'price' => (int) Setting::get($plan.'_'.$period.'_price', 0),

@@ -39,14 +39,15 @@ class SubscriptionPaymentTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('status', 'Premium access is active.');
 
-        $this->assertTrue($client->fresh()->hasRole('client_premium'));
+        $this->assertTrue($client->fresh()->canBrowsePremium());
+        $this->assertFalse($client->fresh()->isPremiumClient());
         $this->assertSame(0, Payment::query()->count());
 
         $specialist = User::factory()->create(['account_kind' => 'model']);
         $specialist->assignRole('provider_free');
 
         $this->actingAs($specialist)
-            ->post(route('owner.subscribe'), ['period' => 'yearly'])
+            ->post(route('owner.subscribe'), ['plan' => Subscription::PLAN_ESCORT_VIP, 'period' => 'yearly'])
             ->assertSessionHas('status', 'VIP subscription is active. Submit your profile for verification to be listed.');
 
         $this->assertTrue($specialist->fresh()->hasRole('provider_premium'));
@@ -61,6 +62,7 @@ class SubscriptionPaymentTest extends TestCase
 
         $this->actingAs($client)
             ->post(route('client.subscribe'), [
+                'plan' => Subscription::PLAN_CLIENT_PREMIUM,
                 'period' => 'monthly',
                 'provider' => 'mtn_momo',
             ])

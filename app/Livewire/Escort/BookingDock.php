@@ -46,6 +46,7 @@ class BookingDock extends Component
 
         abort_unless($user->isClient(), 403);
         abort_if($this->escort->isVip() && ! $user->isPremiumClient(), 403);
+        abort_if($this->escort->isPremiumEscort() && ! $user->canBrowsePremium(), 403);
 
         $booking = Booking::create([
             'client_id' => $user->id,

@@ -292,20 +292,8 @@ class Escort extends Model
     {
         return $query
             ->where('verification_status', self::VERIFIED)
-            ->where(function (Builder $listed) {
-                $listed->where(function (Builder $freePremium) {
-                    $freePremium->where('kind', self::KIND_ESCORT)
-                        ->where('escort_tier', self::TIER_PREMIUM);
-                })->orWhere(function (Builder $paid) {
-                    $paid->where(function (Builder $requiresPlan) {
-                        $requiresPlan->where('kind', '!=', self::KIND_ESCORT)
-                            ->orWhere('escort_tier', '!=', self::TIER_PREMIUM);
-                    })->whereHas('owner.subscriptions', function (Builder $subscription) {
-                        $subscription
-                            ->active()
-                            ->whereIn('plan', [Subscription::PLAN_SPECIALIST, Subscription::PLAN_ESCORT_VIP]);
-                    });
-                });
+            ->whereHas('owner.subscriptions', function (Builder $subscription) {
+                $subscription->active()->whereIn('plan', Subscription::LISTING_PLANS);
             });
     }
 
@@ -331,6 +319,11 @@ class Escort extends Model
     public function isVip(): bool
     {
         return $this->kind === self::KIND_ESCORT && $this->escort_tier === self::TIER_VIP;
+    }
+
+    public function isPremiumEscort(): bool
+    {
+        return $this->kind === self::KIND_ESCORT && $this->escort_tier === self::TIER_PREMIUM;
     }
 
     public function tag(): string

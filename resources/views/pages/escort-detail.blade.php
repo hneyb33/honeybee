@@ -1,5 +1,5 @@
 <x-layouts.app :title="$escort->title.' - Honeybee'">
-    <div class="mx-auto max-w-6xl px-6 py-8">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         @if (session('status'))
             <p class="mb-6 rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-800">{{ session('status') }}</p>
         @endif
@@ -12,7 +12,7 @@
                         <span class="text-sm text-neutral-500">{{ $escort->serviceLabel() }}</span>
                     @endif
                 </div>
-                <h1 class="text-3xl font-semibold tracking-tight text-neutral-900">{{ $escort->title }}</h1>
+                <h1 class="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">{{ $escort->title }}</h1>
                 <p class="mt-2 flex items-center gap-1 text-sm text-neutral-600"><x-lucide name="map-pin" /> {{ $escort->neighborhood }}, {{ $escort->city }}@if ($escort->nationality) · {{ $escort->nationality }}@endif · {{ $escort->review_count > 0 ? number_format((float) $escort->rating, 1).' · '.$escort->review_count.' reviews' : 'New' }}</p>
             </div>
             <div class="flex gap-2 text-sm font-medium" x-data="{ copied: false }">
@@ -31,7 +31,7 @@
             <video class="mt-4 w-full rounded-xl bg-black" controls playsinline src="{{ $video->url() }}"></video>
         @endif
 
-        <div class="mt-8 grid gap-12 lg:grid-cols-[1.6fr_0.9fr]">
+        <div class="mt-6 grid gap-8 sm:mt-8 lg:grid-cols-[1.6fr_0.9fr] lg:gap-12">
             <div>
                 <div class="mb-8 border-b border-neutral-200 pb-8">
                     <h2 class="text-2xl font-semibold text-neutral-900">{{ $escort->tag() }} profile hosted by {{ $escort->owner?->name ?? 'Honeybee' }}</h2>

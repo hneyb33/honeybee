@@ -16,8 +16,11 @@
             <p class="mb-6 rounded-lg bg-neutral-100 px-4 py-3 text-sm">{{ session('status') }}</p>
         @endif
 
-        @unless (auth()->user()->isHomeSpecialist() ? auth()->user()->hasActiveSpecialistSubscription() : auth()->user()->hasActiveVipSubscription())
-            <a href="{{ route('subscribe') }}" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"><x-lucide name="credit-card" /> Choose a subscription</a>
+        @unless (auth()->user()->hasActiveListingSubscription())
+            <div class="mb-6 rounded-xl border border-neutral-200 p-4">
+                <p class="text-sm text-neutral-700">Every profile needs an active subscription before it appears in the listings.</p>
+                <a href="{{ route('subscribe') }}" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"><x-lucide name="credit-card" /> Choose a subscription</a>
+            </div>
         @endunless
 
         <h2 class="mb-3 text-lg font-semibold">Booking requests</h2>

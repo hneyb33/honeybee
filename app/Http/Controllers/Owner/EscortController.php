@@ -204,15 +204,15 @@ class EscortController extends Controller
 
         $this->storePhotos($request, $escort);
 
-        if ($validated['tier'] === Escort::TIER_VIP) {
+        if (! $request->user()->hasActiveListingSubscription()) {
             return redirect()
                 ->route('subscribe')
-                ->with('status', 'Profile submitted. VIP listings need a subscription before they can go live. Premium listings are free after approval.');
+                ->with('status', 'Profile submitted. Choose a '.($validated['tier'] === Escort::TIER_VIP ? 'VIP' : 'premium').' subscription so it can go live once an admin approves it.');
         }
 
         return redirect()
             ->route('owner.escorts.index')
-            ->with('status', 'Profile submitted for verification. Premium listings are free and stay hidden until an admin approves them.');
+            ->with('status', 'Profile submitted for verification. It stays hidden until an admin approves it.');
     }
 
     public function update(Request $request, Escort $escort): RedirectResponse
@@ -338,7 +338,13 @@ class EscortController extends Controller
         if ($validated['tier'] === Escort::TIER_VIP && ! $request->user()->hasActiveVipSubscription()) {
             return redirect()
                 ->route('subscribe')
-                ->with('status', 'VIP listings need a subscription. Premium listings stay free.');
+                ->with('status', 'VIP listings need a VIP subscription.');
+        }
+
+        if (! $request->user()->hasActiveListingSubscription()) {
+            return redirect()
+                ->route('subscribe')
+                ->with('status', 'Choose a subscription so your profile can be listed.');
         }
 
         return redirect()

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\PhoneNumber;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'account_kind'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'account_kind'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -26,6 +28,13 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    protected function phone(): Attribute
+    {
+        return Attribute::set(fn (?string $value) => $value === null || $value === ''
+            ? null
+            : PhoneNumber::normalize($value));
     }
 
     public function escorts(): HasMany
@@ -73,6 +82,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole('client_premium') && $this->hasActivePlan(Subscription::PLAN_CLIENT_PREMIUM);
     }
 
+    /**
+     * VIP access also covers the premium tier, so either client plan opens premium profiles.
+     */
+    public function canBrowsePremium(): bool
+    {
+        return $this->isAdmin()
+            || $this->isPremiumClient()
+            || $this->hasActivePlan(Subscription::PLAN_CLIENT_BASIC);
+    }
+
     public function isModel(): bool
     {
         return $this->account_kind === 'model' && $this->isSpecialist();
@@ -97,6 +116,17 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasActivePlan(Subscription::PLAN_ESCORT_VIP)
             || $this->hasActivePlan(Subscription::PLAN_SPECIALIST);
+    }
+
+    /**
+     * Any paid listing plan. Every profile, premium included, needs one to be published.
+     */
+    public function hasActiveListingSubscription(): bool
+    {
+        return $this->subscriptions()
+            ->whereIn('plan', Subscription::LISTING_PLANS)
+            ->active()
+            ->exists();
     }
 
     public function hasActivePlan(string $plan): bool
@@ -127,7 +157,7 @@ class User extends Authenticatable implements FilamentUser
             ],
         );
 
-        if (in_array($plan, [Subscription::PLAN_SPECIALIST, Subscription::PLAN_ESCORT_VIP], true)) {
+        if (in_array($plan, Subscription::LISTING_PLANS, true)) {
             $this->syncRoles(['provider_premium']);
         }
 

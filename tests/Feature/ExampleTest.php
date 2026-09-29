@@ -17,7 +17,7 @@ class ExampleTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $response = $this->get('/');
+        $response = $this->withSession(['allowed_age' => true])->get('/');
 
         $response->assertStatus(200);
     }

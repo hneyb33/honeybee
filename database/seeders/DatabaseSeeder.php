@@ -174,6 +174,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test User',
+                'phone' => '256700000001',
                 'password' => 'password',
                 'email_verified_at' => now(),
             ],

@@ -42,7 +42,7 @@ class RoleAccessTest extends TestCase
         Escort::create($this->profile($specialist, [
             'verification_status' => 'verified',
             'escort_tier' => 'premium',
-            'slug' => 'free-premium',
+            'slug' => 'unsubscribed-premium',
         ]));
         Escort::create($this->profile($specialist, [
             'verification_status' => 'verified',
@@ -58,7 +58,25 @@ class RoleAccessTest extends TestCase
             'slug' => 'unsubscribed-service',
         ]));
 
-        $this->assertSame(['free-premium'], Escort::query()->published()->orderBy('slug')->pluck('slug')->all());
+        $this->assertSame([], Escort::query()->published()->orderBy('slug')->pluck('slug')->all());
+    }
+
+    public function test_a_premium_escort_is_published_once_the_premium_plan_is_paid(): void
+    {
+        $model = User::factory()->create(['account_kind' => 'model']);
+        $model->assignRole('provider_free');
+
+        Escort::create($this->profile($model, [
+            'verification_status' => 'verified',
+            'escort_tier' => 'premium',
+            'slug' => 'paid-premium',
+        ]));
+
+        $this->assertSame(0, Escort::query()->published()->count());
+
+        $model->activatePlan(Subscription::PLAN_ESCORT_PREMIUM);
+
+        $this->assertSame(['paid-premium'], Escort::query()->published()->pluck('slug')->all());
     }
 
     public function test_verified_subscribed_profiles_are_published(): void

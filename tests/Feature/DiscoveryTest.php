@@ -68,12 +68,40 @@ class DiscoveryTest extends TestCase
             ->actingAs($client)
             ->get(route('escort.show', $escort))
             ->assertRedirect(route('subscribe'))
-            ->assertSessionHas('status', 'A premium subscription is required to browse VIP profiles.');
+            ->assertSessionHas('status', 'A subscription is required to browse VIP profiles.');
 
         Livewire::actingAs($client)
             ->test(TierFilter::class)
             ->call('setTier', 'vip')
             ->assertRedirect(route('subscribe'));
+    }
+
+    public function test_premium_profiles_need_a_client_subscription_to_open(): void
+    {
+        $owner = User::factory()->create(['account_kind' => 'model']);
+        $owner->assignRole('provider_free');
+        $owner->activatePlan(Subscription::PLAN_ESCORT_PREMIUM);
+
+        $escort = Escort::create($this->profile($owner, [
+            'verification_status' => 'verified',
+            'slug' => 'premium-profile',
+        ]));
+
+        $client = User::factory()->create(['account_kind' => 'client']);
+        $client->assignRole('client_free');
+
+        $this->withSession(['allowed_age' => true])
+            ->actingAs($client)
+            ->get(route('escort.show', $escort))
+            ->assertRedirect(route('subscribe'))
+            ->assertSessionHas('status', 'A subscription is required to browse premium profiles.');
+
+        $client->activatePlan(Subscription::PLAN_CLIENT_BASIC);
+
+        $this->withSession(['allowed_age' => true])
+            ->actingAs($client->fresh())
+            ->get(route('escort.show', $escort))
+            ->assertOk();
     }
 
     public function test_search_uses_location_category_and_service(): void

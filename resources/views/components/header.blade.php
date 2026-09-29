@@ -1,7 +1,21 @@
-<header class="sticky top-0 z-50 border-b border-neutral-200 bg-white">
-    <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4">
+<style>
+    .hb-header { transition: transform 250ms ease; will-change: transform; }
+    .hb-header-hidden { transform: translateY(-100%); }
+</style>
+<header
+    x-data="{ hidden: false, last: 0 }"
+    x-init="last = window.scrollY"
+    @scroll.window="
+        const y = Math.max(window.scrollY, 0);
+        hidden = window.innerWidth < 768 && y > last && y > 96;
+        last = y;
+    "
+    :class="hidden && 'hb-header-hidden'"
+    class="hb-header sticky top-0 z-50 border-b border-neutral-200 bg-white"
+>
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:gap-6 sm:px-6 sm:py-4">
         <a href="{{ route('home') }}" class="shrink-0">
-            <img src="{{ asset('images/logo.jpeg') }}" alt="Honeybee" class="h-14 w-auto object-contain">
+            <img src="{{ asset('images/logo.jpeg') }}" alt="Honeybee" class="h-10 w-auto object-contain sm:h-14">
         </a>
 
         <div class="hidden items-center gap-8 text-sm font-medium text-neutral-800 md:flex">
@@ -19,13 +33,13 @@
             <x-theme-toggle />
             @auth
                 @if (auth()->user()->isSpecialist())
-                    <a href="{{ route('owner.escorts.create') }}" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
-                        <x-lucide name="badge-plus" /> List your profile
+                    <a href="{{ route('owner.escorts.create') }}" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-800" aria-label="List your profile">
+                        <x-lucide name="badge-plus" /> <span class="hidden sm:inline">List your profile</span>
                     </a>
                 @endif
             @else
-                <a href="{{ route('register') }}" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-800">
-                    <x-lucide name="user-plus" /> Register as
+                <a href="{{ route('register') }}" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-800" aria-label="Register as">
+                    <x-lucide name="user-plus" /> <span class="hidden sm:inline">Register as</span>
                 </a>
             @endauth
             <div class="relative" x-data="{ open: false }">
@@ -43,12 +57,12 @@
                         </a>
                         @if (auth()->user()->isClient() && ! auth()->user()->isPremiumClient())
                             <a href="{{ route('subscribe') }}" class="flex items-center gap-2 px-4 py-2.5 hover:bg-neutral-100">
-                                <x-lucide name="crown" /> Upgrade to premium
+                                <x-lucide name="crown" /> {{ auth()->user()->canBrowsePremium() ? 'Upgrade to VIP access' : 'Unlock premium profiles' }}
                             </a>
                         @endif
-                        @if (auth()->user()->isModel() && ! auth()->user()->hasActiveVipSubscription())
+                        @if (auth()->user()->isSpecialist() && ! auth()->user()->hasActiveListingSubscription())
                             <a href="{{ route('subscribe') }}" class="flex items-center gap-2 px-4 py-2.5 hover:bg-neutral-100">
-                                <x-lucide name="crown" /> Subscribe for VIP
+                                <x-lucide name="crown" /> Subscribe to get listed
                             </a>
                         @endif
                         <form method="POST" action="{{ route('logout') }}">

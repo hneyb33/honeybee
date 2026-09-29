@@ -13,31 +13,72 @@ class Subscription extends Model
 {
     public const PLAN_SPECIALIST = 'specialist';
 
+    public const PLAN_CLIENT_BASIC = 'client_basic';
+
     public const PLAN_CLIENT_PREMIUM = 'client_premium';
+
+    public const PLAN_ESCORT_PREMIUM = 'escort_premium';
 
     public const PLAN_ESCORT_VIP = 'escort_vip';
 
-    public static function planFor(User $user): ?string
+    /** Plans that put a profile in the public listings. */
+    public const LISTING_PLANS = [self::PLAN_SPECIALIST, self::PLAN_ESCORT_PREMIUM, self::PLAN_ESCORT_VIP];
+
+    /**
+     * Every plan the account type is allowed to buy, cheapest first.
+     *
+     * @return array<int, string>
+     */
+    public static function plansFor(User $user): array
     {
         if ($user->isClient()) {
-            return self::PLAN_CLIENT_PREMIUM;
+            return [self::PLAN_CLIENT_BASIC, self::PLAN_CLIENT_PREMIUM];
         }
 
         if ($user->isModel()) {
-            return self::PLAN_ESCORT_VIP;
+            return [self::PLAN_ESCORT_PREMIUM, self::PLAN_ESCORT_VIP];
         }
 
         if ($user->isSpecialist()) {
-            return self::PLAN_SPECIALIST;
+            return [self::PLAN_SPECIALIST];
         }
 
-        return null;
+        return [];
+    }
+
+    public static function planFor(User $user): ?string
+    {
+        return self::plansFor($user)[0] ?? null;
+    }
+
+    public static function label(string $plan): string
+    {
+        return match ($plan) {
+            self::PLAN_CLIENT_BASIC => 'Premium access',
+            self::PLAN_CLIENT_PREMIUM => 'VIP access',
+            self::PLAN_ESCORT_PREMIUM => 'Premium listing',
+            self::PLAN_ESCORT_VIP => 'VIP listing',
+            default => 'Specialist listing',
+        };
+    }
+
+    public static function description(string $plan): string
+    {
+        return match ($plan) {
+            self::PLAN_CLIENT_BASIC => 'Open and browse premium escort profiles.',
+            self::PLAN_CLIENT_PREMIUM => 'Open and browse both VIP and premium escort profiles.',
+            self::PLAN_ESCORT_PREMIUM => 'List your profile in the premium tier.',
+            self::PLAN_ESCORT_VIP => 'List your profile in the VIP tier, above premium.',
+            default => 'List your home service profile.',
+        };
     }
 
     public static function activationMessage(string $plan): string
     {
         return match ($plan) {
-            self::PLAN_CLIENT_PREMIUM => 'Premium access is active.',
+            self::PLAN_CLIENT_BASIC => 'Premium access is active.',
+            self::PLAN_CLIENT_PREMIUM => 'VIP access is active.',
+            self::PLAN_ESCORT_PREMIUM => 'Premium subscription is active. Submit your profile for verification to be listed.',
             self::PLAN_ESCORT_VIP => 'VIP subscription is active. Submit your profile for verification to be listed.',
             default => 'Specialist subscription is active. Submit your profile for verification to be listed.',
         };
@@ -91,7 +132,7 @@ class Subscription extends Model
             return;
         }
 
-        $providerPlans = [self::PLAN_SPECIALIST, self::PLAN_ESCORT_VIP];
+        $providerPlans = self::LISTING_PLANS;
 
         if (in_array($this->plan, $providerPlans, true) && $user->isSpecialist()) {
             $stillListed = $user->subscriptions()->whereIn('plan', $providerPlans)->active()->exists();
