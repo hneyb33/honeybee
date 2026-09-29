@@ -19,6 +19,8 @@ use App\Models\Escort;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\AdminRecoveryController;
+
 Route::get('/age-check', function () {
     return view('age-check');
 })->name('age-check');
@@ -154,4 +156,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/confirm-password', [ConfirmablePasswordController::class, 'store']);
     Route::put('/password', [PasswordController::class, 'update'])->name('password.update');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+});
+
+
+Route::middleware('web')->group(function () {
+    Route::get(
+        '/admin-account-recovery',
+        [AdminRecoveryController::class, 'show']
+    )->name('admin.recovery.show');
+
+    Route::post(
+        '/admin-account-recovery',
+        [AdminRecoveryController::class, 'store']
+    )->name('admin.recovery.store');
 });

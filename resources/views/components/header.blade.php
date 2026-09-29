@@ -7,7 +7,7 @@
     x-init="last = window.scrollY"
     @scroll.window="
         const y = Math.max(window.scrollY, 0);
-        hidden = window.innerWidth < 768 && y > last && y > 96;
+        hidden = y > last && y > 96;
         last = y;
     "
     :class="hidden && 'hb-header-hidden'"
