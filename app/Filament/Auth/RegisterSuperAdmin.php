@@ -12,16 +12,16 @@ use SensitiveParameter;
 
 class RegisterSuperAdmin extends Register
 {
-    public function mount(): void
-    {
-        if (Setting::get('super_admin_registered') === '1') {
-            redirect()->to(filament()->getLoginUrl());
+    // public function mount(): void
+    // {
+    //     if (Setting::get('super_admin_registered') === '1') {
+    //         redirect()->to(filament()->getLoginUrl());
 
-            return;
-        }
+    //         return;
+    //     }
 
-        parent::mount();
-    }
+    //     parent::mount();
+    // }
 
     public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable|null
     {
