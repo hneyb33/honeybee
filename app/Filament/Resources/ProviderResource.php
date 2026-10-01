@@ -3,10 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProviderResource\Pages;
+use App\Filament\Support\ProfileMediaReview;
 use App\Models\Escort;
 use App\Models\EscortReference;
 use App\Support\HomeServiceCatalog;
 use App\Support\UgandaLocations;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
@@ -51,7 +53,12 @@ class ProviderResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('kind', Escort::KIND_SERVICE);
+        return parent::getEloquentQuery()
+            ->where('kind', Escort::KIND_SERVICE)
+            ->withCount([
+                'media as photos_count' => fn (Builder $query) => $query->where('kind', '!=', 'video'),
+                'media as videos_count' => fn (Builder $query) => $query->where('kind', 'video'),
+            ]);
     }
 
     public static function form(Schema $schema): Schema
@@ -202,6 +209,7 @@ class ProviderResource extends Resource
                     })
                     ->columnSpanFull(),
             ]),
+            ProfileMediaReview::section(),
             Section::make('Verification')->components([
                 Select::make('verification_status')->options([
                     'pending' => 'Pending',
@@ -226,15 +234,19 @@ class ProviderResource extends Resource
                 ->label('WhatsApp')
                 ->formatStateUsing(fn ($state, Escort $record): string => trim(($record->whatsapp_code ?: '+256').' '.$state)),
             Tables\Columns\TextColumn::make('verification_status')->badge(),
+            Tables\Columns\TextColumn::make('media_summary')
+                ->label('Media')
+                ->state(fn (Escort $record): string => ((int) $record->photos_count).' photos, '.((int) $record->videos_count).' '.((int) $record->videos_count === 1 ? 'video' : 'videos')),
         ])->recordActions([
-            \Filament\Actions\Action::make('verify')
+            ProfileMediaReview::action(),
+            Action::make('verify')
                 ->color('success')
                 ->visible(fn (Escort $record) => $record->verification_status !== Escort::VERIFIED)
                 ->action(fn (Escort $record) => $record->update([
                     'verification_status' => Escort::VERIFIED,
                     'status' => 'published',
                 ])),
-            \Filament\Actions\Action::make('reject')
+            Action::make('reject')
                 ->color('danger')
                 ->action(fn (Escort $record) => $record->update([
                     'verification_status' => 'rejected',

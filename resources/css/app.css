@@ -154,6 +154,209 @@ html.dark .hover\:text-ink-950:hover {
     color: #ffffff;
 }
 
+html.dark .text-neutral-900\/60,
+html.dark .text-neutral-900\/70,
+html.dark .text-neutral-900\/80,
+html.dark .text-neutral-900\/85,
+html.dark .text-neutral-900\/90 {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.guest-page {
+    background-color: #f4f5f6;
+    color: #0f0a0a;
+}
+
+html.dark .guest-page {
+    background-color: #0f0a0a;
+    color: #ffffff;
+}
+
+.guest-logo {
+    display: inline-flex;
+    border-radius: 1rem;
+    background-color: #ffffff;
+    padding: 0.35rem;
+}
+
+.guest-shell {
+    margin-top: 1.5rem;
+    width: 100%;
+    max-width: 28rem;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid #e6e8ea;
+    background-color: #ffffff;
+    padding: 1.25rem 1.5rem;
+    color: #0f0a0a;
+}
+
+.guest-shell-wide {
+    max-width: 42rem;
+}
+
+html.dark .guest-shell {
+    border-color: #767f88;
+    background-color: #1a1414;
+    color: #ffffff;
+}
+
+.age-gate {
+    display: grid;
+    gap: 1.5rem;
+    text-align: center;
+    color: #0f0a0a;
+}
+
+html.dark .age-gate {
+    color: #ffffff;
+}
+
+.age-gate-kicker {
+    margin-bottom: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #767f88;
+}
+
+.age-gate h1 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.age-gate-copy,
+.age-gate-rules {
+    color: #3c434a;
+}
+
+html.dark .age-gate-copy,
+html.dark .age-gate-rules {
+    color: #f4f5f6;
+}
+
+.age-gate-copy {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.age-gate-panel {
+    border: 1px solid #e6e8ea;
+    border-radius: 1.5rem;
+    background-color: #f4f5f6;
+    padding: 1.5rem;
+    text-align: left;
+    box-shadow: 0 10px 30px rgba(15, 10, 10, 0.06);
+}
+
+html.dark .age-gate-panel {
+    border-color: #767f88;
+    background-color: #241e1e;
+    box-shadow: none;
+}
+
+.age-gate-panel h2 {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.age-gate-rules {
+    display: grid;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.age-gate-rules li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.age-gate-index {
+    margin-top: 0.15rem;
+    display: inline-flex;
+    height: 1.25rem;
+    width: 1.25rem;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background-color: #0f0a0a;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+html.dark .age-gate-index {
+    background-color: #ffffff;
+    color: #0f0a0a;
+}
+
+.age-gate-denied {
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    border-radius: 1.5rem;
+    background-color: #fef2f2;
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: #7f1d1d;
+}
+
+html.dark .age-gate-denied {
+    background-color: rgba(127, 29, 29, 0.35);
+    color: #fee2e2;
+}
+
+.age-gate-actions {
+    display: grid;
+    gap: 1rem;
+}
+
+.age-gate-yes,
+.age-gate-no {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.age-gate-yes {
+    border-radius: 0.5rem;
+    background-color: #0f0a0a;
+    color: #ffffff;
+}
+
+html.dark .age-gate-yes {
+    background-color: #ffffff;
+    color: #0f0a0a;
+}
+
+.age-gate-no {
+    border-radius: 999px;
+    border: 1px solid #767f88;
+    background-color: #ffffff;
+    color: #0f0a0a;
+}
+
+html.dark .age-gate-no {
+    background-color: transparent;
+    border-color: #ffffff;
+    color: #ffffff;
+}
+
+@media (min-width: 640px) {
+    .age-gate-actions {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

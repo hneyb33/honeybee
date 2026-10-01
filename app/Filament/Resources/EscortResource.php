@@ -3,12 +3,14 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EscortResource\Pages;
+use App\Filament\Support\ProfileMediaReview;
 use App\Models\Escort;
+use App\Support\UgandaLocations;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use App\Support\UgandaLocations;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -19,6 +21,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 class EscortResource extends Resource
@@ -36,14 +39,20 @@ class EscortResource extends Resource
         return auth()->user()?->isAdmin() ?? false;
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('kind', Escort::KIND_ESCORT);
+        return parent::getEloquentQuery()
+            ->where('kind', Escort::KIND_ESCORT)
+            ->withCount([
+                'media as photos_count' => fn (Builder $query) => $query->where('kind', '!=', 'video'),
+                'media as videos_count' => fn (Builder $query) => $query->where('kind', 'video'),
+            ]);
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            ProfileMediaReview::section(),
             Select::make('user_id')->relationship('owner', 'email')->searchable()->required(),
             TextInput::make('title')->required()->maxLength(255),
             Select::make('escort_tier')->options([
@@ -104,6 +113,9 @@ class EscortResource extends Resource
                 Tables\Columns\TextColumn::make('title')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('escort_tier')->badge(),
                 Tables\Columns\TextColumn::make('verification_status')->badge()->sortable(),
+                Tables\Columns\TextColumn::make('media_summary')
+                    ->label('Media')
+                    ->state(fn (Escort $record): string => ((int) $record->photos_count).' photos, '.((int) $record->videos_count).' '.((int) $record->videos_count === 1 ? 'video' : 'videos')),
                 Tables\Columns\TextColumn::make('nationality')->toggleable(),
                 Tables\Columns\TextColumn::make('city')->searchable(),
                 Tables\Columns\TextColumn::make('neighborhood')->label('Area')->searchable(),
@@ -113,14 +125,15 @@ class EscortResource extends Resource
                 Tables\Columns\TextColumn::make('hourly_rate')->label('UGX/hour'),
             ])
             ->recordActions([
-                \Filament\Actions\Action::make('verify')
+                ProfileMediaReview::action(),
+                Action::make('verify')
                     ->color('success')
                     ->visible(fn (Escort $record) => $record->verification_status !== Escort::VERIFIED)
                     ->action(fn (Escort $record) => $record->update([
                         'verification_status' => Escort::VERIFIED,
                         'status' => 'published',
                     ])),
-                \Filament\Actions\Action::make('reject')
+                Action::make('reject')
                     ->color('danger')
                     ->visible(fn (Escort $record) => $record->verification_status !== 'rejected')
                     ->action(fn (Escort $record) => $record->update([

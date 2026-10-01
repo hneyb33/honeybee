@@ -18,18 +18,18 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
     </head>
-    <body class="font-sans text-ink-950 antialiased">
-        <div class="flex min-h-screen flex-col items-center bg-ivory-50 px-4 pt-8 sm:justify-center sm:pt-0">
+    <body class="font-sans antialiased">
+        <div class="guest-page flex min-h-screen flex-col items-center px-4 pt-8 sm:justify-center sm:pt-0">
             <div class="absolute right-4 top-4">
                 <x-theme-toggle />
             </div>
             <div>
-            <a href="/">
+            <a href="/" class="guest-logo">
                 <img src="{{ asset('images/logo.jpeg') }}" alt="Honeybee" class="h-16 w-auto object-contain">
             </a>
             </div>
 
-            <div class="mt-6 w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white px-6 py-5 sm:max-w-md">
+            <div class="guest-shell {{ $wide ? 'guest-shell-wide' : '' }}">
                 {{ $slot }}
             </div>
         </div>

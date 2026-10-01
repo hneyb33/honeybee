@@ -186,3 +186,59 @@ html.dark .fi-btn.fi-color-primary:not(.fi-outlined):hover {
 html.dark .fi-theme-switcher {
     background-color: #1a1414;
 }
+
+.verification-media-empty,
+.verification-media-label,
+.verification-media-file {
+    color: #3c434a;
+    font-size: 0.875rem;
+}
+
+html.dark .verification-media-empty,
+html.dark .verification-media-label,
+html.dark .verification-media-file {
+    color: #f4f5f6;
+}
+
+.verification-media-label {
+    margin: 0 0 0.75rem;
+    font-weight: 700;
+}
+
+.verification-media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.verification-media-link {
+    display: grid;
+    gap: 0.35rem;
+    color: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.verification-media-link img,
+.verification-media-video {
+    width: 100%;
+    border-radius: 0.75rem;
+    background: #0f0a0a;
+}
+
+.verification-media-link img {
+    height: 180px;
+    object-fit: cover;
+}
+
+.verification-media-video {
+    max-height: 420px;
+    margin-top: 0.5rem;
+}
+
+.verification-media-file {
+    display: inline-block;
+    margin: 0.35rem 0 1rem;
+    text-decoration: underline;
+}
