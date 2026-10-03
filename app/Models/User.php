@@ -22,6 +22,12 @@ class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, HasRoles;
 
+    /**
+     * Roles are stored for the web guard. The admin panel switches the default
+     * guard to admin, and role lookup would then miss client_premium and provider_premium.
+     */
+    protected string $guard_name = 'web';
+
     protected function casts(): array
     {
         return [

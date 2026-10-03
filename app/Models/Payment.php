@@ -70,7 +70,9 @@ class Payment extends Model
 
     public function planLabel(): string
     {
-        return $this->metadata['plan_name'] ?? match ($this->plan) {
+        $metadata = is_array($this->metadata) ? $this->metadata : [];
+
+        return $metadata['plan_name'] ?? match ($this->plan) {
             Subscription::PLAN_CLIENT_PREMIUM => 'Premium',
             Subscription::PLAN_SPECIALIST => 'Specialist',
             default => 'Subscription',
@@ -79,7 +81,9 @@ class Payment extends Model
 
     public function durationLabel(): string
     {
-        return $this->metadata['duration_label'] ?? match ($this->period) {
+        $metadata = is_array($this->metadata) ? $this->metadata : [];
+
+        return $metadata['duration_label'] ?? match ($this->period) {
             'daily' => '1 day',
             default => '1 month',
         };

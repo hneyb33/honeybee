@@ -12,6 +12,7 @@ use App\Services\PaymentService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -219,6 +220,8 @@ class SubscriptionPaymentTest extends TestCase
             'transaction_id' => 'BTN184729',
             'paid_at' => now()->subMinutes(2)->toDateTimeString(),
         ], null);
+
+        Auth::shouldUse('admin');
 
         Livewire::actingAs($admin, 'admin')
             ->test(ViewPayment::class, ['record' => $payment->getKey()])

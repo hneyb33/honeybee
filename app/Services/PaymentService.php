@@ -22,6 +22,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class PaymentService
 {
@@ -283,8 +284,13 @@ class PaymentService
         }
 
         $fresh = $payment->fresh(['subscription', 'user']);
-        PaymentVerified::dispatch($fresh);
-        SubscriptionActivated::dispatch($subscription);
+
+        try {
+            PaymentVerified::dispatch($fresh);
+            SubscriptionActivated::dispatch($subscription);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         return $subscription;
     }
