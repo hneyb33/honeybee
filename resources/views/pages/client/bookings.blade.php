@@ -4,6 +4,17 @@
         @if (session('status'))
             <p class="mt-4 rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-800">{{ session('status') }}</p>
         @endif
+        @if (! empty($subscription))
+            <div class="mt-6 rounded-xl border border-neutral-200 p-4 text-sm text-neutral-700">
+                <p class="font-semibold text-neutral-900">{{ \App\Models\Subscription::label($subscription->plan) }} is active</p>
+                <p class="mt-1">{{ ucfirst($subscription->period) }} access until {{ $subscription->ends_at?->format('j M Y') }}.</p>
+            </div>
+        @elseif (! empty($latestPayment) && $latestPayment->status !== \App\Enums\PaymentStatus::Verified)
+            <div class="mt-6 rounded-xl border border-neutral-200 p-4 text-sm text-neutral-700">
+                <p class="font-semibold text-neutral-900">Payment {{ $latestPayment->status->label() }}</p>
+                <a href="{{ route('payments.show', $latestPayment) }}" class="mt-2 inline-block font-semibold underline">View payment {{ $latestPayment->reference }}</a>
+            </div>
+        @endif
         <div class="mt-8 space-y-4">
             @forelse ($bookings as $booking)
                 <article class="rounded-xl border border-neutral-200 p-4">

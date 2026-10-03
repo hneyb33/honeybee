@@ -81,8 +81,6 @@ class Payment extends Model
     {
         return $this->metadata['duration_label'] ?? match ($this->period) {
             'daily' => '1 day',
-            'yearly' => '1 year',
-            'custom' => (($this->metadata['duration_days'] ?? 1).' days'),
             default => '1 month',
         };
     }

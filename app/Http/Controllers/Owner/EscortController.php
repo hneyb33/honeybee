@@ -22,9 +22,13 @@ class EscortController extends Controller
     {
         abort_unless($request->user()->isSpecialist(), 403);
 
+        $user = $request->user();
+
         return view('pages.owner.index', [
-            'escorts' => Escort::query()->where('user_id', Auth::id())->with('media')->latest()->get(),
-            'bookings' => Booking::query()->whereHas('escort', fn ($query) => $query->where('user_id', Auth::id()))->with('client', 'escort')->latest()->get(),
+            'escorts' => Escort::query()->where('user_id', $user->id)->with('media')->latest()->get(),
+            'bookings' => Booking::query()->whereHas('escort', fn ($query) => $query->where('user_id', $user->id))->with('client', 'escort')->latest()->get(),
+            'subscription' => $user->subscriptions()->active()->latest('ends_at')->first(),
+            'latestPayment' => $user->payments()->latest()->first(),
         ]);
     }
 

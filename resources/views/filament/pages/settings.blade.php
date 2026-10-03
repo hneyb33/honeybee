@@ -25,7 +25,7 @@
         </section>
         <section class="space-y-3">
             <h2 class="text-lg font-semibold">Subscription prices (UGX)</h2>
-            <p class="text-sm text-gray-500">Daily, monthly, yearly, and custom periods on the public subscription page use these prices.</p>
+            <p class="text-sm text-gray-500">Daily and monthly prices on the public subscription page.</p>
             @foreach ([
                 'client_basic' => 'Client — browse premium escorts',
                 'client_premium' => 'Client — browse VIP and premium escorts',
@@ -37,9 +37,6 @@
                 <div class="grid gap-3 md:grid-cols-2">
                     <label class="text-sm">Daily<input wire:model="data.{{ $plan }}_daily_price" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
                     <label class="text-sm">Monthly<input wire:model="data.{{ $plan }}_monthly_price" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
-                    <label class="text-sm">Yearly<input wire:model="data.{{ $plan }}_yearly_price" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
-                    <label class="text-sm">Custom price<input wire:model="data.{{ $plan }}_custom_price" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
-                    <label class="text-sm">Custom days<input wire:model="data.{{ $plan }}_custom_days" class="mt-1 w-full rounded-lg border px-3 py-2"></label>
                 </div>
             @endforeach
         </section>

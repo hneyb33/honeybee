@@ -136,14 +136,9 @@ class User extends Authenticatable implements FilamentUser
 
     public function activatePlan(string $plan, string $period = 'monthly'): Subscription
     {
+        $period = $period === 'daily' ? 'daily' : 'monthly';
         $price = (int) Setting::get($plan.'_'.$period.'_price', 0);
-        $customDays = (int) Setting::get($plan.'_custom_days', 30);
-        $ends = match ($period) {
-            'daily' => now()->addDay(),
-            'yearly' => now()->addYear(),
-            'custom' => now()->addDays(max($customDays, 1)),
-            default => now()->addMonth(),
-        };
+        $ends = $period === 'daily' ? now()->addDay() : now()->addMonth();
 
         $subscription = $this->subscriptions()->updateOrCreate(
             ['plan' => $plan],
@@ -151,7 +146,7 @@ class User extends Authenticatable implements FilamentUser
                 'status' => 'active',
                 'period' => $period,
                 'price_amount' => $price,
-                'custom_days' => $period === 'custom' ? $customDays : null,
+                'custom_days' => null,
                 'starts_at' => now(),
                 'ends_at' => $ends,
             ],

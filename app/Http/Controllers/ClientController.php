@@ -15,12 +15,16 @@ class ClientController extends Controller
     {
         abort_unless($request->user()->isClient(), 403);
 
+        $user = $request->user();
+
         return view('pages.client.bookings', [
             'bookings' => Booking::query()
-                ->where('client_id', $request->user()->id)
+                ->where('client_id', $user->id)
                 ->with(['escort', 'review'])
                 ->latest()
                 ->get(),
+            'subscription' => $user->subscriptions()->active()->latest('ends_at')->first(),
+            'latestPayment' => $user->payments()->latest()->first(),
         ]);
     }
 

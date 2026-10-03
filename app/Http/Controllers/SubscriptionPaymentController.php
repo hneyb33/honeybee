@@ -43,7 +43,7 @@ class SubscriptionPaymentController extends Controller
         abort_unless($allowed !== [], 403);
 
         $rules = [
-            'period' => ['required', 'in:daily,monthly,yearly,custom'],
+            'period' => ['required', 'in:daily,monthly'],
             'plan' => ['nullable', Rule::in($allowed)],
         ];
 

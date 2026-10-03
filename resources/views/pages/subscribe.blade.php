@@ -5,7 +5,7 @@
         $action = $user->isClient() ? route('client.subscribe') : route('owner.subscribe');
         $paymentsEnabled = $paymentsEnabled ?? false;
         $providers = $providers ?? [];
-        $periods = ['daily' => 'Daily', 'monthly' => 'Monthly', 'yearly' => 'Yearly', 'custom' => 'Custom'];
+        $periods = ['daily' => 'Daily', 'monthly' => 'Monthly'];
     @endphp
     <section class="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         @if (session('status'))
@@ -50,9 +50,6 @@
                             <input type="hidden" name="period" value="{{ $period }}">
                             <h3 class="font-semibold text-neutral-900">{{ $label }}</h3>
                             <p class="mt-1 text-sm text-neutral-600">UGX {{ number_format((int) \App\Models\Setting::get($plan.'_'.$period.'_price', 0)) }}</p>
-                            @if ($period === 'custom')
-                                <p class="text-xs text-neutral-500">{{ \App\Models\Setting::get($plan.'_custom_days', 30) }} days</p>
-                            @endif
                             @if ($paymentsEnabled)
                                 <fieldset class="mt-3 space-y-2">
                                     <legend class="text-xs font-semibold uppercase tracking-wide text-neutral-500">Pay with</legend>

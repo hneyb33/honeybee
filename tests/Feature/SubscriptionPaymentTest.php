@@ -47,7 +47,7 @@ class SubscriptionPaymentTest extends TestCase
         $specialist->assignRole('provider_free');
 
         $this->actingAs($specialist)
-            ->post(route('owner.subscribe'), ['plan' => Subscription::PLAN_ESCORT_VIP, 'period' => 'yearly'])
+            ->post(route('owner.subscribe'), ['plan' => Subscription::PLAN_ESCORT_VIP, 'period' => 'monthly'])
             ->assertSessionHas('status', 'VIP subscription is active. Submit your profile for verification to be listed.');
 
         $this->assertTrue($specialist->fresh()->hasRole('provider_premium'));
@@ -149,7 +149,7 @@ class SubscriptionPaymentTest extends TestCase
         $second->assignRole('client_free');
 
         $firstPayment = $service->start($first, Subscription::PLAN_CLIENT_PREMIUM, 'monthly', 'mtn_momo');
-        $secondPayment = $service->start($second, Subscription::PLAN_CLIENT_PREMIUM, 'yearly', 'mtn_momo');
+        $secondPayment = $service->start($second, Subscription::PLAN_CLIENT_PREMIUM, 'daily', 'mtn_momo');
 
         $payload = [
             'payer_phone' => '0772000111',
@@ -189,9 +189,23 @@ class SubscriptionPaymentTest extends TestCase
         $this->assertSame($payment->id, $subscription->payment_id);
         $this->assertTrue($client->fresh()->hasRole('client_premium'));
         $this->assertTrue($client->fresh()->hasActivePlan(Subscription::PLAN_CLIENT_PREMIUM));
+        $this->assertTrue($payment->fresh()->metadata['locked'] ?? false);
 
-        $this->expectException(ValidationException::class);
-        $service->verify($payment->fresh(), $admin, $this->checks());
+        $this->actingAs($client)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('VIP access is active');
+
+        $again = $service->verify($payment->fresh(), $admin, $this->checks());
+        $this->assertSame($subscription->id, $again->id);
+        $this->assertSame(PaymentStatus::Verified, $payment->fresh()->status);
+        $this->assertNull($service->verify($payment->fresh(), $admin, [
+            'transaction_exists' => true,
+            'transaction_matches' => true,
+            'amount_matches' => false,
+            'payment_received' => true,
+            'not_reused' => true,
+        ]));
     }
 
     public function test_rejection_requires_a_reason_and_does_not_activate_access(): void

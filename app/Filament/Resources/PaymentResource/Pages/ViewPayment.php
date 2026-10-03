@@ -11,6 +11,8 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ViewPayment extends ViewRecord
 {
@@ -36,15 +38,49 @@ class ViewPayment extends ViewRecord
                 ->color('success')
                 ->visible(fn (Payment $record) => $record->status === PaymentStatus::Submitted)
                 ->schema([
-                    Checkbox::make('transaction_exists')->label('Transaction exists in the merchant account')->accepted(),
-                    Checkbox::make('transaction_matches')->label('Transaction ID matches')->accepted(),
-                    Checkbox::make('amount_matches')->label('Amount matches')->accepted(),
-                    Checkbox::make('payment_received')->label('Payment was received')->accepted(),
-                    Checkbox::make('not_reused')->label('Transaction has not already been used')->accepted(),
+                    Checkbox::make('transaction_exists')->label('Transaction exists in the merchant account'),
+                    Checkbox::make('transaction_matches')->label('Transaction ID matches'),
+                    Checkbox::make('amount_matches')->label('Amount matches'),
+                    Checkbox::make('payment_received')->label('Payment was received'),
+                    Checkbox::make('not_reused')->label('Transaction has not already been used'),
                 ])
                 ->action(function (Payment $record, array $data): void {
-                    app(PaymentService::class)->verify($record, auth()->user(), $data);
-                    Notification::make()->title('Payment verified and subscription activated')->success()->send();
+                    $payments = app(PaymentService::class);
+
+                    if (! $payments->checksComplete($data)) {
+                        Notification::make()
+                            ->title('Check every item before verifying')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    try {
+                        $payments->verify($record, auth()->user(), $data);
+                    } catch (ValidationException $exception) {
+                        Notification::make()
+                            ->title(collect($exception->errors())->flatten()->first() ?: 'Check the transaction details')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    } catch (Throwable $exception) {
+                        report($exception);
+                        Notification::make()
+                            ->title('Check the transaction details and try again')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Payment verified and subscription activated')
+                        ->success()
+                        ->send();
+
+                    $this->redirect(PaymentResource::getUrl('view', ['record' => $record]));
                 }),
             Action::make('reject')
                 ->label('Reject payment')

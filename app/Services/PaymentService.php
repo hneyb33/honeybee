@@ -192,28 +192,40 @@ class PaymentService
     /**
      * @param  array<string, mixed>  $checks
      */
-    public function verify(Payment $payment, User $admin, array $checks): Subscription
+    public function checksComplete(array $checks): bool
     {
         foreach (['transaction_exists', 'transaction_matches', 'amount_matches', 'payment_received', 'not_reused'] as $check) {
-            if (empty($checks[$check])) {
-                throw ValidationException::withMessages([
-                    'payment' => 'Confirm every reconciliation check before verifying.',
-                ]);
+            if (! filter_var($checks[$check] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                return false;
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $checks
+     */
+    public function verify(Payment $payment, User $admin, array $checks): ?Subscription
+    {
+        if (! $this->checksComplete($checks)) {
+            return null;
+        }
+
+        if ($payment->status === PaymentStatus::Verified) {
+            return $payment->subscription;
         }
 
         $subscription = DB::transaction(function () use ($payment, $admin, $checks) {
             $locked = Payment::query()->lockForUpdate()->findOrFail($payment->id);
 
             if ($locked->status === PaymentStatus::Verified) {
-                throw ValidationException::withMessages([
-                    'payment' => 'This payment has already been verified.',
-                ]);
+                return $locked->subscription?->fresh();
             }
 
             if ($locked->status !== PaymentStatus::Submitted) {
                 throw ValidationException::withMessages([
-                    'payment' => 'Only a submitted payment can be verified.',
+                    'status' => 'Only a submitted payment can be verified.',
                 ]);
             }
 
@@ -226,29 +238,38 @@ class PaymentService
 
             if ($alreadyUsed) {
                 throw ValidationException::withMessages([
-                    'payment' => 'This transaction has already been used.',
+                    'transaction_id' => 'This transaction has already been used.',
                 ]);
             }
 
-            $locked->update([
-                'status' => PaymentStatus::Verified,
-                'verified_at' => now(),
-                'verified_by' => $admin->id,
-                'metadata' => array_merge($locked->metadata ?? [], [
-                    'verification' => $checks,
-                ]),
-            ]);
+            $user = $locked->user()->lockForUpdate()->first();
 
-            $user = $locked->user;
-            $subscription = $user->activatePlan($locked->plan, $locked->period ?: 'monthly');
+            if (! $user) {
+                throw ValidationException::withMessages([
+                    'user_id' => 'This payment has no account to activate.',
+                ]);
+            }
+
+            $period = in_array($locked->period, ['daily', 'monthly'], true) ? $locked->period : 'monthly';
+            $subscription = $user->activatePlan($locked->plan, $period);
             $subscription->update([
+                'status' => 'active',
                 'price_amount' => $locked->amount,
                 'payment_id' => $locked->id,
                 'activated_by' => $admin->id,
                 'activated_at' => now(),
             ]);
 
-            $locked->update(['subscription_id' => $subscription->id]);
+            $locked->update([
+                'status' => PaymentStatus::Verified,
+                'verified_at' => now(),
+                'verified_by' => $admin->id,
+                'subscription_id' => $subscription->id,
+                'metadata' => array_merge(is_array($locked->metadata) ? $locked->metadata : [], [
+                    'verification' => $checks,
+                    'locked' => true,
+                ]),
+            ]);
 
             $this->audit(
                 $locked,
@@ -272,6 +293,10 @@ class PaymentService
 
             return $subscription->fresh();
         });
+
+        if (! $subscription) {
+            return null;
+        }
 
         $fresh = $payment->fresh(['subscription', 'user']);
         PaymentVerified::dispatch($fresh);
@@ -340,19 +365,9 @@ class PaymentService
      */
     public function quote(string $plan, string $period): array
     {
-        $customDays = max(1, (int) Setting::get($plan.'_custom_days', 30));
-        $days = match ($period) {
-            'daily' => 1,
-            'yearly' => 365,
-            'custom' => $customDays,
-            default => 30,
-        };
-        $label = match ($period) {
-            'daily' => '1 day',
-            'yearly' => '1 year',
-            'custom' => $customDays.' days',
-            default => '1 month',
-        };
+        $period = $period === 'daily' ? 'daily' : 'monthly';
+        $days = $period === 'daily' ? 1 : 30;
+        $label = $period === 'daily' ? '1 day' : '1 month';
 
         return [
             'plan_name' => Subscription::label($plan),

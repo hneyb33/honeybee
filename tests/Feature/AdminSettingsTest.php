@@ -29,20 +29,24 @@ class AdminSettingsTest extends TestCase
         $this->actingAs($client)
             ->get(route('subscribe'))
             ->assertOk()
-            ->assertSee('45,000');
+            ->assertSee('45,000')
+            ->assertSee('Daily')
+            ->assertSee('Monthly')
+            ->assertDontSee('Yearly')
+            ->assertDontSee('Custom days');
     }
 
     public function test_activating_a_plan_stores_the_admin_price_and_period(): void
     {
-        Setting::put('specialist_yearly_price', '800000');
+        Setting::put('specialist_monthly_price', '100000');
 
         $specialist = User::factory()->create(['account_kind' => 'model']);
         $specialist->assignRole('provider_free');
-        $subscription = $specialist->activatePlan(Subscription::PLAN_SPECIALIST, 'yearly');
+        $subscription = $specialist->activatePlan(Subscription::PLAN_SPECIALIST, 'monthly');
 
-        $this->assertSame('yearly', $subscription->period);
-        $this->assertSame(800000, $subscription->price_amount);
+        $this->assertSame('monthly', $subscription->period);
+        $this->assertSame(100000, $subscription->price_amount);
         $this->assertTrue($specialist->fresh()->hasRole('provider_premium'));
-        $this->assertTrue($subscription->ends_at->greaterThan(now()->addMonths(11)));
+        $this->assertTrue($subscription->ends_at->greaterThan(now()->addDays(20)));
     }
 }

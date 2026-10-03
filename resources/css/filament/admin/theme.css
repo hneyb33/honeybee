@@ -17,7 +17,11 @@ html.dark .fi-body {
     color: #ffffff;
 }
 
-.fi-sidebar,
+.fi-sidebar {
+    background-color: #0f0a0a;
+    color: #ffffff;
+}
+
 .fi-topbar,
 .fi-simple-main {
     background-color: #ffffff;
@@ -32,7 +36,7 @@ html.dark .fi-simple-main {
 }
 
 .fi-sidebar {
-    border-inline-end: 1px solid #e6e8ea;
+    border-inline-end: 1px solid #3a3333;
 }
 
 html.dark .fi-sidebar {
@@ -47,7 +51,24 @@ html.dark .fi-topbar {
     border-bottom-color: #3a3333;
 }
 
+.fi-sidebar-group-label,
+.fi-sidebar-group-btn,
+.fi-sidebar-group-items,
+.fi-sidebar-sub-group-items,
+.fi-sidebar-item,
+.fi-sidebar-item-btn,
+.fi-sidebar-item-button,
 .fi-sidebar-item-label,
+.fi-sidebar-item a,
+.fi-sidebar-nav,
+.fi-sidebar-nav span,
+.fi-sidebar .fi-icon,
+.fi-dropdown-panel .fi-dropdown-list-item,
+.fi-dropdown-panel .fi-dropdown-list-item-label,
+.fi-dropdown-panel .fi-dropdown-header {
+    color: #ffffff !important;
+}
+
 .fi-header-heading,
 .fi-section-header-heading,
 .fi-breadcrumbs,
@@ -62,7 +83,18 @@ html.dark .fi-topbar {
     color: #0f0a0a;
 }
 
+html.dark .fi-sidebar-group-label,
+html.dark .fi-sidebar-group-btn,
+html.dark .fi-sidebar-group-items,
+html.dark .fi-sidebar-sub-group-items,
+html.dark .fi-sidebar-item,
+html.dark .fi-sidebar-item-btn,
+html.dark .fi-sidebar-item-button,
 html.dark .fi-sidebar-item-label,
+html.dark .fi-sidebar-item a,
+html.dark .fi-sidebar-nav,
+html.dark .fi-sidebar-nav span,
+html.dark .fi-sidebar .fi-icon,
 html.dark .fi-header-heading,
 html.dark .fi-section-header-heading,
 html.dark .fi-breadcrumbs,
@@ -77,7 +109,6 @@ html.dark .fi-simple-header-heading {
     color: #ffffff;
 }
 
-.fi-sidebar-group-label,
 .fi-header-subheading,
 .fi-section-header-description,
 .fi-fo-field-wrp-hint,

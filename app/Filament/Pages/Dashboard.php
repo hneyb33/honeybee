@@ -35,7 +35,7 @@ class Dashboard extends BaseDashboard
             'pending_profiles' => Escort::query()->where('verification_status', 'pending')->count(),
             'booking_requests' => Booking::query()->where('status', Booking::REQUESTED)->count(),
             'orders' => Booking::query()->whereIn('status', [Booking::ACCEPTED, Booking::COMPLETED])->count(),
-            'payments' => Payment::query()->where('status', 'pending')->count(),
+            'payments' => Payment::query()->where('status', 'submitted')->count(),
         ];
     }
 }

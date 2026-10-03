@@ -16,12 +16,22 @@
             <p class="mb-6 rounded-lg bg-neutral-100 px-4 py-3 text-sm">{{ session('status') }}</p>
         @endif
 
-        @unless (auth()->user()->hasActiveListingSubscription())
+        @if (! empty($subscription))
+            <div class="mb-6 rounded-xl border border-neutral-200 p-4 text-sm text-neutral-700">
+                <p class="font-semibold text-neutral-900">{{ \App\Models\Subscription::label($subscription->plan) }} is active</p>
+                <p class="mt-1">{{ ucfirst($subscription->period) }} listing until {{ $subscription->ends_at?->format('j M Y') }}.</p>
+            </div>
+        @elseif (! empty($latestPayment) && $latestPayment->status !== \App\Enums\PaymentStatus::Verified)
+            <div class="mb-6 rounded-xl border border-neutral-200 p-4 text-sm text-neutral-700">
+                <p class="font-semibold text-neutral-900">Payment {{ $latestPayment->status->label() }}</p>
+                <a href="{{ route('payments.show', $latestPayment) }}" class="mt-2 inline-block font-semibold underline">View payment {{ $latestPayment->reference }}</a>
+            </div>
+        @else
             <div class="mb-6 rounded-xl border border-neutral-200 p-4">
                 <p class="text-sm text-neutral-700">Every profile needs an active subscription before it appears in the listings.</p>
                 <a href="{{ route('subscribe') }}" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white"><x-lucide name="credit-card" /> Choose a subscription</a>
             </div>
-        @endunless
+        @endif
 
         <h2 class="mb-3 text-lg font-semibold">Booking requests</h2>
         <div class="mb-10 space-y-3">

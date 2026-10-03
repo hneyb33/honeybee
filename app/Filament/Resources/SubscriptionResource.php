@@ -38,10 +38,7 @@ class SubscriptionResource extends Resource
             Select::make('period')->options([
                 'daily' => 'Daily',
                 'monthly' => 'Monthly',
-                'yearly' => 'Yearly',
-                'custom' => 'Custom',
             ])->required(),
-            TextInput::make('custom_days')->numeric()->label('Custom days'),
             TextInput::make('price_amount')->numeric()->label('Price (UGX)')->required(),
             Select::make('status')->options([
                 'pending' => 'Pending',
@@ -65,16 +62,11 @@ class SubscriptionResource extends Resource
 
     public static function applyPeriod(array $data): array
     {
-        $period = $data['period'] ?? 'monthly';
-        $customDays = (int) ($data['custom_days'] ?: Setting::get(($data['plan'] ?? 'specialist').'_custom_days', 30));
+        $period = ($data['period'] ?? 'monthly') === 'daily' ? 'daily' : 'monthly';
+        $data['period'] = $period;
         $data['starts_at'] = $data['starts_at'] ?? now();
-        $data['ends_at'] = match ($period) {
-            'daily' => now()->addDay(),
-            'yearly' => now()->addYear(),
-            'custom' => now()->addDays(max($customDays, 1)),
-            default => now()->addMonth(),
-        };
-        $data['custom_days'] = $period === 'custom' ? $customDays : null;
+        $data['ends_at'] = $period === 'daily' ? now()->addDay() : now()->addMonth();
+        $data['custom_days'] = null;
 
         if (empty($data['price_amount']) && ! empty($data['plan'])) {
             $data['price_amount'] = (int) Setting::get($data['plan'].'_'.$period.'_price', 0);
