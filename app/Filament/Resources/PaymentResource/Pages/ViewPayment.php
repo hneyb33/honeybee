@@ -5,8 +5,10 @@ namespace App\Filament\Resources\PaymentResource\Pages;
 use App\Enums\PaymentStatus;
 use App\Filament\Resources\PaymentResource;
 use App\Models\Payment;
+use App\Models\User;
 use App\Services\PaymentService;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -36,9 +38,21 @@ class ViewPayment extends ViewRecord
                 ->label('Verify payment')
                 ->color('success')
                 ->visible(fn (Payment $record) => $record->status === PaymentStatus::Submitted)
-                ->action(function (Payment $record): void {
+                ->action(function (): void {
+                    $record = $this->getRecord();
+                    $admin = Filament::auth()->user() ?? auth('admin')->user();
+
+                    if (! $admin instanceof User) {
+                        Notification::make()
+                            ->title('Sign in again to verify this payment')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
                     try {
-                        app(PaymentService::class)->verify($record, auth()->user());
+                        $subscription = app(PaymentService::class)->verify($record, $admin);
                     } catch (ValidationException $exception) {
                         Notification::make()
                             ->title(collect($exception->errors())->flatten()->first() ?: 'Check the transaction details')
@@ -56,12 +70,23 @@ class ViewPayment extends ViewRecord
                         return;
                     }
 
+                    $fresh = $record->fresh(['user.escorts', 'subscription', 'audits.admin']);
+
+                    if (! $subscription || $fresh?->status !== PaymentStatus::Verified) {
+                        Notification::make()
+                            ->title('Check the transaction details and try again')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    $this->record = $fresh;
+
                     Notification::make()
                         ->title('Payment verified and subscription activated')
                         ->success()
                         ->send();
-
-                    $this->redirect(PaymentResource::getUrl('view', ['record' => $record]));
                 }),
             Action::make('reject')
                 ->label('Reject payment')
@@ -73,8 +98,33 @@ class ViewPayment extends ViewRecord
                         ->required()
                         ->minLength(8),
                 ])
-                ->action(function (Payment $record, array $data): void {
-                    app(PaymentService::class)->reject($record, auth()->user(), $data['rejection_reason']);
+                ->action(function (array $data): void {
+                    $record = $this->getRecord();
+                    $admin = Filament::auth()->user() ?? auth('admin')->user();
+
+                    if (! $admin instanceof User) {
+                        Notification::make()->title('Sign in again to reject this payment')->warning()->send();
+
+                        return;
+                    }
+
+                    try {
+                        app(PaymentService::class)->reject($record, $admin, $data['rejection_reason']);
+                    } catch (ValidationException $exception) {
+                        Notification::make()
+                            ->title(collect($exception->errors())->flatten()->first() ?: 'This payment cannot be rejected')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    } catch (Throwable $exception) {
+                        report($exception);
+                        Notification::make()->title('This payment cannot be rejected')->warning()->send();
+
+                        return;
+                    }
+
+                    $this->record = $record->fresh(['user.escorts', 'subscription', 'audits.admin']);
                     Notification::make()->title('Payment rejected')->success()->send();
                 }),
         ];

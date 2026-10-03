@@ -3,16 +3,19 @@
 namespace Tests\Feature;
 
 use App\Enums\PaymentStatus;
+use App\Filament\Resources\PaymentResource\Pages\ViewPayment;
 use App\Models\Payment;
 use App\Models\Setting;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\PaymentService;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class SubscriptionPaymentTest extends TestCase
@@ -199,6 +202,40 @@ class SubscriptionPaymentTest extends TestCase
         $again = $service->verify($payment->fresh(), $admin);
         $this->assertSame($subscription->id, $again->id);
         $this->assertSame(PaymentStatus::Verified, $payment->fresh()->status);
+    }
+
+    public function test_the_admin_verify_button_activates_and_locks_the_subscription(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        config(['payments.mtn.merchant_code' => '123456']);
+
+        $client = $this->client();
+        $admin = User::factory()->create(['email' => 'button-admin@example.com']);
+        $admin->assignRole('super_admin');
+        $service = app(PaymentService::class);
+        $payment = $service->start($client, Subscription::PLAN_CLIENT_PREMIUM, 'monthly', 'mtn_momo');
+        $service->submit($payment, [
+            'payer_phone' => '0772123456',
+            'transaction_id' => 'BTN184729',
+            'paid_at' => now()->subMinutes(2)->toDateTimeString(),
+        ], null);
+
+        Livewire::actingAs($admin, 'admin')
+            ->test(ViewPayment::class, ['record' => $payment->getKey()])
+            ->callAction('verify')
+            ->assertNotified('Payment verified and subscription activated');
+
+        $payment->refresh();
+
+        $this->assertSame(PaymentStatus::Verified, $payment->status);
+        $this->assertTrue($payment->metadata['locked'] ?? false);
+        $this->assertTrue($client->fresh()->hasRole('client_premium'));
+        $this->assertTrue($client->fresh()->hasActivePlan(Subscription::PLAN_CLIENT_PREMIUM));
+
+        $this->actingAs($client)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('VIP access is active');
     }
 
     public function test_rejection_requires_a_reason_and_does_not_activate_access(): void
