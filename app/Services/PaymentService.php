@@ -190,28 +190,12 @@ class PaymentService
     }
 
     /**
+     * The admin confirms the transaction in the merchant account, then presses Verify.
+     *
      * @param  array<string, mixed>  $checks
      */
-    public function checksComplete(array $checks): bool
+    public function verify(Payment $payment, User $admin, array $checks = []): ?Subscription
     {
-        foreach (['transaction_exists', 'transaction_matches', 'amount_matches', 'payment_received', 'not_reused'] as $check) {
-            if (! filter_var($checks[$check] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * @param  array<string, mixed>  $checks
-     */
-    public function verify(Payment $payment, User $admin, array $checks): ?Subscription
-    {
-        if (! $this->checksComplete($checks)) {
-            return null;
-        }
-
         if ($payment->status === PaymentStatus::Verified) {
             return $payment->subscription;
         }

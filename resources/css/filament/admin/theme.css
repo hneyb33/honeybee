@@ -17,9 +17,10 @@ html.dark .fi-body {
     color: #ffffff;
 }
 
-.fi-sidebar {
-    background-color: #0f0a0a;
-    color: #ffffff;
+.fi-sidebar,
+.fi-body .fi-sidebar {
+    background-color: #ffffff !important;
+    color: #0f0a0a;
 }
 
 .fi-topbar,
@@ -29,14 +30,15 @@ html.dark .fi-body {
 }
 
 html.dark .fi-sidebar,
+html.dark .fi-body .fi-sidebar,
 html.dark .fi-topbar,
 html.dark .fi-simple-main {
-    background-color: #0f0a0a;
+    background-color: #0f0a0a !important;
     color: #ffffff;
 }
 
 .fi-sidebar {
-    border-inline-end: 1px solid #3a3333;
+    border-inline-end: 1px solid #e6e8ea;
 }
 
 html.dark .fi-sidebar {
@@ -51,22 +53,18 @@ html.dark .fi-topbar {
     border-bottom-color: #3a3333;
 }
 
-.fi-sidebar-group-label,
-.fi-sidebar-group-btn,
-.fi-sidebar-group-items,
-.fi-sidebar-sub-group-items,
-.fi-sidebar-item,
-.fi-sidebar-item-btn,
-.fi-sidebar-item-button,
-.fi-sidebar-item-label,
-.fi-sidebar-item a,
-.fi-sidebar-nav,
-.fi-sidebar-nav span,
+.fi-sidebar .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-group-items .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-group-items .fi-sidebar-item-btn,
+.fi-sidebar .fi-sidebar-sub-group-items .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-sidebar-item-label {
+    color: #0f0a0a !important;
+}
+
+.fi-sidebar .fi-sidebar-group-label,
 .fi-sidebar .fi-icon,
-.fi-dropdown-panel .fi-dropdown-list-item,
-.fi-dropdown-panel .fi-dropdown-list-item-label,
-.fi-dropdown-panel .fi-dropdown-header {
-    color: #ffffff !important;
+.fi-sidebar .fi-sidebar-item-grouped-border-part {
+    color: #767f88 !important;
 }
 
 .fi-header-heading,
@@ -272,4 +270,22 @@ html.dark .verification-media-file {
     display: inline-block;
     margin: 0.35rem 0 1rem;
     text-decoration: underline;
+}
+
+html.dark .fi-sidebar {
+    --color-gray-200: #ffffff;
+    --color-gray-400: #ffffff;
+    --color-gray-500: #ffffff;
+    --color-gray-700: #ffffff;
+}
+
+html.dark .fi-sidebar .fi-sidebar-group-label,
+html.dark .fi-sidebar .fi-sidebar-group-items .fi-sidebar-item-label,
+html.dark .fi-sidebar .fi-sidebar-group-items .fi-sidebar-item-btn,
+html.dark .fi-sidebar .fi-sidebar-group-items .fi-icon,
+html.dark .fi-sidebar .fi-sidebar-sub-group-items .fi-sidebar-item-label,
+html.dark .fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-sidebar-item-label,
+html.dark .fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon,
+html.dark .fi-sidebar .fi-icon {
+    color: #ffffff !important;
 }

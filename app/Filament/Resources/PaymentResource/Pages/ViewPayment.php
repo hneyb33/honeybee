@@ -7,7 +7,6 @@ use App\Filament\Resources\PaymentResource;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -37,27 +36,9 @@ class ViewPayment extends ViewRecord
                 ->label('Verify payment')
                 ->color('success')
                 ->visible(fn (Payment $record) => $record->status === PaymentStatus::Submitted)
-                ->schema([
-                    Checkbox::make('transaction_exists')->label('Transaction exists in the merchant account'),
-                    Checkbox::make('transaction_matches')->label('Transaction ID matches'),
-                    Checkbox::make('amount_matches')->label('Amount matches'),
-                    Checkbox::make('payment_received')->label('Payment was received'),
-                    Checkbox::make('not_reused')->label('Transaction has not already been used'),
-                ])
-                ->action(function (Payment $record, array $data): void {
-                    $payments = app(PaymentService::class);
-
-                    if (! $payments->checksComplete($data)) {
-                        Notification::make()
-                            ->title('Check every item before verifying')
-                            ->warning()
-                            ->send();
-
-                        return;
-                    }
-
+                ->action(function (Payment $record): void {
                     try {
-                        $payments->verify($record, auth()->user(), $data);
+                        app(PaymentService::class)->verify($record, auth()->user());
                     } catch (ValidationException $exception) {
                         Notification::make()
                             ->title(collect($exception->errors())->flatten()->first() ?: 'Check the transaction details')

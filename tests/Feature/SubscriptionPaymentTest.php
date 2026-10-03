@@ -196,16 +196,9 @@ class SubscriptionPaymentTest extends TestCase
             ->assertOk()
             ->assertSee('VIP access is active');
 
-        $again = $service->verify($payment->fresh(), $admin, $this->checks());
+        $again = $service->verify($payment->fresh(), $admin);
         $this->assertSame($subscription->id, $again->id);
         $this->assertSame(PaymentStatus::Verified, $payment->fresh()->status);
-        $this->assertNull($service->verify($payment->fresh(), $admin, [
-            'transaction_exists' => true,
-            'transaction_matches' => true,
-            'amount_matches' => false,
-            'payment_received' => true,
-            'not_reused' => true,
-        ]));
     }
 
     public function test_rejection_requires_a_reason_and_does_not_activate_access(): void
