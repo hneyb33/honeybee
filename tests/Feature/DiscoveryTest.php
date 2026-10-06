@@ -3,12 +3,16 @@
 namespace Tests\Feature;
 
 use App\Livewire\Listings\ListingGrid;
+use App\Livewire\Search\CapsuleSearch;
 use App\Livewire\Listings\TierFilter;
 use App\Models\Escort;
+use App\Models\Place;
 use App\Models\Setting;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\PaymentService;
+use App\Support\Places;
+use Illuminate\Support\Facades\Http;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -170,6 +174,93 @@ class DiscoveryTest extends TestCase
         $titles = $component->viewData('popular')->pluck('title')->all();
 
         $this->assertEqualsCanonicalizing(['Straight Kololo', 'Chef Kololo'], $titles);
+    }
+
+    public function test_a_typed_place_is_stored_with_coordinates_and_can_be_searched(): void
+    {
+        Http::preventStrayRequests();
+
+        $owner = User::factory()->create(['account_kind' => 'model']);
+        $owner->assignRole('provider_free');
+        $owner->activatePlan(Subscription::PLAN_ESCORT_PREMIUM);
+
+        $pinned = Places::pin('Kampala', 'kitooro landing', 0.051, 32.465, $owner->id);
+
+        $this->assertSame('Kitooro Landing', $pinned['area']);
+        $this->assertDatabaseHas('places', [
+            'name' => 'Kitooro Landing',
+            'city' => 'Kampala',
+            'created_by' => $owner->id,
+        ]);
+        $this->assertEqualsWithDelta(0.051, (float) Place::query()->first()->latitude, 0.0001);
+        $this->assertEqualsWithDelta(32.465, (float) Place::query()->first()->longitude, 0.0001);
+
+        Escort::create($this->profile($owner, [
+            'title' => 'Landing Host',
+            'slug' => 'landing-host',
+            'neighborhood' => $pinned['area'],
+            'city' => $pinned['city'],
+            'latitude' => $pinned['latitude'],
+            'longitude' => $pinned['longitude'],
+            'verification_status' => 'verified',
+        ]));
+        Escort::create($this->profile($owner, [
+            'title' => 'Gulu Host',
+            'slug' => 'gulu-host',
+            'neighborhood' => 'Gulu',
+            'city' => 'Gulu',
+            'verification_status' => 'verified',
+        ]));
+
+        $titles = Livewire::test(ListingGrid::class)
+            ->call('updateFilters', [
+                'location' => 'Kitooro Landing, Kampala',
+                'category' => '',
+                'service_type' => '',
+                'latitude' => null,
+                'longitude' => null,
+            ])
+            ->viewData('popular')
+            ->pluck('title')
+            ->all();
+
+        $this->assertContains('Landing Host', $titles);
+        $this->assertNotContains('Gulu Host', $titles);
+        $this->assertSame(1, Place::query()->count());
+    }
+
+    public function test_location_lookup_uses_the_library_before_asking_for_a_pin(): void
+    {
+        Http::fake();
+
+        $known = Places::resolve('Kampala', 'Kololo');
+
+        $this->assertTrue($known['found']);
+        $this->assertEqualsWithDelta(0.332, $known['latitude'], 0.001);
+        Http::assertNothingSent();
+
+        $missing = Places::resolve('Kampala', 'Kitooro Landing');
+
+        $this->assertFalse($missing['found']);
+        Http::assertSentCount(1);
+    }
+
+    public function test_search_asks_for_a_pin_only_when_a_place_cannot_be_found(): void
+    {
+        Http::fake();
+
+        Livewire::test(CapsuleSearch::class)
+            ->set('location', 'Kololo, Kampala')
+            ->call('search')
+            ->assertSet('needsPin', false)
+            ->assertDontSee('Add a location pin');
+
+        Livewire::test(CapsuleSearch::class)
+            ->set('location', 'Kitooro Landing, Kampala')
+            ->call('search')
+            ->assertSet('needsPin', true)
+            ->assertSee('Add a location pin')
+            ->assertDontSee('name="latitude"');
     }
 
     /**

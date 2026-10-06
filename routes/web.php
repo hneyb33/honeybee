@@ -14,13 +14,21 @@ use App\Http\Controllers\Owner\EscortController as OwnerEscortController;
 use App\Http\Controllers\Owner\ProviderOnboardingController;
 use App\Http\Controllers\ReferenceConfirmationController;
 use App\Http\Controllers\ProfileContactController;
+use App\Http\Controllers\ProfileReviewController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Models\Escort;
+use App\Support\Places;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AdminRecoveryController;
+
+Route::get('/locations/resolve', function (Request $request) {
+    $resolved = Places::resolve((string) $request->query('city', ''), (string) $request->query('area', ''));
+
+    return response()->json($resolved);
+})->middleware('throttle:30,1')->name('locations.resolve');
 
 Route::get('/age-check', function () {
     return view('age-check');
@@ -53,7 +61,12 @@ Route::get('/escorts/{escort:slug}', function (Request $request, Escort $escort)
     $viewer = $request->user();
     $owns = $viewer?->id === $escort->user_id;
     $published = $escort->isVerified() && (bool) $escort->owner?->hasActiveListingSubscription();
-    $escort->load(['media', 'offerings', 'references']);
+    $escort->load([
+        'media',
+        'offerings',
+        'references',
+        'reviews' => fn ($query) => $query->with('client')->latest()->limit(8),
+    ]);
 
     abort_unless($owns || $published || $viewer?->isAdmin(), 404);
 
@@ -135,6 +148,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/payments/{payment}/proof', [SubscriptionPaymentController::class, 'proof'])->name('payments.proof');
     Route::post('/client/subscribe', [ClientController::class, 'subscribe'])->name('client.subscribe');
     Route::post('/client/bookings/{booking}/review', [ClientController::class, 'review'])->name('client.reviews.store');
+    Route::get('/escorts/{escort:slug}/review', [ProfileReviewController::class, 'create'])->name('escorts.review');
+    Route::post('/escorts/{escort:slug}/review', [ProfileReviewController::class, 'store'])->name('escorts.review.store');
     Route::get('/owner/escorts', [OwnerEscortController::class, 'index'])->name('owner.escorts.index');
     Route::get('/provider/onboarding', [ProviderOnboardingController::class, 'show'])->name('provider.onboard');
     Route::post('/provider/onboarding', [ProviderOnboardingController::class, 'store'])->name('provider.onboard.store');

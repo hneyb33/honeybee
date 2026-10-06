@@ -53,6 +53,15 @@
     background: #0f0a0a;
 }
 
+.hb-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.hb-scroll::-webkit-scrollbar {
+    display: none;
+}
+
 @layer base {
     html {
         scroll-behavior: smooth;

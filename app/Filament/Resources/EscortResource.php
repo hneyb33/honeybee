@@ -5,19 +5,18 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EscortResource\Pages;
 use App\Filament\Support\ProfileMediaReview;
 use App\Models\Escort;
-use App\Support\UgandaLocations;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -62,21 +61,23 @@ class EscortResource extends Resource
             Select::make('build')->options(array_combine(Escort::BODY_TYPES, Escort::BODY_TYPES)),
             Select::make('sexual_orientation')->options(array_combine(Escort::ORIENTATIONS, Escort::ORIENTATIONS)),
             Select::make('nationality')->options(array_combine(Escort::NATIONALITIES, Escort::NATIONALITIES))->searchable(),
-            Select::make('city')
-                ->options(fn (): array => array_combine(UgandaLocations::cities(), UgandaLocations::cities()))
-                ->searchable()
-                ->live()
+            TextInput::make('city')
                 ->required()
-                ->afterStateUpdated(fn (Set $set) => $set('neighborhood', null)),
-            Select::make('neighborhood')
-                ->label('Area')
-                ->options(function (Get $get): array {
-                    $areas = UgandaLocations::areas((string) ($get('city') ?: 'Kampala'));
-
-                    return array_combine($areas, $areas);
-                })
-                ->searchable()
-                ->required(),
+                ->maxLength(80)
+                ->live(onBlur: true),
+            TextInput::make('neighborhood')
+                ->label('Exact location')
+                ->required()
+                ->maxLength(120)
+                ->live(onBlur: true)
+                ->helperText('Type a listed area or the exact place. A map pin appears only if that place cannot be found.'),
+            Hidden::make('latitude'),
+            Hidden::make('longitude'),
+            ViewField::make('location_pin')
+                ->hiddenLabel()
+                ->view('filament.forms.location-pin')
+                ->dehydrated(false)
+                ->columnSpanFull(),
             CheckboxList::make('languages')
                 ->options(array_combine(Escort::LANGUAGES, Escort::LANGUAGES))
                 ->columns(2)

@@ -125,6 +125,77 @@ class UgandaLocations
     }
 
     /**
+     * Library places plus places people typed in and saved.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function searchableMap(): array
+    {
+        $map = self::map();
+
+        if (! Schema::hasTable('places')) {
+            return $map;
+        }
+
+        foreach (\App\Models\Place::query()->orderBy('name')->get(['name', 'city']) as $place) {
+            $city = $place->city !== '' ? $place->city : $place->name;
+            $map[$city] ??= [];
+
+            $exists = false;
+
+            foreach ($map[$city] as $area) {
+                if (strcasecmp($area, $place->name) === 0) {
+                    $exists = true;
+                    break;
+                }
+            }
+
+            if (! $exists && strcasecmp($place->name, $city) !== 0) {
+                $map[$city][] = $place->name;
+                sort($map[$city]);
+            }
+        }
+
+        ksort($map);
+
+        return $map;
+    }
+
+    /**
+     * @return array{name: string, city: string, latitude: ?float, longitude: ?float}|null
+     */
+    public static function libraryPoint(string $name): ?array
+    {
+        foreach (self::POINTS as $place => [$latitude, $longitude, $city]) {
+            if (strcasecmp($place, $name) === 0) {
+                return [
+                    'name' => $place,
+                    'city' => $city,
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
+                ];
+            }
+        }
+
+        foreach (self::map() as $city => $areas) {
+            foreach ($areas as $area) {
+                if (strcasecmp($area, $name) === 0) {
+                    $point = self::POINTS[$city] ?? null;
+
+                    return [
+                        'name' => $area,
+                        'city' => $city,
+                        'latitude' => $point[0] ?? null,
+                        'longitude' => $point[1] ?? null,
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return array{city: string, area: string, latitude: float, longitude: float}|null
      */
     public static function nearest(float $latitude, float $longitude): ?array
@@ -132,7 +203,17 @@ class UgandaLocations
         $best = null;
         $bestDistance = null;
 
-        foreach (self::POINTS as $name => [$lat, $lng, $city]) {
+        $points = self::POINTS;
+        $saved = [];
+
+        if (Schema::hasTable('places')) {
+            foreach (\App\Models\Place::query()->get(['name', 'city', 'latitude', 'longitude']) as $place) {
+                $points[$place->name] = [(float) $place->latitude, (float) $place->longitude, $place->city];
+                $saved[$place->name] = true;
+            }
+        }
+
+        foreach ($points as $name => [$lat, $lng, $city]) {
             $distance = (($latitude - $lat) ** 2) + (($longitude - $lng) ** 2);
 
             if ($bestDistance === null || $distance < $bestDistance) {
@@ -140,7 +221,7 @@ class UgandaLocations
                 $choices = self::areas($city);
                 $best = [
                     'city' => array_key_exists($city, self::map()) ? $city : (self::matchingCity($city) ?? $city),
-                    'area' => in_array($name, $choices, true) ? $name : ($choices[0] ?? $city),
+                    'area' => in_array($name, $choices, true) || isset($saved[$name]) ? $name : ($choices[0] ?? $city),
                     'latitude' => $latitude,
                     'longitude' => $longitude,
                 ];

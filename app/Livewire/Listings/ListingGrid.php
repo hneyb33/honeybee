@@ -3,6 +3,7 @@
 namespace App\Livewire\Listings;
 
 use App\Models\Escort;
+use App\Support\Places;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -70,17 +71,7 @@ class ListingGrid extends Component
             ->when($this->tier === 'vip' || $this->tier === 'premium', fn (Builder $query) => $query->where('kind', Escort::KIND_ESCORT)->where('escort_tier', $this->tier))
             ->when($this->tier === 'service', fn (Builder $query) => $query->where('kind', Escort::KIND_SERVICE))
             ->when($this->searchFilters['location'] ?? null, function (Builder $query, string $location) {
-                $parts = array_values(array_filter(preg_split('/\|+/', $location) ?: []));
-
-                if (count($parts) >= 2) {
-                    $query->where('city', 'like', '%'.$parts[0].'%')
-                        ->where('neighborhood', 'like', '%'.$parts[1].'%');
-                } elseif ($parts !== []) {
-                    $query->where(function (Builder $query) use ($parts) {
-                        $query->where('city', 'like', '%'.$parts[0].'%')
-                            ->orWhere('neighborhood', 'like', '%'.$parts[0].'%');
-                    });
-                }
+                Places::applyFilter($query, $location);
             })
             ->when(
                 ($this->searchFilters['category'] ?? null) || ($this->searchFilters['service_type'] ?? null),

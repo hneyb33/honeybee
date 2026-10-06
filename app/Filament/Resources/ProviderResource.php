@@ -7,13 +7,13 @@ use App\Filament\Support\ProfileMediaReview;
 use App\Models\Escort;
 use App\Models\EscortReference;
 use App\Support\HomeServiceCatalog;
-use App\Support\UgandaLocations;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -23,7 +23,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -81,21 +80,23 @@ class ProviderResource extends Resource
                     'female' => 'Female',
                     'male' => 'Male',
                 ]),
-                Select::make('city')
-                    ->options(fn (): array => array_combine(UgandaLocations::cities(), UgandaLocations::cities()))
-                    ->searchable()
-                    ->live()
+                TextInput::make('city')
                     ->required()
-                    ->afterStateUpdated(fn (Set $set) => $set('neighborhood', null)),
-                Select::make('neighborhood')
-                    ->label('Area')
-                    ->options(function (Get $get): array {
-                        $areas = UgandaLocations::areas((string) ($get('city') ?: 'Kampala'));
-
-                        return array_combine($areas, $areas);
-                    })
-                    ->searchable()
-                    ->required(),
+                    ->maxLength(80)
+                    ->live(onBlur: true),
+                TextInput::make('neighborhood')
+                    ->label('Exact location')
+                    ->required()
+                    ->maxLength(120)
+                    ->live(onBlur: true)
+                    ->helperText('Type a listed area or the exact place. A map pin appears only if that place cannot be found.'),
+                Hidden::make('latitude'),
+                Hidden::make('longitude'),
+                ViewField::make('location_pin')
+                    ->hiddenLabel()
+                    ->view('filament.forms.location-pin')
+                    ->dehydrated(false)
+                    ->columnSpanFull(),
                 Select::make('travel_km')->label('Travel')->options([
                     '5' => '5 km',
                     '10' => '10 km',

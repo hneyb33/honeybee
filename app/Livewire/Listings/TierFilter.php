@@ -2,12 +2,14 @@
 
 namespace App\Livewire\Listings;
 
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class TierFilter extends Component
 {
     public string $activeTier = 'all';
 
+    #[On('set-tier')]
     public function setTier(string $tier): void
     {
         if ($tier === 'vip' && ! $this->canBrowseVip()) {

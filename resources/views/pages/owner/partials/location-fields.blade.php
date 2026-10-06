@@ -1,85 +1,56 @@
 @php
-    $locationMap = \App\Support\UgandaLocations::map();
-    $locationPoints = collect(\App\Support\UgandaLocations::POINTS)
-        ->map(fn (array $point, string $name): array => [
-            'name' => $name,
-            'lat' => $point[0],
-            'lng' => $point[1],
-            'city' => $point[2],
-        ])
-        ->values();
+    $locationMap = \App\Support\UgandaLocations::searchableMap();
     $profile = $escort ?? null;
     $selectedCity = old('city', $profile->city ?? 'Kampala');
     $selectedArea = old('neighborhood', $profile->neighborhood ?? '');
+    $areaSuggestions = collect($locationMap)->flatten()->unique()->sort()->values();
 @endphp
+
+@include('partials.location-pin-script')
 
 <div
     class="grid gap-5 md:grid-cols-2"
-    x-data="{
+    x-data="hbLocationPin({
         city: @js($selectedCity),
         area: @js($selectedArea),
-        map: @js($locationMap),
-        points: @js($locationPoints),
         lat: @js(old('latitude', $profile->latitude ?? '')),
         lng: @js(old('longitude', $profile->longitude ?? '')),
-        get areas() {
-            return this.map[this.city] || [];
-        },
-        locate() {
-            if (! navigator.geolocation) {
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition((position) => {
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
-                this.lat = latitude;
-                this.lng = longitude;
-
-                let best = null;
-                let bestDistance = null;
-
-                this.points.forEach((point) => {
-                    const distance = (latitude - point.lat) ** 2 + (longitude - point.lng) ** 2;
-                    if (bestDistance === null || distance < bestDistance) {
-                        bestDistance = distance;
-                        best = point;
-                    }
-                });
-
-                if (! best) {
-                    return;
-                }
-
-                this.city = best.city;
-                const choices = this.map[best.city] || [];
-                this.area = choices.includes(best.name) ? best.name : (choices[0] || best.city);
-            });
-        },
-    }"
-    x-effect="if (areas.length && ! areas.includes(area)) area = areas[0]"
+        mapsKey: @js(config('services.google.maps_key')),
+        resolveUrl: @js(route('locations.resolve')),
+    })"
 >
     <label>
         <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">City</span>
-        <select name="city" x-model="city" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+        <input name="city" x-model="city" x-on:change="onNameInput()" list="hb-location-cities" required placeholder="Kampala" autocomplete="off" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+        <datalist id="hb-location-cities">
             @foreach (array_keys($locationMap) as $city)
-                <option value="{{ $city }}">{{ $city }}</option>
+                <option value="{{ $city }}"></option>
             @endforeach
-        </select>
+        </datalist>
         @error('city') <span class="mt-2 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
     </label>
     <label>
-        <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Area</span>
-        <select name="neighborhood" x-model="area" required class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
-            <template x-for="choice in areas" :key="choice">
-                <option :value="choice" x-text="choice"></option>
-            </template>
-        </select>
+        <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-neutral-500">Exact location</span>
+        <input name="neighborhood" x-model="area" x-on:change="onNameInput()" list="hb-location-areas" required placeholder="Choose a listed area or type the exact place" autocomplete="off" class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
+        <datalist id="hb-location-areas">
+            @foreach ($areaSuggestions as $area)
+                <option value="{{ $area }}"></option>
+            @endforeach
+        </datalist>
         @error('neighborhood') <span class="mt-2 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
     </label>
-    <div class="md:col-span-2">
-        <button type="button" class="rounded-full border border-[#767f88] px-4 py-2 text-sm font-semibold text-[#0f0a0a] dark:text-white" @click="locate()">Use my location</button>
-        <input type="hidden" name="latitude" x-model="lat">
-        <input type="hidden" name="longitude" x-model="lng">
+    <div class="md:col-span-2" x-cloak x-show="status === 'found'">
+        <p class="text-xs text-neutral-500">Location found.</p>
     </div>
+    <div class="md:col-span-2" x-cloak x-show="status === 'checking'">
+        <p class="text-xs text-neutral-500">Checking this place…</p>
+    </div>
+    <div class="md:col-span-2" x-cloak x-show="status === 'pin'">
+        <p class="text-sm font-semibold text-neutral-900">Add a location pin</p>
+        <p class="mt-1 text-xs text-neutral-500">This place is not listed yet. Click the map to drop the pin. The spot is saved for search.</p>
+        <div x-ref="map" class="hb-pin-map mt-3 overflow-hidden rounded-2xl border border-neutral-200"></div>
+        <p class="mt-2 text-xs font-semibold text-neutral-700" x-show="pinned" x-cloak>Pin added.</p>
+    </div>
+    <input type="hidden" name="latitude" x-model="lat">
+    <input type="hidden" name="longitude" x-model="lng">
 </div>

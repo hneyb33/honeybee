@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Places;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -77,6 +78,32 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Escort extends Model
 {
     public const KIND_ESCORT = 'escort';
+
+    protected static function booted(): void
+    {
+        static::saving(function (Escort $escort): void {
+            if ($escort->city === null || $escort->neighborhood === null || $escort->city === '' || $escort->neighborhood === '') {
+                return;
+            }
+
+            if ($escort->exists && ! $escort->isDirty(['city', 'neighborhood', 'latitude', 'longitude'])) {
+                return;
+            }
+
+            $pinned = Places::pin(
+                (string) $escort->city,
+                (string) $escort->neighborhood,
+                $escort->latitude !== null && $escort->latitude !== '' ? (float) $escort->latitude : null,
+                $escort->longitude !== null && $escort->longitude !== '' ? (float) $escort->longitude : null,
+                $escort->user_id !== null ? (int) $escort->user_id : null,
+            );
+
+            $escort->city = $pinned['city'];
+            $escort->neighborhood = $pinned['area'];
+            $escort->latitude = $pinned['latitude'];
+            $escort->longitude = $pinned['longitude'];
+        });
+    }
 
     public const KIND_SERVICE = 'service';
 

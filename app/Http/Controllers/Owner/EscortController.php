@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Models\Escort;
 use App\Models\ProfileMedia;
-use App\Support\UgandaLocations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Support\MediaFiles;
+use App\Support\Places;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -88,8 +88,8 @@ class EscortController extends Controller
             'photos' => ['nullable', 'array', 'max:9'],
             'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif,mp4,webm,mov', 'max:51200'],
             'category' => ['required', 'in:escort,service'],
-            'neighborhood' => ['required', Rule::in(UgandaLocations::areas((string) $request->input('city', 'Kampala')))],
-            'city' => ['required', Rule::in(UgandaLocations::cities())],
+            'neighborhood' => ['required', 'string', 'max:120'],
+            'city' => ['required', 'string', 'max:80'],
             'whatsapp_code' => ['required', Rule::in(array_keys(Escort::DIAL_CODES))],
             'telegram_code' => ['nullable', Rule::in(array_keys(Escort::DIAL_CODES))],
             'languages' => ['required', 'array', 'min:1'],
@@ -126,6 +126,7 @@ class EscortController extends Controller
         ]);
 
         $this->assertProfileMedia($request, null);
+        $validated = $this->pinLocation($validated);
 
         $slug = $this->uniqueSlug($validated['title']);
 
@@ -230,8 +231,8 @@ class EscortController extends Controller
             'photos' => ['nullable', 'array', 'max:9'],
             'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif,mp4,webm,mov', 'max:51200'],
             'category' => ['required', 'in:escort,service'],
-            'neighborhood' => ['required', Rule::in(UgandaLocations::areas((string) $request->input('city', 'Kampala')))],
-            'city' => ['required', Rule::in(UgandaLocations::cities())],
+            'neighborhood' => ['required', 'string', 'max:120'],
+            'city' => ['required', 'string', 'max:80'],
             'whatsapp_code' => ['required', Rule::in(array_keys(Escort::DIAL_CODES))],
             'telegram_code' => ['nullable', Rule::in(array_keys(Escort::DIAL_CODES))],
             'languages' => ['required', 'array', 'min:1'],
@@ -267,6 +268,7 @@ class EscortController extends Controller
         ]);
 
         $this->assertProfileMedia($request, $escort);
+        $validated = $this->pinLocation($validated);
 
         $images = $this->parseLines($validated['image_urls'] ?? '')
             ->filter(fn (string $line) => filter_var($line, FILTER_VALIDATE_URL))
@@ -413,6 +415,28 @@ class EscortController extends Controller
             'telegram' => $validated['telegram'] ?? null,
             'services_offered' => [$label],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function pinLocation(array $validated): array
+    {
+        $pinned = Places::pin(
+            (string) $validated['city'],
+            (string) $validated['neighborhood'],
+            isset($validated['latitude']) && $validated['latitude'] !== '' ? (float) $validated['latitude'] : null,
+            isset($validated['longitude']) && $validated['longitude'] !== '' ? (float) $validated['longitude'] : null,
+            Auth::id(),
+        );
+
+        $validated['city'] = $pinned['city'];
+        $validated['neighborhood'] = $pinned['area'];
+        $validated['latitude'] = $pinned['latitude'];
+        $validated['longitude'] = $pinned['longitude'];
+
+        return $validated;
     }
 
     private function storePhotos(Request $request, Escort $escort): void

@@ -23,8 +23,8 @@ class ProviderProfile
             'nationality' => ['required', Rule::in(Escort::NATIONALITIES)],
             'languages' => ['required', 'array', 'min:1'],
             'languages.*' => [Rule::in(Escort::LANGUAGES)],
-            'city' => ['required', Rule::in(UgandaLocations::cities())],
-            'neighborhood' => ['required', Rule::in(UgandaLocations::areas((string) $request->input('city', 'Kampala')))],
+            'city' => ['required', 'string', 'max:80'],
+            'neighborhood' => ['required', 'string', 'max:120'],
             'latitude' => ['nullable', 'numeric'],
             'longitude' => ['nullable', 'numeric'],
             'travel_km' => ['nullable', 'in:5,10,20,50,anywhere'],
@@ -181,10 +181,17 @@ class ProviderProfile
         }
         $profile->nationality = $data['nationality'];
         $profile->languages = array_values($data['languages']);
-        $profile->city = $data['city'];
-        $profile->neighborhood = $data['neighborhood'];
-        $profile->latitude = $data['latitude'] ?? $profile->latitude;
-        $profile->longitude = $data['longitude'] ?? $profile->longitude;
+        $pinned = Places::pin(
+            (string) $data['city'],
+            (string) $data['neighborhood'],
+            isset($data['latitude']) && $data['latitude'] !== '' ? (float) $data['latitude'] : null,
+            isset($data['longitude']) && $data['longitude'] !== '' ? (float) $data['longitude'] : null,
+            auth()->id(),
+        );
+        $profile->city = $pinned['city'];
+        $profile->neighborhood = $pinned['area'];
+        $profile->latitude = $pinned['latitude'];
+        $profile->longitude = $pinned['longitude'];
         $profile->travel_km = $data['travel_km'] ?? null;
         $profile->phone = $data['whatsapp_number'];
         $profile->whatsapp_number = $data['whatsapp_number'];

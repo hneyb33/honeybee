@@ -72,18 +72,47 @@
             @if ($escort->spokenLanguages())
                 <p class="mt-2 text-sm text-[#767f88]">{{ implode(', ', $escort->spokenLanguages()) }}</p>
             @endif
-            <div class="mt-4 flex flex-wrap gap-3">
-                @if ($escort->whatsappUrl())
-                    <a href="{{ route('escorts.contact', [$escort, 'whatsapp']) }}" class="inline-flex items-center gap-2 rounded-lg bg-[#0f0a0a] px-4 py-2 text-sm font-semibold text-white"><x-lucide name="message" /> WhatsApp {{ $escort->whatsappLabel() }}</a>
-                @endif
-                @if ($escort->telegramUrl())
-                    <a href="{{ route('escorts.contact', [$escort, 'telegram']) }}" class="rounded-lg border border-[#767f88] px-4 py-2 text-sm font-semibold text-[#0f0a0a]">Telegram {{ $escort->telegramLabel() }}</a>
-                @endif
-            </div>
         </div>
         <section class="border-b border-neutral-200 pb-8">
             <h3 class="mb-3 text-xl font-semibold">About</h3>
-            <p class="max-w-2xl leading-7 text-neutral-700">{{ $escort->description }}</p>
+            <div class="max-w-2xl" x-data="{ open: false, long: false }" x-init="long = $refs.copy.scrollHeight > 150">
+                <div class="relative">
+                    <p x-ref="copy" class="leading-7 text-[#222]" :class="open ? '' : 'max-h-36 overflow-hidden'">{{ $escort->description }}</p>
+                    <div x-show="long && ! open" x-cloak class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent backdrop-blur-[1px]"></div>
+                </div>
+                <button type="button" x-show="long" x-cloak class="mt-3 font-semibold underline" @click="open = ! open">
+                    <span x-show="! open">Read more</span>
+                    <span x-show="open">Show less</span>
+                </button>
+            </div>
+        </section>
+        <section class="border-b border-neutral-200 py-8">
+            @php
+                $profileReviews = $escort->relationLoaded('reviews')
+                    ? $escort->reviews
+                    : $escort->reviews()->with('client')->latest()->take(8)->get();
+            @endphp
+            <div class="mb-4 flex items-center justify-between gap-3">
+                <h3 class="text-xl font-semibold">★ {{ $escort->review_count > 0 ? number_format((float) $escort->rating, 1) : 'New' }} · {{ $escort->review_count }} {{ \Illuminate\Support\Str::plural('review', $escort->review_count) }}</h3>
+                @if (! auth()->check() || auth()->user()->isClient())
+                    <a href="{{ route('escorts.review', $escort) }}" class="text-sm font-semibold underline">Write a review</a>
+                @endif
+            </div>
+            @if ($profileReviews->isEmpty())
+                <p class="text-sm text-[#6a6a6a]">No reviews yet.</p>
+            @else
+                <div class="grid gap-6 sm:grid-cols-2">
+                    @foreach ($profileReviews as $review)
+                        <article>
+                            <p class="font-medium text-[#222]">{{ $review->client?->name ?? 'Client' }}</p>
+                            <p class="text-sm text-[#FF385C]">{{ str_repeat('★', (int) $review->rating) }}<span class="text-[#dddddd]">{{ str_repeat('★', 5 - (int) $review->rating) }}</span></p>
+                            @if ($review->body)
+                                <p class="mt-2 text-sm leading-6 text-[#222]">{{ $review->body }}</p>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
+            @endif
         </section>
         @if ($escort->kind === 'service' && $escort->offerings->isNotEmpty())
             <section class="border-b border-neutral-200 py-8">
@@ -130,3 +159,32 @@
         @endif
     </div>
 </div>
+
+@if ($showBooking)
+    @php
+        $stickyCategory = $escort->kind === 'service'
+            ? ($escort->serviceLabel() ?: 'Service')
+            : trim($escort->tag().' · '.($escort->sexual_orientation === 'bi-sexual' ? 'Bi-sexual' : ucfirst((string) $escort->sexual_orientation)));
+    @endphp
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-[#dddddd] bg-white px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
+            <div class="min-w-0">
+                <p class="truncate text-sm text-[#222]"><span class="text-base font-semibold">{{ $escort->price_label }}</span> / hour</p>
+                <p class="truncate text-sm text-[#6a6a6a]">{{ $escort->neighborhood }}, {{ $escort->city }} · {{ $stickyCategory }}</p>
+            </div>
+            <div class="relative shrink-0" x-data="{ chat: false }">
+                @if ($escort->whatsappUrl() && $escort->telegramUrl())
+                    <button type="button" @click="chat = ! chat" class="hb-chat px-5 py-3 text-sm font-semibold">Chat</button>
+                    <div x-show="chat" x-cloak @click.outside="chat = false" class="absolute bottom-full right-0 mb-2 w-44 overflow-hidden rounded-xl border border-[#dddddd] bg-white text-sm shadow-xl">
+                        <a href="{{ route('escorts.contact', [$escort, 'whatsapp']) }}" class="block px-4 py-3 font-medium hover:bg-neutral-50">WhatsApp</a>
+                        <a href="{{ route('escorts.contact', [$escort, 'telegram']) }}" class="block border-t border-[#dddddd] px-4 py-3 font-medium hover:bg-neutral-50">Telegram</a>
+                    </div>
+                @elseif ($escort->whatsappUrl())
+                    <a href="{{ route('escorts.contact', [$escort, 'whatsapp']) }}" class="hb-chat inline-flex px-5 py-3 text-sm font-semibold">WhatsApp</a>
+                @elseif ($escort->telegramUrl())
+                    <a href="{{ route('escorts.contact', [$escort, 'telegram']) }}" class="hb-chat inline-flex px-5 py-3 text-sm font-semibold">Telegram</a>
+                @endif
+            </div>
+        </div>
+    </div>
+@endif
