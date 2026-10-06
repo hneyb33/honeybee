@@ -41,10 +41,9 @@ class SubscriptionPaymentTest extends TestCase
         $this->actingAs($client)
             ->post(route('client.subscribe'), ['period' => 'monthly'])
             ->assertRedirect()
-            ->assertSessionHas('status', 'Premium access is active.');
+            ->assertSessionHas('status', 'VIP access is active.');
 
-        $this->assertTrue($client->fresh()->canBrowsePremium());
-        $this->assertFalse($client->fresh()->isPremiumClient());
+        $this->assertTrue($client->fresh()->isPremiumClient());
         $this->assertSame(0, Payment::query()->count());
 
         $specialist = User::factory()->create(['account_kind' => 'model']);

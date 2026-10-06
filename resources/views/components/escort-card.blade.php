@@ -4,8 +4,8 @@
     <div class="relative mb-3 aspect-square overflow-hidden rounded-xl bg-neutral-100">
         <span class="absolute left-3 top-3 z-10 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-neutral-900 shadow-sm">{{ $escort->tag() }}</span>
         <livewire:escort.favorite-toggle :escort="$escort" :key="'favorite-'.$escort->id" />
-        @if ($escort->cover_image)
-            <img src="{{ $escort->cover_image }}" alt="{{ $escort->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+        @if ($escort->coverImageUrl())
+            <img src="{{ $escort->coverImageUrl() }}" alt="{{ $escort->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
         @else
             <div class="flex h-full w-full items-center justify-center text-sm text-neutral-400">No photo</div>
         @endif

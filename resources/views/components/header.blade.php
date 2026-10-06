@@ -55,9 +55,14 @@
                         <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2.5 hover:bg-neutral-100">
                             <x-lucide name="layout-dashboard" /> Dashboard
                         </a>
+                        @if (auth()->user()->isSpecialist() && ($ownProfile = auth()->user()->escorts()->latest('id')->first()))
+                            <a href="{{ route('escort.show', $ownProfile) }}" class="flex items-center gap-2 px-4 py-2.5 hover:bg-neutral-100">
+                                <x-lucide name="user" /> View my profile
+                            </a>
+                        @endif
                         @if (auth()->user()->isClient() && ! auth()->user()->isPremiumClient())
                             <a href="{{ route('subscribe') }}" class="flex items-center gap-2 px-4 py-2.5 hover:bg-neutral-100">
-                                <x-lucide name="crown" /> {{ auth()->user()->canBrowsePremium() ? 'Upgrade to VIP access' : 'Unlock premium profiles' }}
+                                <x-lucide name="crown" /> View VIP escorts
                             </a>
                         @endif
                         @if (auth()->user()->isSpecialist() && ! auth()->user()->hasActiveListingSubscription())

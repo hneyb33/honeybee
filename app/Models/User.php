@@ -16,7 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'account_kind'])]
+#[Fillable(['name', 'email', 'phone', 'phone_country', 'password', 'account_kind'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -89,7 +89,7 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * VIP access also covers the premium tier, so either client plan opens premium profiles.
+     * Premium escorts and service providers are open. This remains for older premium-access plans.
      */
     public function canBrowsePremium(): bool
     {

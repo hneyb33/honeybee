@@ -36,25 +36,40 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $country = preg_replace('/\D+/', '', (string) $request->input('phone_country', '256')) ?: '256';
+        $national = PhoneNumber::national($country, $request->input('phone'));
+        $phone = PhoneNumber::compose($country, $national);
+
         $request->merge([
-            'phone' => PhoneNumber::normalize($request->input('phone')),
+            'phone_country' => $country,
+            'phone' => $national,
+            'username' => trim((string) $request->input('username')),
         ]);
 
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'regex:/^256\d{9}$/', 'unique:'.User::class],
+            'username' => ['required', 'string', 'min:3', 'max:30', 'regex:/^[A-Za-z][A-Za-z0-9_]+$/', 'unique:users,name'],
+            'phone_country' => ['required', 'in:'.implode(',', \App\Support\CountryDialCodes::codes())],
+            'phone' => ['required', 'regex:/^\d{6,12}$/'],
             'email' => ['nullable', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'account_type' => ['required', 'in:client,model,specialist'],
         ], [
-            'phone.regex' => 'Enter your phone number as 0771234567.',
-            'phone.unique' => 'That phone number already has an account.',
+            'username.unique' => 'That username is already taken.',
+            'username.regex' => 'Use letters, numbers, and underscores. Start with a letter.',
+            'phone.regex' => 'Enter the phone number without the country code.',
         ]);
+
+        if (User::query()->where('phone', $phone)->exists()) {
+            throw ValidationException::withMessages([
+                'phone' => 'That phone number already has an account.',
+            ]);
+        }
 
         $kind = $request->input('account_type');
         $user = User::create([
-            'name' => $request->name,
-            'phone' => $request->phone,
+            'name' => $request->username,
+            'phone' => $phone,
+            'phone_country' => $country,
             'email' => $request->email ?: null,
             'password' => $request->password,
             'account_kind' => $kind,

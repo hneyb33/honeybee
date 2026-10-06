@@ -19,6 +19,8 @@ class OrderResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationLabel = 'Orders';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Commerce';

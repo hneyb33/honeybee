@@ -15,11 +15,18 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'experience_type',
     'note',
     'status',
+    'channel',
     'price_amount',
     'currency',
 ])]
 class Booking extends Model
 {
+    public const CONTACTED = 'contacted';
+
+    public const CHANNEL_WHATSAPP = 'whatsapp';
+
+    public const CHANNEL_TELEGRAM = 'telegram';
+
     public const REQUESTED = 'requested';
 
     public const ACCEPTED = 'accepted';

@@ -4,14 +4,13 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\SubscriptionPaymentController;
-use App\Models\Booking;
 use App\Models\Escort;
 use App\Models\ProfileMedia;
 use App\Support\UgandaLocations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use App\Support\MediaFiles;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -25,8 +24,7 @@ class EscortController extends Controller
         $user = $request->user();
 
         return view('pages.owner.index', [
-            'escorts' => Escort::query()->where('user_id', $user->id)->with('media')->latest()->get(),
-            'bookings' => Booking::query()->whereHas('escort', fn ($query) => $query->where('user_id', $user->id))->with('client', 'escort')->latest()->get(),
+            'escorts' => Escort::query()->where('user_id', $user->id)->with(['media', 'offerings', 'references', 'owner'])->latest()->get(),
             'subscription' => $user->subscriptions()->active()->latest('ends_at')->first(),
             'latestPayment' => $user->payments()->latest()->first(),
         ]);
@@ -50,19 +48,6 @@ class EscortController extends Controller
         return app(SubscriptionPaymentController::class)->begin($request);
     }
 
-    public function respond(Request $request, Booking $booking): RedirectResponse
-    {
-        abort_unless($request->user()->can('update', $booking), 403);
-
-        $validated = $request->validate([
-            'status' => ['required', 'in:accepted,declined,completed,cancelled'],
-        ]);
-
-        $booking->update(['status' => $validated['status']]);
-
-        return back()->with('status', 'Booking updated.');
-    }
-
     public function edit(Escort $escort): View|RedirectResponse
     {
         abort_unless($escort->user_id === Auth::id(), 403);
@@ -76,6 +61,8 @@ class EscortController extends Controller
 
             return view('pages.owner.specialist-form', ['escort' => $escort]);
         }
+
+        $escort->load('media');
 
         return view('pages.owner.edit-escort', [
             'escort' => $escort,
@@ -438,7 +425,7 @@ class EscortController extends Controller
 
         foreach ($request->file('photos') as $index => $file) {
             $isVideo = str_starts_with((string) $file->getMimeType(), 'video');
-            $path = $file->store('profiles/'.$escort->id, 'public');
+            $path = MediaFiles::store($file, 'profiles/'.$escort->id);
             ProfileMedia::create([
                 'escort_id' => $escort->id,
                 'path' => $path,
@@ -447,7 +434,7 @@ class EscortController extends Controller
             ]);
 
             if (! $isVideo && ! $coverSet) {
-                $escort->update(['cover_image' => Storage::disk('public')->url($path)]);
+                $escort->update(['cover_image' => MediaFiles::url($path)]);
                 $coverSet = true;
             }
         }

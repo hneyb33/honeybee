@@ -15,17 +15,22 @@
 </div>
 <div class="mt-4 grid gap-4 md:grid-cols-3">
     <a href="{{ \App\Filament\Resources\BookingResource::getUrl() }}" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <p class="text-sm text-gray-500">Booking requests</p>
-        <p class="mt-3 text-3xl font-semibold text-gray-900">{{ $stats['booking_requests'] }}</p>
+        <p class="text-sm text-gray-500">WhatsApp</p>
+        <p class="mt-3 text-3xl font-semibold text-gray-900">{{ $stats['whatsapp'] }}</p>
     </a>
-    <a href="{{ \App\Filament\Resources\OrderResource::getUrl() }}" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <p class="text-sm text-gray-500">Orders</p>
-        <p class="mt-3 text-3xl font-semibold text-gray-900">{{ $stats['orders'] }}</p>
+    <a href="{{ \App\Filament\Resources\BookingResource::getUrl() }}" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <p class="text-sm text-gray-500">Telegram</p>
+        <p class="mt-3 text-3xl font-semibold text-gray-900">{{ $stats['telegram'] }}</p>
     </a>
     <a href="{{ \App\Filament\Resources\PaymentResource::getUrl() }}" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <p class="text-sm text-gray-500">Payments to review</p>
         <p class="mt-3 text-3xl font-semibold text-gray-900">{{ $stats['payments'] }}</p>
     </a>
+</div>
+<div class="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <p class="font-semibold text-gray-900">Submitted photos and videos</p>
+    <p class="mt-1 mb-4 text-sm text-gray-500">Files added by models and private service providers.</p>
+    <x-profile-media-masonry :items="$this->recentMedia()" />
 </div>
 <div class="mt-6 grid gap-4 md:grid-cols-2">
     <a href="{{ \App\Filament\Pages\Support::getUrl() }}" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

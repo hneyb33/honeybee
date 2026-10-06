@@ -36,7 +36,7 @@ class ClientResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')->required(),
+            TextInput::make('name')->label('Username')->required(),
             TextInput::make('email')->email()->required()->unique(ignoreRecord: true),
             TextInput::make('password')->password()->required(fn (string $operation) => $operation === 'create')->dehydrated(fn (?string $state) => filled($state)),
         ]);
@@ -45,7 +45,7 @@ class ClientResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('name')->searchable(),
+            Tables\Columns\TextColumn::make('name')->label('Username')->searchable(),
             Tables\Columns\TextColumn::make('email')->searchable(),
             Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
         ])->recordActions([

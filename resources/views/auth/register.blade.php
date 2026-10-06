@@ -1,7 +1,7 @@
 <x-guest-layout>
     @php
         $copy = [
-            'client' => ['Join as a client', 'Browse verified profiles, request bookings, and leave reviews.'],
+            'client' => ['Join as a client', 'Browse verified profiles and contact them on WhatsApp or Telegram.'],
             'model' => ['Join as a model', 'Create an escort profile with your services, rates, and photos.'],
             'specialist' => ['Join as a specialist', 'Offer a home service such as private chef, laundry, or massage.'],
         ][$role];
@@ -14,15 +14,16 @@
         <input type="hidden" name="account_type" value="{{ $role }}">
 
         <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="mt-1 block w-full" type="text" name="name" :value="old('name')" required autofocus />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+            <x-input-label for="username" :value="__('Username')" />
+            <x-text-input id="username" class="mt-1 block w-full" type="text" name="username" :value="old('username')" required autofocus autocomplete="username" />
+            <x-input-error :messages="$errors->get('username')" class="mt-2" />
         </div>
         <div class="mt-4">
             <x-input-label for="phone" :value="__('Phone number')" />
-            <x-text-input id="phone" class="mt-1 block w-full" type="tel" inputmode="tel" name="phone" :value="old('phone')" placeholder="0771234567" required autocomplete="tel" />
-            <p class="mt-1 text-xs text-neutral-500">You will use this number to log in.</p>
+            <x-phone-field id="phone" />
+            <p class="mt-1 text-xs text-neutral-500">You will use this number to log in. The country code is saved with it.</p>
             <x-input-error :messages="$errors->get('phone')" class="mt-2" />
+            <x-input-error :messages="$errors->get('phone_country')" class="mt-2" />
         </div>
         <div class="mt-4">
             <x-input-label for="email" :value="__('Email (optional)')" />

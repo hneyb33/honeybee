@@ -31,8 +31,6 @@ class Settings extends Page
             'bank_name',
             'bank_account_name',
             'bank_account_number',
-            'client_basic_daily_price',
-            'client_basic_monthly_price',
             'client_premium_daily_price',
             'client_premium_monthly_price',
             'specialist_daily_price',

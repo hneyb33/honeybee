@@ -24,7 +24,7 @@ class TierFilter extends Component
             if ($user->isClient() || $user->isModel()) {
                 session()->flash('status', $user->isModel()
                     ? 'Choose a VIP plan to list a VIP profile.'
-                    : 'A premium subscription is required to browse VIP profiles.');
+                    : 'A subscription is required to browse VIP profiles.');
                 $this->redirect(route('subscribe'));
 
                 return;

@@ -48,7 +48,7 @@ class PaymentResource extends Resource
     {
         return $schema->components([
             Section::make('Client')->components([
-                Text::make(fn (Text $component) => 'Name: '.($component->getRecord()->user?->name ?? '—')),
+                Text::make(fn (Text $component) => 'Username: '.($component->getRecord()->user?->name ?? '—')),
                 Text::make(fn (Text $component) => 'Email: '.($component->getRecord()->user?->email ?? '—')),
                 Text::make(function (Text $component) {
                     $profiles = $component->getRecord()->user?->escorts ?? collect();

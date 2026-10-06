@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
+use App\Support\MediaFiles;
 
 #[Fillable(['escort_id', 'path', 'kind', 'sort_order'])]
 class ProfileMedia extends Model
@@ -24,6 +24,6 @@ class ProfileMedia extends Model
 
     public function url(): string
     {
-        return Storage::disk('public')->url($this->path);
+        return MediaFiles::url($this->path) ?? '';
     }
 }

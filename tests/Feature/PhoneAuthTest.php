@@ -20,8 +20,9 @@ class PhoneAuthTest extends TestCase
     public function test_registration_stores_the_phone_in_international_form_without_an_email(): void
     {
         $this->post(route('register'), [
-            'name' => 'Phone Client',
-            'phone' => '0771234567',
+            'username' => 'PhoneClient',
+            'phone_country' => '256',
+            'phone' => '771234567',
             'password' => 'honeybee-secret-1',
             'password_confirmation' => 'honeybee-secret-1',
             'account_type' => 'client',
@@ -29,6 +30,8 @@ class PhoneAuthTest extends TestCase
 
         $user = User::query()->where('phone', '256771234567')->firstOrFail();
 
+        $this->assertSame('PhoneClient', $user->name);
+        $this->assertSame('256', $user->phone_country);
         $this->assertNull($user->email);
         $this->assertTrue($user->hasRole('client_free'));
         $this->assertAuthenticatedAs($user);
@@ -76,8 +79,9 @@ class PhoneAuthTest extends TestCase
 
         $this->from(route('register.form', 'client'))
             ->post(route('register'), [
-                'name' => 'Duplicate',
-                'phone' => '0772000333',
+                'username' => 'Duplicate',
+                'phone_country' => '256',
+                'phone' => '772000333',
                 'password' => 'honeybee-secret-1',
                 'password_confirmation' => 'honeybee-secret-1',
                 'account_type' => 'client',
@@ -85,5 +89,32 @@ class PhoneAuthTest extends TestCase
             ->assertSessionHasErrors('phone');
 
         $this->assertGuest();
+    }
+
+    public function test_a_country_code_is_stored_with_the_phone_number(): void
+    {
+        $this->post(route('register'), [
+            'username' => 'NairobiClient',
+            'phone_country' => '254',
+            'phone' => '712345678',
+            'password' => 'honeybee-secret-1',
+            'password_confirmation' => 'honeybee-secret-1',
+            'account_type' => 'client',
+        ])->assertRedirect(route('home'));
+
+        $user = User::query()->where('name', 'NairobiClient')->first();
+        $this->assertNotNull($user);
+        $this->assertSame('254712345678', $user->phone);
+        $this->assertSame('254', $user->phone_country);
+
+        $this->post(route('logout'));
+
+        $this->post(route('login'), [
+            'phone_country' => '254',
+            'phone' => '712345678',
+            'password' => 'honeybee-secret-1',
+        ])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
     }
 }

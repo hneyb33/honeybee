@@ -65,6 +65,7 @@ class ListingGrid extends Component
         $longitude = isset($this->searchFilters['longitude']) ? (float) $this->searchFilters['longitude'] : null;
 
         return Escort::query()
+            ->with('media')
             ->visibleTo(auth()->user())
             ->when($this->tier === 'vip' || $this->tier === 'premium', fn (Builder $query) => $query->where('kind', Escort::KIND_ESCORT)->where('escort_tier', $this->tier))
             ->when($this->tier === 'service', fn (Builder $query) => $query->where('kind', Escort::KIND_SERVICE))

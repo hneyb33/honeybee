@@ -31,7 +31,7 @@ class ProviderOnboardingController extends Controller
         }
 
         $this->normalize($profile);
-        $profile->load('offerings', 'references');
+        $profile->load('offerings', 'references', 'media');
 
         return view('pages.owner.onboarding', [
             'profile' => $profile,

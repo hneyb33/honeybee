@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
+use App\Support\CountryDialCodes;
 use App\Support\PhoneNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -18,12 +19,23 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'min:3', 'max:30', 'regex:/^[A-Za-z][A-Za-z0-9_]+$/', Rule::unique(User::class, 'name')->ignore($this->user()->id)],
+            'phone_country' => ['required', 'in:'.implode(',', CountryDialCodes::codes())],
             'phone' => [
                 'required',
                 'string',
-                'regex:/^256\d{9}$/',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                'regex:/^\d{6,12}$/',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $full = PhoneNumber::compose((string) $this->input('phone_country'), (string) $value);
+                    $taken = User::query()
+                        ->where('phone', $full)
+                        ->where('id', '!=', $this->user()->id)
+                        ->exists();
+
+                    if ($taken) {
+                        $fail('That phone number already has an account.');
+                    }
+                },
             ],
             'email' => [
                 'nullable',
@@ -38,10 +50,31 @@ class ProfileUpdateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $country = preg_replace('/\D+/', '', (string) $this->input('phone_country', $this->user()->phone_country ?: '256')) ?: '256';
+
         $this->merge([
-            'phone' => PhoneNumber::normalize($this->input('phone')),
+            'phone_country' => $country,
+            'phone' => PhoneNumber::national($country, $this->input('phone')),
+            'username' => trim((string) $this->input('username')),
             'email' => $this->input('email') ?: null,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function validated($key = null, $default = null): mixed
+    {
+        $data = parent::validated();
+        $data['name'] = $data['username'];
+        unset($data['username']);
+        $data['phone'] = PhoneNumber::compose($data['phone_country'], $data['phone']);
+
+        if ($key === null) {
+            return $data;
+        }
+
+        return $data[$key] ?? $default;
     }
 
     /**
@@ -50,8 +83,9 @@ class ProfileUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'phone.regex' => 'Enter your phone number as 0771234567.',
-            'phone.unique' => 'That phone number already has an account.',
+            'username.unique' => 'That username is already taken.',
+            'username.regex' => 'Use letters, numbers, and underscores. Start with a letter.',
+            'phone.regex' => 'Enter the phone number without the country code.',
         ];
     }
 }

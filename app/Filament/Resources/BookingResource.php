@@ -4,13 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\BookingResource\Pages;
 use App\Models\Booking;
-use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -23,7 +20,7 @@ class BookingResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar';
 
-    protected static ?string $navigationLabel = 'Booking requests';
+    protected static ?string $navigationLabel = 'Bookings';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Commerce';
 
@@ -34,7 +31,7 @@ class BookingResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->whereIn('status', [Booking::REQUESTED, Booking::DECLINED]);
+        return parent::getEloquentQuery()->latest();
     }
 
     public static function form(Schema $schema): Schema
@@ -42,10 +39,12 @@ class BookingResource extends Resource
         return $schema->components([
             Select::make('client_id')->relationship('client', 'email')->searchable()->required(),
             Select::make('escort_id')->relationship('escort', 'title')->searchable()->required(),
-            DateTimePicker::make('starts_at')->required(),
-            TextInput::make('duration_hours')->numeric()->required(),
-            TextInput::make('price_amount')->numeric()->label('UGX')->required(),
+            Select::make('channel')->options([
+                Booking::CHANNEL_WHATSAPP => 'WhatsApp',
+                Booking::CHANNEL_TELEGRAM => 'Telegram',
+            ])->required(),
             Select::make('status')->options([
+                Booking::CONTACTED => 'Contacted',
                 Booking::REQUESTED => 'Requested',
                 Booking::ACCEPTED => 'Accepted',
                 Booking::DECLINED => 'Declined',
@@ -62,17 +61,24 @@ class BookingResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('escort.title')->label('Profile')->searchable(),
                 Tables\Columns\TextColumn::make('client.name')->label('Client')->searchable(),
-                Tables\Columns\TextColumn::make('starts_at')->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('channel')
+                    ->label('Channel')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        Booking::CHANNEL_WHATSAPP => 'WhatsApp',
+                        Booking::CHANNEL_TELEGRAM => 'Telegram',
+                        default => 'Not set',
+                    })
+                    ->color(fn (?string $state): string => match ($state) {
+                        Booking::CHANNEL_WHATSAPP => 'success',
+                        Booking::CHANNEL_TELEGRAM => 'info',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('escort.kind')->label('Profile type')->badge(),
+                Tables\Columns\TextColumn::make('created_at')->label('Contacted')->dateTime()->sortable(),
                 Tables\Columns\TextColumn::make('status')->badge(),
-                Tables\Columns\TextColumn::make('price_amount')->label('UGX'),
             ])
             ->recordActions([
-                Action::make('accept')
-                    ->action(fn (Booking $record) => $record->update(['status' => Booking::ACCEPTED]))
-                    ->visible(fn (Booking $record) => $record->status === Booking::REQUESTED),
-                Action::make('decline')
-                    ->action(fn (Booking $record) => $record->update(['status' => Booking::DECLINED]))
-                    ->visible(fn (Booking $record) => $record->status === Booking::REQUESTED),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);

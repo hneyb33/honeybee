@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\CountryDialCodes;
 use App\Support\PhoneNumber;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -29,16 +30,25 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'regex:/^256\d{9}$/'],
+            'phone_country' => ['required', 'in:'.implode(',', CountryDialCodes::codes())],
+            'phone' => ['required', 'string', 'regex:/^\d{6,12}$/'],
             'password' => ['required', 'string'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
+        $country = preg_replace('/\D+/', '', (string) $this->input('phone_country', '256')) ?: '256';
+
         $this->merge([
-            'phone' => PhoneNumber::normalize($this->input('phone')),
+            'phone_country' => $country,
+            'phone' => PhoneNumber::national($country, $this->input('phone')),
         ]);
+    }
+
+    public function fullPhone(): string
+    {
+        return PhoneNumber::compose((string) $this->input('phone_country'), (string) $this->input('phone'));
     }
 
     /**
@@ -47,7 +57,7 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'phone.regex' => 'Enter your phone number as 0771234567.',
+            'phone.regex' => 'Enter the phone number without the country code.',
         ];
     }
 
@@ -60,7 +70,10 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('phone', 'password'), $this->boolean('remember'))) {
+        if (! Auth::attempt([
+            'phone' => $this->fullPhone(),
+            'password' => (string) $this->input('password'),
+        ], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -99,6 +112,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('phone')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->fullPhone()).'|'.$this->ip());
     }
 }

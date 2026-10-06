@@ -38,7 +38,7 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            Tables\Columns\TextColumn::make('name')->searchable(),
+            Tables\Columns\TextColumn::make('name')->label('Username')->searchable(),
             Tables\Columns\TextColumn::make('email')->searchable(),
             Tables\Columns\TextColumn::make('account_kind')->label('Account')->badge(),
             Tables\Columns\TextColumn::make('roles.name')->label('Roles')->badge(),

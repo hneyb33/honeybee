@@ -13,6 +13,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Owner\EscortController as OwnerEscortController;
 use App\Http\Controllers\Owner\ProviderOnboardingController;
 use App\Http\Controllers\ReferenceConfirmationController;
+use App\Http\Controllers\ProfileContactController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Models\Escort;
@@ -44,6 +45,8 @@ Route::get('/', function (Request $request) {
 
 Route::get('/escorts/{escort:slug}', function (Request $request, Escort $escort) {
     if (! $request->session()->get('allowed_age', false)) {
+        session(['url.intended' => $request->fullUrl()]);
+
         return redirect()->route('age-check');
     }
 
@@ -54,25 +57,21 @@ Route::get('/escorts/{escort:slug}', function (Request $request, Escort $escort)
 
     abort_unless($owns || $published || $viewer?->isAdmin(), 404);
 
-    $locked = $escort->isVip()
-        ? ! $viewer?->isPremiumClient()
-        : ($escort->isPremiumEscort() && ! $viewer?->canBrowsePremium());
+    $locked = $escort->isVip() && ! $viewer?->isPremiumClient();
 
     if (! $owns && ! $viewer?->isAdmin() && $locked) {
-        $tier = $escort->isVip() ? 'VIP' : 'premium';
-
         if (! $viewer) {
             session(['url.intended' => route('subscribe')]);
 
-            return redirect()->route('login')->with('status', 'Log in to subscribe and browse '.$tier.' profiles.');
+            return redirect()->route('login')->with('status', 'Log in to subscribe and browse VIP profiles.');
         }
 
         if ($viewer->isClient() || $viewer->isModel()) {
             return redirect()
                 ->route('subscribe')
                 ->with('status', $viewer->isModel()
-                    ? 'Choose a plan to list a '.$tier.' profile.'
-                    : 'A subscription is required to browse '.$tier.' profiles.');
+                    ? 'Choose a plan to list a VIP profile.'
+                    : 'A subscription is required to browse VIP profiles.');
         }
 
         abort(404);
@@ -80,6 +79,10 @@ Route::get('/escorts/{escort:slug}', function (Request $request, Escort $escort)
 
     return view('pages.escort-detail', compact('escort'));
 })->name('escort.show');
+
+Route::get('/escorts/{escort:slug}/contact/{channel}', ProfileContactController::class)
+    ->whereIn('channel', ['whatsapp', 'telegram'])
+    ->name('escorts.contact');
 
 Route::get('/privacy', function () {
     return view('pages.legal', [
@@ -140,7 +143,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/owner/escorts/{escort}/edit', [OwnerEscortController::class, 'edit'])->name('owner.escorts.edit');
     Route::put('/owner/escorts/{escort}', [OwnerEscortController::class, 'update'])->name('owner.escorts.update');
     Route::post('/owner/subscribe', [OwnerEscortController::class, 'subscribe'])->name('owner.subscribe');
-    Route::post('/owner/bookings/{booking}', [OwnerEscortController::class, 'respond'])->name('owner.bookings.respond');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -20,7 +20,8 @@ class ClientController extends Controller
         return view('pages.client.bookings', [
             'bookings' => Booking::query()
                 ->where('client_id', $user->id)
-                ->with(['escort', 'review'])
+                ->whereIn('channel', [Booking::CHANNEL_WHATSAPP, Booking::CHANNEL_TELEGRAM])
+                ->with(['escort'])
                 ->latest()
                 ->get(),
             'subscription' => $user->subscriptions()->active()->latest('ends_at')->first(),

@@ -2,8 +2,8 @@
 
 @php
     $uploaded = $escort->relationLoaded('media') ? $escort->media : $escort->media()->get();
-    $images = collect($escort->images ?: [])
-        ->merge($uploaded->where('kind', '!=', 'video')->map(fn ($media) => $media->url()))
+    $uploadedImages = $uploaded->where('kind', '!=', 'video')->map(fn ($media) => $media->url())->filter()->values();
+    $images = ($uploadedImages->isNotEmpty() ? $uploadedImages : collect($escort->images ?: []))
         ->filter()
         ->take(5)
         ->values();

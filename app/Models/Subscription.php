@@ -32,7 +32,7 @@ class Subscription extends Model
     public static function plansFor(User $user): array
     {
         if ($user->isClient()) {
-            return [self::PLAN_CLIENT_BASIC, self::PLAN_CLIENT_PREMIUM];
+            return [self::PLAN_CLIENT_PREMIUM];
         }
 
         if ($user->isModel()) {
@@ -66,7 +66,7 @@ class Subscription extends Model
     {
         return match ($plan) {
             self::PLAN_CLIENT_BASIC => 'Open and browse premium escort profiles.',
-            self::PLAN_CLIENT_PREMIUM => 'Open and browse both VIP and premium escort profiles.',
+            self::PLAN_CLIENT_PREMIUM => 'Open VIP escort profiles. Premium escorts and service providers are open without a subscription.',
             self::PLAN_ESCORT_PREMIUM => 'List your profile in the premium tier.',
             self::PLAN_ESCORT_VIP => 'List your profile in the VIP tier, above premium.',
             default => 'List your home service profile.',

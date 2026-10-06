@@ -5,6 +5,8 @@ namespace App\Filament\Pages;
 use App\Models\Booking;
 use App\Models\Escort;
 use App\Models\Payment;
+use App\Models\ProfileMedia;
+use Illuminate\Support\Collection;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
@@ -33,9 +35,18 @@ class Dashboard extends BaseDashboard
             'models' => Escort::query()->where('kind', Escort::KIND_ESCORT)->count(),
             'providers' => Escort::query()->where('kind', Escort::KIND_SERVICE)->count(),
             'pending_profiles' => Escort::query()->where('verification_status', 'pending')->count(),
-            'booking_requests' => Booking::query()->where('status', Booking::REQUESTED)->count(),
-            'orders' => Booking::query()->whereIn('status', [Booking::ACCEPTED, Booking::COMPLETED])->count(),
+            'whatsapp' => Booking::query()->where('channel', Booking::CHANNEL_WHATSAPP)->count(),
+            'telegram' => Booking::query()->where('channel', Booking::CHANNEL_TELEGRAM)->count(),
             'payments' => Payment::query()->where('status', 'submitted')->count(),
         ];
+    }
+
+    public function recentMedia(): Collection
+    {
+        return ProfileMedia::query()
+            ->with('escort')
+            ->latest('id')
+            ->limit(12)
+            ->get();
     }
 }

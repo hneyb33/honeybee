@@ -6,7 +6,6 @@ use App\Models\Escort;
 use App\Models\EscortReference;
 use App\Models\ProfileMedia;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -284,7 +283,7 @@ class ProviderProfile
 
         foreach ($request->file('photos') as $file) {
             $isVideo = str_starts_with((string) $file->getMimeType(), 'video');
-            $path = $file->store('profiles/'.$profile->id, 'public');
+            $path = \App\Support\MediaFiles::store($file, 'profiles/'.$profile->id);
             ProfileMedia::create([
                 'escort_id' => $profile->id,
                 'path' => $path,
@@ -294,7 +293,7 @@ class ProviderProfile
             $sort++;
 
             if (! $isVideo && ! $coverSet) {
-                $profile->update(['cover_image' => Storage::disk('public')->url($path)]);
+                $profile->update(['cover_image' => \App\Support\MediaFiles::url($path)]);
                 $coverSet = true;
             }
         }

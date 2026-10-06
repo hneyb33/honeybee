@@ -27,8 +27,7 @@
             <h2 class="text-lg font-semibold">Subscription prices (UGX)</h2>
             <p class="text-sm text-gray-500">Daily and monthly prices on the public subscription page.</p>
             @foreach ([
-                'client_basic' => 'Client — browse premium escorts',
-                'client_premium' => 'Client — browse VIP and premium escorts',
+                'client_premium' => 'Client — view VIP escorts',
                 'escort_premium' => 'Escort — premium listing',
                 'escort_vip' => 'Escort — VIP listing',
                 'specialist' => 'Home service specialist',

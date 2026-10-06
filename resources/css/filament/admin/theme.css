@@ -234,11 +234,38 @@ html.dark .verification-media-file {
     font-weight: 700;
 }
 
-.verification-media-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 0.75rem;
+.verification-media-grid,
+.hb-masonry {
+    columns: 2;
+    column-gap: 0.75rem;
     margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+    .verification-media-grid,
+    .hb-masonry {
+        columns: 3;
+    }
+}
+
+.hb-masonry-item {
+    break-inside: avoid;
+    margin: 0 0 0.75rem;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: #f4f5f6;
+}
+
+html.dark .hb-masonry-item {
+    background: #241e1e;
+}
+
+.hb-masonry-item img,
+.hb-masonry-item video {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #0f0a0a;
 }
 
 .verification-media-link {

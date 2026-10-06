@@ -311,6 +311,19 @@ class Escort extends Model
         return $query;
     }
 
+    public function coverImageUrl(): ?string
+    {
+        $photo = $this->relationLoaded('media')
+            ? $this->media->first(fn ($item) => $item->kind !== 'video')
+            : $this->media()->where('kind', '!=', 'video')->first();
+
+        if ($photo) {
+            return $photo->url();
+        }
+
+        return \App\Support\MediaFiles::url($this->cover_image);
+    }
+
     public function isVerified(): bool
     {
         return $this->verification_status === self::VERIFIED;

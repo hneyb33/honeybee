@@ -16,6 +16,13 @@ return [
     'default' => env('FILESYSTEM_DISK', 'local'),
 
     /*
+    | Profile photos and videos. "public" is the local disk. Set MEDIA_DISK=s3
+    | with an S3-compatible bucket (Cloudflare R2 is the usual choice) so files
+    | survive deploys and load from the edge.
+    */
+    'media_disk' => env('MEDIA_DISK', 'public'),
+
+    /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
