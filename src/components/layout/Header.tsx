@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useTheme } from "next-themes";
 import {
   Compass,
@@ -16,7 +17,6 @@ import {
   Shield,
   Crown,
   ChefHat,
-  Flower2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -95,9 +95,14 @@ export function Header() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
         <Link href="/" className="group flex shrink-0 items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d3444d] text-white shadow-sm transition-transform group-hover:-rotate-6">
-            <Flower2 className="h-5 w-5" />
-          </span>
+          <Image
+            src="/images/logo.jpeg"
+            alt="Honeybee"
+            width={40}
+            height={40}
+            className="h-10 w-10 rounded-2xl object-cover shadow-sm transition-transform group-hover:-rotate-6"
+            priority
+          />
           <span>
             <span className="block font-display text-xl font-semibold leading-none tracking-tight text-[#1b3028] dark:text-white">
               Honeybee

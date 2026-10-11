@@ -32,11 +32,9 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "next-env.d.ts",
-    "dist/types/**/*.ts"
+    "next-env.d.ts"
   ],
   "exclude": [
-    "node_modules",
-    "_legacy_laravel"
+    "node_modules"
   ]
 }

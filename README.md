@@ -98,15 +98,15 @@ New client and provider registrations create their profiles automatically with n
 
 ## ☁️ Vercel Deployment
 
-This project is 100% ready for zero-config Vercel deployment:
+This is a Next.js App Router app. Vercel should use the **Next.js** framework preset and leave **Output Directory** empty so it serves `.next`, not a static folder.
+
 1. Push this repository to GitHub/GitLab.
 2. Import the repository in [Vercel](https://vercel.com/new).
-3. Under **Environment Variables**, add:
+3. Confirm Framework Preset is **Next.js**, Root Directory is the repo root, and Output Directory is unset.
+4. Under **Environment Variables**, add:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Click **Deploy**!
+   - `NEXT_PUBLIC_SITE_URL` (your Vercel URL)
+5. Click **Deploy**.
 
----
-
-## 🗄️ Legacy Architecture Reference
-The previous PHP/Laravel application and migrations are preserved intact in `_legacy_laravel/` for historical data reference.
+If this project was previously a Laravel/PHP app on the same Vercel project, change the preset to Next.js and clear any Output Directory such as `public` or `dist`, then redeploy.

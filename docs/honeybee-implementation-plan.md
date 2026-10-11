@@ -2,14 +2,14 @@
 
 ## 1. Objective
 
-Turn the Honeybee PRD into a staged, production-ready product roadmap for the existing Laravel application. The work should prioritize trust, verification, and discovery first, then expand into commerce and scale.
+Turn the Honeybee PRD into a staged, production-ready product roadmap for the Next.js + Supabase application on Vercel. The work should prioritize trust, verification, and discovery first, then expand into commerce and scale.
 
 ## 2. Current-state assessment
 
 The repository already has a strong foundation for a listing-first marketplace:
 
-- Laravel 11 + Blade + Livewire + Tailwind + Vite are already in place.
-- An Escort model and owner-focused controller already exist for profile creation and editing.
+- Next.js 15 App Router, React 19, Tailwind, and shadcn/ui are in place.
+- Listings, provider onboarding, and public profile pages already exist.
 - Basic public pages and age-gate flow are already present.
 
 ### Key gaps vs. the PRD
@@ -19,7 +19,7 @@ The repository already has a strong foundation for a listing-first marketplace:
 - No bookings, payment escrow, or subscription flow.
 - No search engine layer beyond basic views.
 - No audit trail, compliance storage model, or document handling for IDs.
-- No Filament admin resources or policy-based access control.
+- Admin moderation exists; continue tightening RLS and audit coverage.
 
 ## 3. Implementation strategy
 
@@ -29,7 +29,7 @@ Goal: confirm the product scope and align the current codebase with the PRD.
 
 Tasks:
 - Review the existing Escort data model and owner workflow.
-- Map PRD entities to Laravel models and migrations.
+- Map PRD entities to the Supabase schema and migrations.
 - Define the canonical statuses for profiles and bookings.
 - Decide the initial feature boundary for Phase 1.
 - Create a backlog of MVP and Phase 2 items.
@@ -77,7 +77,7 @@ Goal: make Honeybee a trusted, verified discovery platform.
 - Create an admin queue with approval/rejection actions.
 
 #### C. Admin experience
-- Add Filament-based admin resources for escort verification.
+- Extend the Next.js `/admin` dashboard for escort verification.
 - Implement policy-based access so only authorised users can verify or reject profiles.
 - Add audit logging for moderation actions.
 - Show SLA countdown and queue ordering for pending reviews.
@@ -152,8 +152,8 @@ Goal: improve reach, automation, and operational resilience.
 - Add computed visibility rules based on tier and verification state.
 
 ### Step 3 — Build the admin workflow
-- Install and configure Filament.
-- Create resources for escorts, bookings, reviews, and moderation actions.
+- Keep admin in the Next.js `/admin` app.
+- Create screens for escorts, bookings, reviews, and moderation actions.
 - Add policies for each role.
 
 ### Step 4 — Improve public discovery
@@ -172,7 +172,7 @@ Goal: improve reach, automation, and operational resilience.
 ### Sprint 1: Foundation
 - Add roles and permissions.
 - Add Escort verification status and admin review queue.
-- Build Filament verification screens.
+- Build admin verification screens.
 - Add migration and seed data for test profiles.
 
 ### Sprint 2: Discovery

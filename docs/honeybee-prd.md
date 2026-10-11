@@ -14,7 +14,7 @@ Honeybee is an evolution of the Honeybee codebase in this repository: a verified
 
 Key outcomes for Phase 1 (Foundation):
 - A verified directory of listings and profiles
-- Admin verification workflow and Filament-based admin UI
+- Admin verification workflow and Next.js `/admin` dashboard
 - Fast, mobile-first discovery with role-based access
 
 2. Product vision & goals
@@ -48,11 +48,11 @@ Business goals:
 
 4.3 Search & discovery
 - Full-text search with filters (location, skill/type, availability, experience, tier).
-- Meilisearch (or Laravel Scout) integration recommended for fast results.
+- Postgres full-text / filtered discovery via Supabase; Meilisearch optional later for scale.
 - Unverified profiles never appear in search results.
 
 4.4 Admin verification dashboard
-- Filament resources for processing submissions: side-by-side ID vs. photos, field-level approvals, audit log, SLA countdown.
+- Admin dashboard for processing submissions: side-by-side ID vs. photos, field-level approvals, audit log, SLA countdown.
 
 5. Payments & bookings (Phase 2)
 --------------------------------
@@ -67,20 +67,19 @@ Business goals:
 
 7. Security, privacy & compliance
 --------------------------------
-- Store IDs and sensitive files AES-256 encrypted in Cloudflare R2 or Hetzner Object Storage.
-- Use Laravel Sanctum for API auth; Spatie Permissions for role/permission management.
+- Store IDs and sensitive files encrypted in Supabase Storage or compatible object storage.
+- Use Supabase Auth and row-level security for session and role/permission management.
 - Admin 2FA mandatory; optional for providers/clients.
 - Data export/deletion: comply with local Data Protection Act and honor requests within 30 days.
 
 8. Technical architecture (recommended)
 -------------------------------------
-- Backend: Laravel 11 with Livewire (matches repo), Filament for admin UI.
-- Frontend: Blade + Livewire + Alpine.js + Tailwind + Vite.
-- Database: PostgreSQL (production); local env may use MySQL during development.
-- Search: Meilisearch via Laravel Scout.
-- Queues: Redis + Horizon for background jobs.
-- File storage: Cloudflare R2 (S3-compatible) or Hetzner Object Storage for IDs/photos; Cloudflare Stream for video reels (Phase 2).
-- Deployment: Hetzner VPS with Coolify for zero-downtime deploys.
+- App: Next.js 15 App Router on Vercel.
+- Auth and database: Supabase (PostgreSQL, Auth, Storage, RLS).
+- UI: React 19, Tailwind CSS, shadcn/ui.
+- Search: Supabase filtered queries; Meilisearch optional later.
+- File storage: Supabase Storage for photos; object storage for IDs (Phase 2).
+- Deployment: Vercel (framework preset Next.js, default `.next` output).
 
 9. Three-phase roadmap (summary)
 --------------------------------
@@ -97,7 +96,7 @@ Phase 3 — Scale & intelligence (10–14 weeks)
 ---------------------------------------------------
 - Create a `docs/honeybee-prd.md` file in the repo (this document)
 - Seed 200 test provider profiles (for Phase 1 acceptance testing)
-- Add Filament resources for verification workflow (resource + policy)
+- Add admin verification workflow (pages + RLS policies)
 - Wire up Meilisearch pilot for core listing pages
 
 11. Implementation notes specific to this workspace
@@ -114,12 +113,12 @@ Phase 3 — Scale & intelligence (10–14 weeks)
 13. Budget & timeline (high level)
 ---------------------------------
 - Phase 1 estimate: 8–10 weeks, budget range UGX 8,000,000 — 12,000,000 (adjust to local rates and team size).
-- Add Hetzner hosting and R2 storage costs as in original strategy.
+- Add Vercel and Supabase hosting costs as in original strategy.
 
 Appendix: Next actions
 - Map existing models/routes to the roles listed above.
-- Create Filament verification resource and policies.
+- Create admin verification screens and policies.
 - Seed test data and deploy staging for client review.
 
 ---
-This file was added automatically to provide a focused PRD for `honeybee` adapted from the Safari Stage blueprint. Review and tell me which areas you'd like me to expand (detailed data model, Filament resources, or CI/CD pipeline).
+This file was added automatically to provide a focused PRD for `honeybee` adapted from the Safari Stage blueprint. Review and tell me which areas you'd like me to expand (detailed data model, admin workflow, or CI/CD pipeline).

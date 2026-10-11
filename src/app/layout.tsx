@@ -6,11 +6,12 @@ import { Footer } from "@/components/layout/Footer";
 import { AgeGateModal } from "@/components/layout/AgeGateModal";
 
 export const metadata: Metadata = {
-  title: "Honeybee — Trusted local people, thoughtfully connected",
+  title: "Honeybee — Connect. Refresh. Chill.",
   description:
     "Discover verified companions and independent specialists across Uganda. Clear profiles, upfront rates, and real local connections.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/images/logo.jpeg",
+    apple: "/images/logo.jpeg",
   },
 };
 
