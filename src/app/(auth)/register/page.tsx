@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Users, Crown, ChefHat } from "lucide-react";
+import { Users, Crown, ChefHat, Building2, Zap, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,7 +11,8 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [role, setRole] = useState<"client" | "specialist" | "model">("client");
+  const [role, setRole] = useState<"client" | "specialist" | "model" | "agency">("client");
+  const [advertiserType, setAdvertiserType] = useState<"fast" | "independent" | "agency" | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +20,22 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedKind = params.get("account_kind");
+    if (requestedKind === "specialist") {
+      setRole("specialist");
+      return;
+    }
+    const requestedType = params.get("advertiser_type");
+    if (requestedType === "fast" || requestedType === "independent" || requestedType === "agency") {
+      setAdvertiserType(requestedType);
+      setRole(requestedType === "agency" ? "agency" : "model");
+    }
+  }, []);
+
+  const onboardingPath = `/provider/onboarding${advertiserType ? `?type=${advertiserType}` : ""}`;
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,7 +51,14 @@ export default function RegisterPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, phone, account_kind: role } },
+      options: {
+        data: {
+          name,
+          phone,
+          account_kind: role,
+          advertiser_type: advertiserType ?? (role === "agency" ? "agency" : role === "model" ? "independent" : null),
+        },
+      },
     });
     setLoading(false);
 
@@ -44,11 +68,11 @@ export default function RegisterPage() {
     }
 
     if (!data.session) {
-      setMessage("Check your email to confirm your account, then sign in.");
+      setMessage("Check your email to confirm your account. After confirming, sign in to continue setting up your ad.");
       return;
     }
 
-    router.replace(role === "specialist" || role === "model" ? "/provider/onboarding" : "/dashboard");
+    router.replace(role === "specialist" || role === "model" || role === "agency" ? onboardingPath : "/dashboard");
     router.refresh();
   };
 
@@ -65,6 +89,34 @@ export default function RegisterPage() {
         </CardHeader>
 
         <CardContent className="space-y-6">
+          <div className="rounded-2xl border border-border bg-muted/50 p-3">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">Advertising as</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { id: "fast", label: "Fast ad", icon: Zap },
+                { id: "independent", label: "Independent", icon: UserRound },
+                { id: "agency", label: "Agency", icon: Building2 },
+              ] as const).map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={advertiserType === id}
+                  onClick={() => {
+                    setAdvertiserType(id);
+                    setRole(id === "agency" ? "agency" : "model");
+                  }}
+                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-[11px] font-semibold transition ${
+                    advertiserType === id
+                      ? "border-[#d3444d] bg-rose-50 text-[#a8323c] dark:bg-rose-950/30 dark:text-rose-200"
+                      : "border-border bg-background text-muted-foreground hover:border-foreground/30"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" /> {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Role Choice Cards */}
           <div className="space-y-2.5">
             <button
@@ -117,6 +169,27 @@ export default function RegisterPage() {
                 <span className="block font-bold text-sm text-foreground">VIP Companion</span>
                 <span className="block text-xs text-muted-foreground mt-0.5">
                   Provide verified companion and entertainment hosting services.
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setRole("agency");
+                setAdvertiserType("agency");
+              }}
+              className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+                role === "agency"
+                  ? "border-neutral-900 bg-neutral-50 dark:border-white dark:bg-neutral-900"
+                  : "border-border hover:border-foreground/40"
+              }`}
+            >
+              <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-[#d3444d]" />
+              <div>
+                <span className="block text-sm font-bold text-foreground">Agency advertiser</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Submit agency-managed profiles for verification and ad placement.
                 </span>
               </div>
             </button>
@@ -185,12 +258,22 @@ export default function RegisterPage() {
               </p>
             )}
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-            {message && <p role="status" className="text-sm text-emerald-700">{message}</p>}
+            {message && (
+              <div role="status" className="space-y-2 text-sm text-emerald-700">
+                <p>{message}</p>
+                <Link
+                  href={`/login?next=${encodeURIComponent(onboardingPath)}`}
+                  className="inline-block font-semibold text-[#d3444d] underline underline-offset-2"
+                >
+                  Continue to sign in
+                </Link>
+              </div>
+            )}
 
             <Button
               type="submit"
               disabled={loading || !isSupabaseConfigured}
-              className="mt-2 h-11 w-full rounded-xl bg-airbnb-coral font-bold text-white shadow-md hover:bg-[#E00B41]"
+              className="mt-2 h-11 w-full rounded-xl bg-airbnb-coral font-bold text-white shadow-md hover:bg-[#AD3039]"
             >
               {loading ? "Creating account..." : "Create Account"}
             </Button>

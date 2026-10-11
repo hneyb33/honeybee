@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, MapPin, Navigation, Users, ChefHat } from "lucide-react";
 import { UGANDA_LOCATIONS, SERVICE_CATEGORIES, SERVICE_TYPES } from "@/lib/data/uganda-locations";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -30,6 +30,12 @@ export function SearchCapsule({
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoMessage, setGeoMessage] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setLocalLocation(location);
+    setLocalCategory(category);
+    setLocalService(serviceType);
+  }, [location, category, serviceType]);
 
   const handleApply = (userCoords?: { latitude: number; longitude: number }) => {
     onSearch({
@@ -66,25 +72,25 @@ export function SearchCapsule({
   };
 
   return (
-    <div className="w-full px-4 pt-3 pb-2 sm:px-6">
+    <div className="w-full">
       {/* Desktop Search Capsule */}
-      <div className="hidden md:flex mx-auto max-w-4xl items-center rounded-full border border-border bg-card py-2 pl-6 pr-2 shadow-[0_3px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-shadow">
+      <div className="hidden w-full items-center rounded-2xl border border-[#e2e4db] bg-white p-2 shadow-[0_12px_36px_rgba(28,54,39,0.09)] transition-shadow hover:shadow-[0_14px_42px_rgba(28,54,39,0.13)] md:flex dark:border-neutral-700 dark:bg-neutral-900">
         {/* Where Input */}
-        <div className="min-w-0 flex-1 pr-4">
-          <label className="block text-xs font-semibold text-foreground">Where</label>
+        <div className="min-w-0 flex-1 px-4">
+          <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#53675a] dark:text-neutral-300">Where</label>
           <input
             type="text"
             list="uganda-locations-list"
             value={localLocation}
             onChange={(e) => setLocalLocation(e.target.value)}
-            placeholder="Search Kampala area (e.g. Kololo, Ntinda)"
+            placeholder="City, neighbourhood or area"
             className="w-full border-0 bg-transparent p-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
           />
         </div>
 
         {/* Category Select */}
-        <div className="min-w-40 border-l border-border px-4">
-          <label className="block text-xs font-semibold text-foreground">Category</label>
+        <div className="min-w-36 border-l border-[#e8e9e2] px-4 dark:border-neutral-700">
+          <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#53675a] dark:text-neutral-300">Category</label>
           <select
             value={localCategory}
             onChange={(e) => setLocalCategory(e.target.value)}
@@ -99,8 +105,8 @@ export function SearchCapsule({
         </div>
 
         {/* Service Type Select */}
-        <div className="min-w-44 border-l border-border px-4">
-          <label className="block text-xs font-semibold text-foreground">Service</label>
+        <div className="min-w-40 border-l border-[#e8e9e2] px-4 dark:border-neutral-700">
+          <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#53675a] dark:text-neutral-300">Service</label>
           <select
             value={localService}
             onChange={(e) => setLocalService(e.target.value)}
@@ -119,16 +125,16 @@ export function SearchCapsule({
           type="button"
           onClick={handleNearYou}
           title="Search near your GPS location"
-          className="mr-2 flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-neutral-100 hover:text-foreground transition-colors dark:hover:bg-neutral-800"
+          className="mr-1 flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-rose-950/30 hover:text-[#d3444d] dark:hover:bg-neutral-800"
         >
-          <Navigation className={`h-4 w-4 ${geoLoading ? "animate-spin text-airbnb-coral" : ""}`} />
+          <Navigation className={`h-4 w-4 ${geoLoading ? "animate-spin text-[#d3444d]" : ""}`} />
         </button>
 
         {/* Search CTA */}
         <button
           type="button"
           onClick={() => handleApply()}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-airbnb-coral text-white shadow-md hover:bg-[#E00B41] transition-transform active:scale-95 shrink-0"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#d3444d] text-white shadow-sm transition-transform hover:bg-[#ad3039] active:scale-95"
           aria-label="Search"
         >
           <Search className="h-5 w-5" />
@@ -136,11 +142,11 @@ export function SearchCapsule({
       </div>
 
       {/* Mobile Pills & Sheet */}
-      <div className="flex md:hidden items-center gap-2 overflow-x-auto no-scrollbar py-1">
+      <div className="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar md:hidden">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <button className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium shadow-sm hover:border-foreground">
-              <MapPin className="h-4 w-4 text-airbnb-coral" />
+            <button className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors hover:border-[#78917e] dark:bg-neutral-900">
+              <MapPin className="h-4 w-4 text-[#d3444d]" />
               <span className="max-w-28 truncate">{localLocation || "Where"}</span>
             </button>
           </SheetTrigger>
@@ -157,7 +163,7 @@ export function SearchCapsule({
                   value={localLocation}
                   onChange={(e) => setLocalLocation(e.target.value)}
                   placeholder="e.g. Kololo, Ntinda, Kira"
-                  className="mt-1.5 w-full rounded-xl border border-input bg-transparent px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-airbnb-coral"
+                  className="mt-1.5 w-full rounded-xl border border-input bg-transparent px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3444d]"
                 />
               </div>
 
@@ -166,7 +172,7 @@ export function SearchCapsule({
                 <select
                   value={localCategory}
                   onChange={(e) => setLocalCategory(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-airbnb-coral"
+                  className="mt-1.5 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3444d]"
                 >
                   {SERVICE_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -181,7 +187,7 @@ export function SearchCapsule({
                 <select
                   value={localService}
                   onChange={(e) => setLocalService(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-airbnb-coral"
+                  className="mt-1.5 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#d3444d]"
                 >
                   {Object.entries(SERVICE_TYPES).map(([key, val]) => (
                     <option key={key} value={key}>
@@ -205,7 +211,7 @@ export function SearchCapsule({
                 </Button>
                 <Button
                   onClick={() => handleApply()}
-                  className="flex-1 rounded-xl bg-airbnb-coral text-white hover:bg-[#E00B41]"
+                  className="flex-1 rounded-xl bg-[#d3444d] text-white hover:bg-[#ad3039]"
                 >
                   Search
                 </Button>
@@ -218,9 +224,9 @@ export function SearchCapsule({
         <button
           type="button"
           onClick={handleNearYou}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-medium shadow-sm hover:border-foreground"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-2.5 text-sm font-semibold shadow-sm hover:border-[#78917e] dark:bg-neutral-900"
         >
-          <Navigation className={`h-3.5 w-3.5 text-airbnb-coral ${geoLoading ? "animate-spin" : ""}`} />
+          <Navigation className={`h-3.5 w-3.5 text-[#d3444d] ${geoLoading ? "animate-spin" : ""}`} />
           Near you
         </button>
 
@@ -228,7 +234,7 @@ export function SearchCapsule({
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-medium shadow-sm hover:border-foreground"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-2.5 text-sm font-semibold shadow-sm hover:border-[#78917e] dark:bg-neutral-900"
         >
           <Users className="h-3.5 w-3.5" />
           {SERVICE_CATEGORIES.find((c) => c.value === localCategory)?.label || "Category"}
@@ -238,7 +244,7 @@ export function SearchCapsule({
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-medium shadow-sm hover:border-foreground"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-2.5 text-sm font-semibold shadow-sm hover:border-[#78917e] dark:bg-neutral-900"
         >
           <ChefHat className="h-3.5 w-3.5" />
           {SERVICE_TYPES[localService] || "Services"}

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useTheme } from "next-themes";
 import {
   Compass,
@@ -17,6 +16,7 @@ import {
   Shield,
   Crown,
   ChefHat,
+  Flower2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -89,51 +89,45 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-md transition-shadow ${
+      className={`sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-xl transition-shadow ${
         isScrolled ? "shadow-sm" : ""
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="relative h-9 w-32 sm:h-10 sm:w-36">
-            <Image
-              src="/images/logo-lightmode.jpeg"
-              alt="Honeybee"
-              fill
-              className="object-contain dark:hidden"
-              priority
-            />
-            <Image
-              src="/images/logo-darkmode.jpeg"
-              alt="Honeybee"
-              fill
-              className="hidden object-contain dark:block"
-              priority
-            />
-          </div>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+        <Link href="/" className="group flex shrink-0 items-center gap-2.5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d3444d] text-white shadow-sm transition-transform group-hover:-rotate-6">
+            <Flower2 className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block font-display text-xl font-semibold leading-none tracking-tight text-[#1b3028] dark:text-white">
+              Honeybee
+            </span>
+            <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.2em] text-[#718177] dark:text-neutral-400">
+              Local, connected
+            </span>
+          </span>
         </Link>
 
         {/* Center Navigation Links */}
-        <div className="hidden items-center gap-6 text-sm font-medium md:flex">
+        <div className="hidden items-center gap-7 text-sm font-medium md:flex">
           <Link
             href="/"
-            className="flex items-center gap-2 border-b-2 border-neutral-900 pb-1 font-semibold text-neutral-900 dark:border-white dark:text-white"
+            className="flex items-center gap-2 rounded-full px-3 py-2 font-semibold text-[#f17d83] transition-colors hover:bg-neutral-800"
           >
             <Compass className="h-4 w-4" />
-            Explore
+            Discover
           </Link>
           <Link
             href="/subscribe"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
           >
-            <Crown className="h-4 w-4 text-amber-500" />
-            VIP & Plans
+            <Crown className="h-4 w-4 text-[#c18d2c]" />
+            Membership
           </Link>
           {user && (
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
             >
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
@@ -161,13 +155,13 @@ export function Header() {
           )}
 
           {/* List Your Profile / Host CTA */}
-          <Link href="/provider/onboarding">
+          <Link href="/advertise" aria-label="Post an ad">
             <Button
               variant="ghost"
-              className="hidden sm:inline-flex items-center gap-2 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#c63843] hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-neutral-800"
             >
-              <BadgePlus className="h-4 w-4 text-airbnb-coral" />
-              <span>List your profile</span>
+              <BadgePlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Post an ad</span>
             </Button>
           </Link>
 
@@ -249,7 +243,7 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/subscribe" className="flex items-center gap-2">
                       <Crown className="h-4 w-4 text-amber-500" />
-                      View VIP escorts
+                      Explore featured profiles
                     </Link>
                   </DropdownMenuItem>
                 </>

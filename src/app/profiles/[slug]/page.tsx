@@ -23,6 +23,7 @@ import { PhotoMosaic } from "@/components/listings/PhotoMosaic";
 import { ServiceOfferings } from "@/components/listings/ServiceOfferings";
 import { ReviewSection } from "@/components/listings/ReviewSection";
 import { StickyBookingBar } from "@/components/booking/StickyBookingBar";
+import { YouMayAlsoLike } from "@/components/listings/YouMayAlsoLike";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -32,6 +33,7 @@ export default function ProfileDetailPage() {
   const [listing, setListing] = useState<Listing | undefined>(
     () => MOCK_LISTINGS.find((item) => item.slug === slug)
   );
+  const [relatedListings, setRelatedListings] = useState<Listing[]>(MOCK_LISTINGS);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [loadError, setLoadError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -44,6 +46,7 @@ export default function ProfileDetailPage() {
     const loadListing = async () => {
       if (!supabase) {
         setListing(MOCK_LISTINGS.find((item) => item.slug === slug));
+        setRelatedListings(MOCK_LISTINGS);
         setLoading(false);
         return;
       }
@@ -74,7 +77,7 @@ export default function ProfileDetailPage() {
         return;
       }
 
-      const [mediaResult, offeringsResult] = await Promise.all([
+      const [mediaResult, offeringsResult, relatedResult] = await Promise.all([
         supabase
           .from("profile_media")
           .select("url,sort_order")
@@ -85,6 +88,14 @@ export default function ProfileDetailPage() {
           .select("id,listing_id,group_name,name,price,pricing_model,turnaround,location_type,sort_order")
           .eq("listing_id", data.id)
           .order("sort_order", { ascending: true }),
+        supabase
+          .from("listings")
+          .select("*")
+          .eq("verification_status", "verified")
+          .neq("id", data.id)
+          .order("is_featured", { ascending: false })
+          .order("rating", { ascending: false })
+          .limit(12),
       ]);
 
       if (mediaResult.error || offeringsResult.error) {
@@ -101,9 +112,13 @@ export default function ProfileDetailPage() {
         (mediaResult.data ?? []).map((media) => media.url),
         offeringsResult.data ?? []
       );
+      if (relatedResult.error) {
+        console.error("Could not load recommended profiles:", relatedResult.error.message);
+      }
 
       if (!cancelled) {
         setListing(mappedListing);
+        setRelatedListings((relatedResult.data ?? []).map((row) => mapListingRow(row)));
         setLoading(false);
       }
     };
@@ -126,7 +141,7 @@ export default function ProfileDetailPage() {
           {loadError || "The requested profile does not exist or may have been unlisted."}
         </p>
         <Link href="/">
-          <Button className="mt-6 rounded-full bg-airbnb-coral text-white hover:bg-[#E00B41]">
+          <Button className="mt-6 rounded-full bg-airbnb-coral text-white hover:bg-[#AD3039]">
             Back to Explore
           </Button>
         </Link>
@@ -219,7 +234,7 @@ export default function ProfileDetailPage() {
         </div>
       </div>
 
-      {/* Signature Airbnb Photo Mosaic */}
+      {/* Profile photo gallery */}
       <PhotoMosaic images={listing.images} title={listing.title} />
 
       {/* Profile Information & Highlights */}
@@ -345,6 +360,8 @@ export default function ProfileDetailPage() {
         reviewCount={listing.review_count}
         listingTitle={listing.title}
       />
+
+      <YouMayAlsoLike current={listing} listings={relatedListings} />
 
       {/* Sticky Bottom Booking & Chat Bar */}
       <StickyBookingBar listing={listing} />

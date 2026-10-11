@@ -51,7 +51,7 @@ export function AgeGateModal() {
         <div className="flex flex-col gap-2.5 pt-2">
           <Button
             onClick={handleConfirmAge}
-            className="w-full h-12 rounded-xl bg-airbnb-coral text-white font-semibold hover:bg-[#E00B41] shadow-md"
+            className="w-full h-12 rounded-xl bg-airbnb-coral text-white font-semibold hover:bg-[#AD3039] shadow-md"
           >
             I am 18 or older — Enter Site
           </Button>

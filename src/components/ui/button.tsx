@@ -9,7 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-airbnb-coral text-white hover:bg-[#E00B41] shadow-sm",
+          "bg-airbnb-coral text-white hover:bg-[#AD3039] shadow-sm",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:

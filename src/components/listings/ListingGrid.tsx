@@ -18,20 +18,20 @@ export function ListingGrid({
   error = "",
 }: ListingGridProps) {
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-6">
+    <section className="mx-auto max-w-7xl px-5 pb-16 pt-4 sm:px-8">
       {/* Header bar */}
-      <div className="mb-6 flex items-end justify-between gap-3 border-b border-border/40 pb-3">
-        <h2 className="text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl dark:text-neutral-100">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold tracking-tight text-[#43574a] sm:text-base dark:text-neutral-200">
           {title}
         </h2>
-        <span className="shrink-0 text-xs sm:text-sm text-muted-foreground font-medium">
-          {listings.length} {listings.length === 1 ? "profile" : "profiles"}
+        <span className="shrink-0 rounded-full bg-[#eef1eb] px-3 py-1.5 text-xs font-semibold text-[#53675a] dark:bg-neutral-800 dark:text-neutral-300">
+          {listings.length} {listings.length === 1 ? "match" : "matches"}
         </span>
       </div>
 
       {/* Grid */}
       {loading ? (
-        <div className="rounded-3xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
+        <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
           Loading verified profiles...
         </div>
       ) : error ? (
@@ -39,21 +39,21 @@ export function ListingGrid({
           Could not load verified profiles: {error}
         </div>
       ) : listings.length > 0 ? (
-        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-9 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-6">
           {listings.map((listing) => (
             <ListingCard key={listing.id} listing={listing} />
           ))}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-border p-12 text-center">
-          <h3 className="text-lg font-semibold text-foreground">No verified profiles found</h3>
+        <div className="rounded-3xl border border-dashed border-border bg-card p-10 text-center sm:p-12">
+          <h3 className="text-lg font-semibold text-foreground">No profiles in this search yet</h3>
           <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            We couldn&apos;t find any verified providers matching your exact search or category filter. Try clearing filters or selecting another location.
+            We couldn&apos;t find verified profiles matching these filters. Try another neighbourhood or broaden your search.
           </p>
           {onResetFilters && (
             <button
               onClick={onResetFilters}
-              className="mt-6 rounded-full bg-airbnb-coral px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#E00B41] transition-colors"
+              className="mt-6 rounded-full bg-[#d3444d] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#ad3039]"
             >
               Reset Filters
             </button>

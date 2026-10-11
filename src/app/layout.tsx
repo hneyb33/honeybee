@@ -1,25 +1,14 @@
 import type { Metadata } from "next";
-import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { AgeGateModal } from "@/components/layout/AgeGateModal";
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display",
-});
-
 export const metadata: Metadata = {
-  title: "Honeybee — Verified Private Specialists & Companions in Uganda",
+  title: "Honeybee — Trusted local people, thoughtfully connected",
   description:
-    "Discover verified private chefs, wellness therapists, home services, and elite companions in Kampala and Entebbe.",
+    "Discover verified companions and independent specialists across Uganda. Clear profiles, upfront rates, and real local connections.",
   icons: {
     icon: "/favicon.ico",
   },
@@ -32,8 +21,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${fraunces.variable} font-sans min-h-screen flex flex-col bg-background text-foreground antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <body className="font-sans min-h-screen flex flex-col bg-background text-foreground antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

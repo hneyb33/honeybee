@@ -45,6 +45,7 @@ interface PaymentReview {
   submitted_at: string | null;
   proof_url: string | null;
   profiles: { name: string; email: string | null }[] | { name: string; email: string | null } | null;
+  listings: { title: string }[] | { title: string } | null;
 }
 
 interface RecentMedia {
@@ -153,7 +154,7 @@ export default function AdminModerationDashboard() {
         .limit(30),
       supabase
         .from("payments")
-        .select("id,user_id,plan,period,provider,amount,payer_phone,transaction_id,submitted_at,proof_url,profiles(name,email)")
+        .select("id,user_id,plan,period,provider,amount,payer_phone,transaction_id,submitted_at,proof_url,profiles(name,email),listings(title)")
         .eq("status", "submitted")
         .order("submitted_at", { ascending: true })
         .limit(30),
@@ -391,6 +392,11 @@ export default function AdminModerationDashboard() {
                         <p className="mt-1 text-xs text-muted-foreground">
                           {payment.plan} · {payment.period} · {payment.provider.replaceAll("_", " ")}
                         </p>
+                        {(Array.isArray(payment.listings) ? payment.listings[0] : payment.listings)?.title && (
+                          <p className="mt-1 text-xs font-semibold text-[#c63843]">
+                            Ad feature: {(Array.isArray(payment.listings) ? payment.listings[0] : payment.listings)?.title}
+                          </p>
+                        )}
                         <p className="mt-1 text-xs text-muted-foreground">
                           Phone: {payment.payer_phone ?? "—"} · Transaction: {payment.transaction_id ?? "—"}
                         </p>
@@ -417,7 +423,10 @@ export default function AdminModerationDashboard() {
                           onClick={() => void reviewPayment(payment, "verify")}
                           className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
                         >
-                          <Check className="mr-1 h-4 w-4" /> Verify &amp; activate
+                          <Check className="mr-1 h-4 w-4" />
+                          {(Array.isArray(payment.listings) ? payment.listings[0] : payment.listings)?.title
+                            ? "Verify & feature ad"
+                            : "Verify & activate"}
                         </Button>
                         <Button
                           variant="outline"

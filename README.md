@@ -33,6 +33,10 @@ Uganda's verified platform for private specialists, culinary masters, and compan
   - Database-backed profile verification and Mobile Money payment queues.
   - Transaction-safe payment review that activates the related subscription.
   - Dashboard counts for profiles, bookings, payments, and recently submitted media.
+- **Advertiser tools (`/advertise`)**:
+  - Fast single-ad, independent, and agency registration paths.
+  - Profiles remain private until moderator verification; verified Mobile Money payments activate featured placement.
+  - Providers can mark themselves available in the operations hub; online indicators expire after five minutes without a heartbeat.
 
 ---
 
@@ -71,7 +75,7 @@ npm run build
 
 1. Open your Supabase Dashboard: [https://supabase.com](https://supabase.com)
 2. Go to **SQL Editor**.
-3. Run the migrations in order: `20261009000000_init_schema.sql`, `20261010000000_admin_dashboard.sql`, then `20261011000000_provider_onboarding.sql`.
+3. Run the migrations in order: `20261009000000_init_schema.sql`, `20261010000000_admin_dashboard.sql`, `20261011000000_provider_onboarding.sql`, then `20261012000000_advertisers_presence_and_features.sql`.
 4. (Optional) Run `supabase/seed.sql` to add sample listings and places.
 
 ### Create the first admin login

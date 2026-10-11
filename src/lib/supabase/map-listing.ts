@@ -18,6 +18,10 @@ export function mapListingRow(
     row.profile_details && typeof row.profile_details === "object"
       ? (row.profile_details as Listing["profile_details"])
       : {};
+  const featuredUntil = text(row.featured_until) || null;
+  const featuredActive =
+    Boolean(row.is_featured) &&
+    (!featuredUntil || Date.parse(featuredUntil) > Date.now());
 
   return {
     id: text(row.id),
@@ -56,7 +60,18 @@ export function mapListingRow(
     telegram_code: text(row.telegram_code) || undefined,
     cover_image: text(row.cover_image) || images[0] || "",
     images,
-    is_featured: Boolean(row.is_featured),
+    is_featured: featuredActive,
+    featured_tier: featuredActive && (row.featured_tier === "vip" || row.featured_tier === "premium")
+      ? row.featured_tier
+      : null,
+    featured_until: featuredUntil,
+    last_seen_at: text(row.last_seen_at) || null,
+    advertiser_type:
+      row.advertiser_type === "fast" ||
+      row.advertiser_type === "independent" ||
+      row.advertiser_type === "agency"
+        ? row.advertiser_type
+        : undefined,
     experience_band: text(row.experience_band) || undefined,
     has_certificate: Boolean(row.has_certificate),
     certificate_url: text(row.certificate_url) || undefined,

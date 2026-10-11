@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Grid } from "lucide-react";
+import { Grid } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface PhotoMosaicProps {
@@ -12,10 +12,26 @@ interface PhotoMosaicProps {
 
 export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
   const [activeMobileIndex, setActiveMobileIndex] = useState(0);
+  const mobileTrackRef = useRef<HTMLDivElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const displayImages = images.length > 0 ? images : ["/images/footer_bg.jpeg"];
+
+  useEffect(() => {
+    const track = mobileTrackRef.current;
+    if (!track || displayImages.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      const nextIndex = (activeMobileIndex + 1) % displayImages.length;
+      track.scrollTo({ left: nextIndex * track.clientWidth, behavior: "smooth" });
+      setActiveMobileIndex(nextIndex);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [activeMobileIndex, displayImages.length]);
 
   const handleOpenPhoto = (img: string) => {
     setSelectedPhoto(img);
@@ -25,44 +41,52 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
   return (
     <div className="relative w-full">
       {/* Mobile Slider */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl md:hidden">
-        <Image
-          src={displayImages[activeMobileIndex]}
-          alt={`${title} photo ${activeMobileIndex + 1}`}
-          fill
-          className="object-cover"
-          priority
-        />
+      <div
+        ref={mobileTrackRef}
+        onScroll={(event) => {
+          const track = event.currentTarget;
+          if (track.clientWidth > 0) setActiveMobileIndex(Math.round(track.scrollLeft / track.clientWidth));
+        }}
+        className="relative flex aspect-[4/4.5] w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-2xl no-scrollbar md:hidden"
+        aria-label={`${title} photos`}
+      >
+        {displayImages.map((image, index) => (
+          <div key={`${image}-${index}`} className="relative h-full w-full shrink-0 snap-center">
+            <Image
+              src={image}
+              alt={`${title} photo ${index + 1}`}
+              fill
+              sizes="100vw"
+              className="object-cover"
+              priority={index === 0}
+            />
+          </div>
+        ))}
         {displayImages.length > 1 && (
-          <>
-            <button
-              onClick={() =>
-                setActiveMobileIndex(
-                  (prev) => (prev - 1 + displayImages.length) % displayImages.length
-                )
-              }
-              className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-neutral-800 shadow-md"
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() =>
-                setActiveMobileIndex((prev) => (prev + 1) % displayImages.length)
-              }
-              className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-neutral-800 shadow-md"
-              aria-label="Next image"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <div className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white">
-              {activeMobileIndex + 1} / {displayImages.length}
-            </div>
-          </>
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1.5 backdrop-blur">
+            {displayImages.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => {
+                  mobileTrackRef.current?.scrollTo({
+                    left: index * (mobileTrackRef.current?.clientWidth ?? 0),
+                    behavior: "smooth",
+                  });
+                  setActiveMobileIndex(index);
+                }}
+                aria-label={`Show photo ${index + 1}`}
+                aria-current={activeMobileIndex === index}
+                className={`h-1.5 rounded-full transition-all ${
+                  activeMobileIndex === index ? "w-4 bg-white" : "w-1.5 bg-white/60"
+                }`}
+              />
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Desktop Airbnb 5-Photo Mosaic */}
+      {/* Desktop five-photo gallery */}
       <div className="hidden h-[420px] grid-cols-4 grid-rows-2 gap-2 overflow-hidden rounded-3xl md:grid">
         {/* Hero Photo (Left 2 columns, spans 2 rows) */}
         <div

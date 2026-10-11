@@ -1,4 +1,5 @@
 export type AccountKind = 'client' | 'specialist' | 'model' | 'agency' | 'admin';
+export type AdvertiserType = 'fast' | 'independent' | 'agency';
 export type UserRole = 'client_free' | 'client_premium' | 'provider_free' | 'provider_premium' | 'moderator' | 'super_admin';
 export type ListingKind = 'escort' | 'service';
 export type EscortTier = 'standard' | 'premium' | 'vip';
@@ -12,6 +13,7 @@ export interface Profile {
   name: string;
   phone?: string;
   phone_country?: string;
+  advertiser_type?: AdvertiserType;
   account_kind: AccountKind;
   role: UserRole;
   avatar_url?: string;
@@ -81,6 +83,10 @@ export interface Listing {
   images: string[];
   tag?: string;
   is_featured: boolean;
+  featured_tier?: "premium" | "vip" | null;
+  featured_until?: string | null;
+  last_seen_at?: string | null;
+  advertiser_type?: AdvertiserType;
   experience_band?: string;
   has_certificate?: boolean;
   certificate_url?: string;

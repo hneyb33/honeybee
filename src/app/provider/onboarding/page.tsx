@@ -104,7 +104,7 @@ const emptyForm: OnboardingForm = {
 
 const cities = Array.from(new Set(UGANDA_LOCATIONS.map((place) => place.city)));
 const nationalities = ["Ugandan", "Kenyan", "Rwandan", "Tanzanian", "South Sudanese", "Other"];
-const orientations = ["Straight", "Bisexual", "Gay", "Lesbian", "Prefer not to say"];
+const orientations = ["Straight", "Bi-sexual", "Lesbian", "Gay", "Prefer not to say"];
 
 function safeSlug(value: string) {
   const slug = value
@@ -119,7 +119,8 @@ function safeSlug(value: string) {
 export default function ProviderOnboardingPage() {
   const router = useRouter();
   const [form, setForm] = useState<OnboardingForm>(emptyForm);
-  const [accountKind, setAccountKind] = useState<"model" | "specialist" | null>(null);
+  const [accountKind, setAccountKind] = useState<"model" | "specialist" | "agency" | null>(null);
+  const [advertiserType, setAdvertiserType] = useState<"fast" | "independent" | "agency" | null>(null);
   const [listingId, setListingId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
@@ -130,7 +131,7 @@ export default function ProviderOnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
-  const isModel = accountKind === "model";
+  const isModel = accountKind === "model" || accountKind === "agency";
 
   const availableAreas = useMemo(
     () => Array.from(new Set(UGANDA_LOCATIONS.filter((place) => place.city === form.city).map((place) => place.area))),
@@ -160,7 +161,7 @@ export default function ProviderOnboardingPage() {
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("account_kind,name,phone")
+        .select("account_kind,name,phone,advertiser_type")
         .eq("id", authData.user.id)
         .maybeSingle();
 
@@ -172,12 +173,21 @@ export default function ProviderOnboardingPage() {
         return;
       }
 
-      if (!profile || (profile.account_kind !== "model" && profile.account_kind !== "specialist")) {
+      if (!profile || !["model", "specialist", "agency"].includes(profile.account_kind)) {
         router.replace("/register");
         return;
       }
 
-      const nextKind = profile.account_kind as "model" | "specialist";
+      const nextKind = profile.account_kind as "model" | "specialist" | "agency";
+      const requestedType = new URLSearchParams(window.location.search).get("type");
+      const nextAdvertiserType =
+        requestedType === "fast" || requestedType === "independent" || requestedType === "agency"
+          ? requestedType
+          : profile.advertiser_type === "fast" ||
+              profile.advertiser_type === "independent" ||
+              profile.advertiser_type === "agency"
+            ? profile.advertiser_type
+            : nextKind === "agency" ? "agency" : null;
       const nextForm = {
         ...emptyForm,
         title: "",
@@ -189,7 +199,7 @@ export default function ProviderOnboardingPage() {
         .from("listings")
         .select("*")
         .eq("user_id", authData.user.id)
-        .eq("kind", nextKind === "model" ? "escort" : "service")
+        .eq("kind", nextKind === "specialist" ? "service" : "escort")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -266,6 +276,7 @@ export default function ProviderOnboardingPage() {
 
       if (!cancelled) {
         setAccountKind(nextKind);
+        setAdvertiserType(nextAdvertiserType);
         setForm(nextForm);
         setLoading(false);
       }
@@ -377,6 +388,7 @@ export default function ProviderOnboardingPage() {
       cover_image: existingImages[0] ?? null,
       images: existingImages,
       travel_km: form.travelKm,
+      advertiser_type: isModel ? advertiserType ?? "independent" : null,
       has_certificate: form.certified,
       experience_band: form.yearsExperience
         ? `${form.yearsExperience} ${Number(form.yearsExperience) === 1 ? "year" : "years"} experience`
@@ -385,6 +397,7 @@ export default function ProviderOnboardingPage() {
         yearsExperience: form.yearsExperience,
         certified: form.certified,
         orientation: form.orientation,
+        advertiserType: isModel ? advertiserType ?? "independent" : null,
         ageConfirmed: form.ageConfirmed,
         onboardingStep: submit ? 4 : Math.min(currentStep + 1, 4),
       },
@@ -523,15 +536,38 @@ export default function ProviderOnboardingPage() {
           <Badge variant="secondary" className="mt-5">Submitted for review</Badge>
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight">Your Honeybee profile is in review</h1>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-            Thanks, {form.title}. Your profile is saved but won&apos;t appear in discovery until a moderator verifies it. You can return to onboarding to update it while it is awaiting review.
+            Thanks, {form.title}. Your ad is saved but won&apos;t appear in discovery until a moderator verifies it. You can return to onboarding to update it while it is awaiting review. Once it is approved, you can pay to feature it.
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Link href="/provider/onboarding">
               <Button variant="outline" className="w-full rounded-xl">Edit profile</Button>
             </Link>
+            {accountKind === "agency" && (
+              <Button
+                onClick={() => {
+                  setListingId(null);
+                  setSlug("");
+                  setForm({ ...emptyForm, serviceType: "" });
+                  setFiles([]);
+                  setExistingImages([]);
+                  setCurrentStep(0);
+                  setSubmitted(false);
+                }}
+                className="w-full rounded-xl bg-[#d3444d] font-bold text-white hover:bg-[#ad3039]"
+              >
+                Post another ad
+              </Button>
+            )}
             <Link href="/">
               <Button className="w-full rounded-xl bg-airbnb-coral font-bold text-white">Explore Honeybee</Button>
             </Link>
+            {listingId && (
+              <Link href={`/subscribe?listing_id=${encodeURIComponent(listingId)}`}>
+                <Button className="w-full rounded-xl bg-[#d3444d] font-bold text-white hover:bg-[#ad3039]">
+                  Choose ad feature
+                </Button>
+              </Link>
+            )}
           </div>
         </Card>
       </div>
@@ -830,7 +866,7 @@ export default function ProviderOnboardingPage() {
               type="button"
               disabled={saving}
               onClick={() => void nextStep()}
-              className="rounded-xl bg-airbnb-coral font-bold text-white hover:bg-[#E00B41]"
+              className="rounded-xl bg-airbnb-coral font-bold text-white hover:bg-[#AD3039]"
             >
               {saving ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : currentStep === 4 ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Submit for review</> : <>Save &amp; continue <ChevronRight className="ml-1 h-4 w-4" /></>}
             </Button>

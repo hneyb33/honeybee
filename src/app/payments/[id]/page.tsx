@@ -1,38 +1,85 @@
 "use client";
 
 import React, { useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatUGX } from "@/lib/utils";
 import {
   Smartphone,
   CheckCircle,
-  Clock,
-  Upload,
-  Shield,
-  ArrowRight,
-  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase/client";
+
+const PLAN_PRICES: Record<string, { daily: number; monthly: number }> = {
+  client_basic: { daily: 2000, monthly: 18500 },
+  client_premium: { daily: 10000, monthly: 50000 },
+  specialist: { daily: 20000, monthly: 100000 },
+  escort_vip: { daily: 25000, monthly: 120000 },
+};
 
 function PaymentContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
-  const plan = searchParams.get("plan") || "client_premium";
-  const period = searchParams.get("period") || "monthly";
-  const amount = Number(searchParams.get("amount") || 50000);
+  const plan = searchParams.get("plan") || "";
+  const requestedPeriod = searchParams.get("period");
+  const period = requestedPeriod === "daily" ? "daily" : "monthly";
+  const listingId = searchParams.get("listing_id");
+  const amount = PLAN_PRICES[plan]?.[period] ?? 0;
+  const planError = amount === 0 || (requestedPeriod !== "daily" && requestedPeriod !== "monthly")
+    ? "This payment plan is invalid or incomplete."
+    : listingId && plan !== "escort_vip"
+      ? "Choose the VIP placement plan to feature this ad."
+      : "";
 
   const [provider, setProvider] = useState<"mtn" | "airtel">("mtn");
   const [payerPhone, setPayerPhone] = useState("");
   const [transactionId, setTransactionId] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    if (!supabase) {
+      setError("Payments are unavailable until Supabase is configured.");
+      return;
+    }
+    if (planError) {
+      setError(planError);
+      return;
+    }
+
+    setSubmitting(true);
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      setSubmitting(false);
+      setError(authError?.message ?? "Sign in before submitting a payment.");
+      return;
+    }
+
+    const { error: insertError } = await supabase.from("payments").insert({
+      user_id: authData.user.id,
+      listing_id: listingId,
+      plan,
+      period,
+      provider: provider === "mtn" ? "mtn_momo" : "airtel_money",
+      amount,
+      payer_phone: payerPhone.trim(),
+      transaction_id: transactionId.trim(),
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+    });
+
+    setSubmitting(false);
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
     setSubmitted(true);
   };
 
@@ -44,7 +91,7 @@ function PaymentContent() {
             Direct Merchant Payment
           </Badge>
           <CardTitle className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Complete Subscription
+            {listingId ? "Submit ad feature payment" : "Complete Subscription"}
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
             Follow the prompt to pay via MTN MoMo or Airtel Money, then enter your transaction ID.
@@ -59,9 +106,10 @@ function PaymentContent() {
                 Plan Selected
               </p>
               <h4 className="text-base font-bold text-foreground capitalize">
-                {plan.replace("_", " ")} ({period})
+                {listingId ? "Featured ad placement" : plan.replace("_", " ")} ({period})
               </h4>
             </div>
+            {planError && !submitted && <p role="alert" className="text-sm text-destructive">{planError}</p>}
             <div className="text-right">
               <span className="text-xl font-extrabold text-airbnb-coral">
                 {formatUGX(amount)}
@@ -81,11 +129,11 @@ function PaymentContent() {
               <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
                 Thank you! Your transaction ID{" "}
                 <strong className="text-foreground">{transactionId}</strong> has been logged.
-                Our automated verification or administrator will approve your subscription within 5–15 minutes.
+                It has been sent to Honeybee for manual verification. Your {listingId ? "ad feature" : "subscription"} is not active until an administrator approves the payment.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                 <Link href="/dashboard">
-                  <Button className="rounded-full bg-airbnb-coral text-white hover:bg-[#E00B41]">
+                  <Button className="rounded-full bg-airbnb-coral text-white hover:bg-[#AD3039]">
                     Go to Dashboard
                   </Button>
                 </Link>
@@ -180,24 +228,17 @@ function PaymentContent() {
                 />
               </div>
 
-              {/* Receipt File Upload (Optional) */}
-              <div>
-                <label className="text-xs font-semibold text-foreground">
-                  Upload Screenshot / Receipt (Optional)
-                </label>
-                <div className="mt-1.5 flex justify-center rounded-2xl border border-dashed border-border px-6 py-4 hover:border-foreground/50 transition-colors cursor-pointer">
-                  <div className="text-center text-xs text-muted-foreground">
-                    <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-1" />
-                    <span>Click or drag image screenshot</span>
-                  </div>
-                </div>
-              </div>
-
+              {error && (
+                <p role="alert" className="text-sm text-destructive">
+                  {error} {error.includes("Sign in") && <Link href={`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`} className="font-semibold underline">Sign in</Link>}
+                </p>
+              )}
               <Button
                 type="submit"
-                className="w-full h-12 rounded-2xl bg-airbnb-coral text-white font-bold hover:bg-[#E00B41] shadow-md"
+                disabled={submitting || !amount || Boolean(planError)}
+                className="w-full h-12 rounded-2xl bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md"
               >
-                Submit Payment for Approval
+                {submitting ? "Submitting payment..." : "Submit Payment for Verification"}
               </Button>
             </form>
           )}
@@ -214,4 +255,3 @@ export default function PaymentPage() {
     </Suspense>
   );
 }
-

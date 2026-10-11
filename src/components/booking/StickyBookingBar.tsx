@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Listing } from "@/lib/supabase/types";
 import { formatUGX } from "@/lib/utils";
-import { MessageCircle, Send, Calendar } from "lucide-react";
+import { MessageCircle, Send, Calendar, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingModal } from "./BookingModal";
 
@@ -26,6 +26,12 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
   const telegramUrl = listing.telegram
     ? `https://t.me/${listing.telegram.replace("@", "")}`
     : null;
+  const contactDigits = listing.whatsapp_number?.replace(/\D/g, "");
+  const countryDigits = listing.whatsapp_code?.replace(/\D/g, "") ?? "";
+  const phoneDigits = contactDigits?.startsWith("0") && countryDigits
+    ? `${countryDigits}${contactDigits.slice(1)}`
+    : contactDigits;
+  const callUrl = phoneDigits ? `tel:+${phoneDigits}` : null;
 
   return (
     <>
@@ -47,6 +53,16 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
 
           {/* Right Action CTAs */}
           <div className="flex items-center gap-2 shrink-0">
+            {callUrl && (
+              <a
+                href={callUrl}
+                aria-label={`Call ${listing.title}`}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:border-[#d3444d] hover:text-[#d3444d] sm:h-auto sm:w-auto sm:gap-1.5 sm:px-4 sm:py-2.5"
+              >
+                <Phone className="h-4 w-4" />
+                <span className="hidden text-xs font-semibold sm:inline">Call</span>
+              </a>
+            )}
             {/* Direct Chat (WhatsApp / Telegram) */}
             {(whatsappUrl || telegramUrl) && (
               <div className="relative">
@@ -114,7 +130,7 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
             {/* Book Now Button */}
             <Button
               onClick={() => setModalOpen(true)}
-              className="bg-airbnb-coral text-white font-bold hover:bg-[#E00B41] shadow-md px-5 sm:px-7 rounded-full text-xs sm:text-sm gap-1.5"
+              className="bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md px-5 sm:px-7 rounded-full text-xs sm:text-sm gap-1.5"
             >
               <Calendar className="h-4 w-4" />
               <span>Book Appointment</span>

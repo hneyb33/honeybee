@@ -44,7 +44,7 @@ export default function AgeCheckPage() {
           <div className="pt-2 flex flex-col gap-2.5">
             <Button
               onClick={handleConfirm}
-              className="w-full h-12 rounded-xl bg-airbnb-coral text-white font-bold hover:bg-[#E00B41] shadow-md"
+              className="w-full h-12 rounded-xl bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md"
             >
               Yes, I am 18+ and Accept the Rules
             </Button>

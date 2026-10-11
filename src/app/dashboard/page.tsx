@@ -65,7 +65,7 @@ export default function ClientDashboardPage() {
         </div>
 
         <Link href="/subscribe">
-          <Button className="rounded-full bg-airbnb-coral text-white hover:bg-[#E00B41] text-xs font-bold gap-1.5 shadow-sm">
+          <Button className="rounded-full bg-airbnb-coral text-white hover:bg-[#AD3039] text-xs font-bold gap-1.5 shadow-sm">
             <Crown className="h-4 w-4" /> Manage VIP Subscription
           </Button>
         </Link>

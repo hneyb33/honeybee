@@ -44,11 +44,17 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
         airbnb: {
-          coral: "#FF385C",
-          dark: "#222222",
-          gray: "#717171",
-          lightGray: "#F7F7F7",
-          border: "#DDDDDD",
+          coral: "#D3444D",
+          dark: "#FFFFFF",
+          gray: "#A3A3A3",
+          lightGray: "#0B0B0B",
+          border: "#303030",
+        },
+        honeybee: {
+          forest: "#285D47",
+          ink: "#1B3028",
+          honey: "#E5B34C",
+          cream: "#F8F6EF",
         },
       },
       borderRadius: {

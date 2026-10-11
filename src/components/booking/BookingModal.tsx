@@ -106,7 +106,7 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
 
             <Button
               onClick={resetAndClose}
-              className="w-full bg-airbnb-coral text-white hover:bg-[#E00B41] rounded-xl"
+              className="w-full bg-airbnb-coral text-white hover:bg-[#AD3039] rounded-xl"
             >
               Done
             </Button>
@@ -238,7 +238,7 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
 
             <Button
               type="submit"
-              className="w-full h-12 bg-airbnb-coral text-white font-bold hover:bg-[#E00B41] rounded-xl shadow-md"
+              className="w-full h-12 bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] rounded-xl shadow-md"
             >
               Confirm Booking Request
             </Button>

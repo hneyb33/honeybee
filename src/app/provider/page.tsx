@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatUGX } from "@/lib/utils";
 import {
@@ -21,9 +21,58 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase/client";
 
 export default function ProviderOperationsDashboard() {
   const [status, setStatus] = useState<"available" | "busy" | "offline">("available");
+  const [presenceError, setPresenceError] = useState("");
+
+  useEffect(() => {
+    if (!supabase) return;
+    const client = supabase;
+    let active = true;
+    let signedIn = false;
+
+    const updatePresence = async (online: boolean) => {
+      const { error } = await client.rpc("set_listing_presence", { p_online: online });
+      if (error && active) {
+        setPresenceError(error.message);
+        console.error("Could not update provider online status:", error.message);
+      } else if (active) {
+        setPresenceError("");
+      }
+    };
+
+    const heartbeat = () => {
+      if (signedIn) {
+        void updatePresence(status !== "offline" && document.visibilityState === "visible");
+      }
+    };
+    const clearPresence = () => {
+      if (signedIn) void updatePresence(false);
+    };
+
+    void client.auth.getUser().then(({ data, error }) => {
+      if (error) {
+        setPresenceError(error.message);
+        console.error("Could not verify provider session:", error.message);
+        return;
+      }
+      if (!data.user) return;
+      signedIn = true;
+      heartbeat();
+    });
+    const interval = window.setInterval(heartbeat, 60_000);
+    document.addEventListener("visibilitychange", heartbeat);
+    window.addEventListener("pagehide", clearPresence);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", heartbeat);
+      window.removeEventListener("pagehide", clearPresence);
+    };
+  }, [status]);
 
   // Sample real-time incoming job queue
   const [incomingJobs, setIncomingJobs] = useState([
@@ -106,6 +155,11 @@ export default function ProviderOperationsDashboard() {
           </button>
         </div>
       </div>
+      {presenceError && (
+        <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
+          Could not sync your online status: {presenceError}. Apply the latest Supabase migration to enable presence.
+        </p>
+      )}
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

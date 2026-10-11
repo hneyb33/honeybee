@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Crown, Check, Shield, Zap, Sparkles } from "lucide-react";
 import { formatUGX } from "@/lib/utils";
@@ -10,6 +10,11 @@ import { Badge } from "@/components/ui/badge";
 
 export default function SubscribePage() {
   const [period, setPeriod] = useState<"daily" | "monthly">("monthly");
+  const [listingId, setListingId] = useState("");
+
+  useEffect(() => {
+    setListingId(new URLSearchParams(window.location.search).get("listing_id") ?? "");
+  }, []);
 
   const plans = [
     {
@@ -86,10 +91,12 @@ export default function SubscribePage() {
           <Crown className="h-3.5 w-3.5 mr-1" /> Membership &amp; Listing Plans
         </Badge>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-          Elevate your Honeybee experience
+          {listingId ? "Feature your profile" : "Elevate your Honeybee experience"}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
-          Transparent, secure pricing for clients seeking VIP access and verified specialists growing their business in Uganda.
+          {listingId
+            ? "Choose VIP placement for this ad. Your payment and profile will be reviewed before enhanced placement is activated."
+            : "Transparent, secure pricing for clients seeking VIP access and verified specialists growing their business in Uganda."}
         </p>
 
         {/* Period Switcher */}
@@ -121,8 +128,8 @@ export default function SubscribePage() {
       </div>
 
       {/* Pricing Cards Grid */}
-      <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {plans.map((plan) => {
+      <div className={`mt-12 grid grid-cols-1 gap-6 ${listingId ? "mx-auto max-w-md" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
+        {plans.filter((plan) => !listingId || plan.id === "escort_vip").map((plan) => {
           const price = period === "daily" ? plan.dailyPrice : plan.monthlyPrice;
           return (
             <Card
@@ -175,13 +182,13 @@ export default function SubscribePage() {
 
                 {/* Checkout CTA */}
                 <Link
-                  href={`/payments/new?plan=${plan.id}&period=${period}&amount=${price}`}
+                  href={`/payments/new?plan=${plan.id}&period=${period}&amount=${price}${listingId ? `&listing_id=${encodeURIComponent(listingId)}` : ""}`}
                   className="w-full mt-4"
                 >
                   <Button
                     className={`w-full rounded-2xl h-11 text-xs font-bold ${
                       plan.popular
-                        ? "bg-airbnb-coral text-white hover:bg-[#E00B41]"
+                        ? "bg-airbnb-coral text-white hover:bg-[#AD3039]"
                         : "bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
                     }`}
                   >

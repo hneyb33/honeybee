@@ -182,7 +182,7 @@ export function ReviewSection({
 
               <Button
                 type="submit"
-                className="w-full bg-airbnb-coral text-white hover:bg-[#E00B41]"
+                className="w-full bg-airbnb-coral text-white hover:bg-[#AD3039]"
               >
                 Submit Review
               </Button>

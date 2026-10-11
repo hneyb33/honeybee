@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
@@ -15,6 +15,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [nextPath, setNextPath] = useState("");
+
+  useEffect(() => {
+    const requestedPath = new URLSearchParams(window.location.search).get("next") ?? "";
+    if (requestedPath.startsWith("/") && !requestedPath.startsWith("//")) {
+      setNextPath(requestedPath);
+    }
+  }, []);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,7 +62,7 @@ export default function LoginPage() {
     if (profile.role === "super_admin" || profile.role === "moderator") {
       router.replace("/admin");
     } else {
-      router.replace("/dashboard");
+      router.replace(nextPath || "/dashboard");
     }
     router.refresh();
   };
@@ -115,7 +123,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading || !isSupabaseConfigured}
-              className="mt-2 h-11 w-full rounded-xl bg-airbnb-coral font-bold text-white shadow-md hover:bg-[#E00B41]"
+              className="mt-2 h-11 w-full rounded-xl bg-airbnb-coral font-bold text-white shadow-md hover:bg-[#AD3039]"
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>

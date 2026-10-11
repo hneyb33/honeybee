@@ -19,6 +19,7 @@
 /public/fonts-manifest.dev.json
 # Next.js
 /.next/
+/dist/
 /.vercel
 .env.local
 .env.development.local
