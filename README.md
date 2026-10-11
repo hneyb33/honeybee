@@ -1,59 +1,108 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Honeybee 🐝
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Uganda's verified platform for private specialists, culinary masters, and companions — built with **Next.js 15 (App Router)**, **React 19**, **shadcn/ui**, **Tailwind CSS**, and **Supabase (PostgreSQL & Auth)**, optimized for deployment on **Vercel**.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🌟 Key Features & Improvements
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Airbnb-Inspired UX & Aesthetic**:
+  - Interactive search capsule (`Where`, `Category`, `Service`, `Near you` geolocation distance calculation).
+  - Horizontal tier bar (All, VIP, Premium, Specialists, Women, Men).
+  - Listing cards with multi-photo slider, rating, favorite heart toggle, and upfront UGX hourly rates.
+  - Signature Airbnb 5-photo mosaic layout on profile detail pages with full-screen lightbox.
+- **Conversion & Experience Optimization (CRO/CXO)**:
+  - Sticky bottom booking and direct chat bar (instant WhatsApp pre-filled message & Telegram link).
+  - Interactive booking modal with live pricing breakdown (`UGX rate × duration hours`).
+  - Client review submission dialog.
+- **Rectified Business Logic**:
+  - Unified currency to Ugandan Shillings (`UGX`).
+  - Separation between Home Specialists (Chefs, Laundry, Massage) and Companions.
+  - Strict verification gating: unverified profiles never appear in discovery.
+  - Persistent 18+ age verification gate.
+- **Provider Operations Hub (`/provider`)**:
+  - Live availability switcher (🟢 Available / 🟡 Busy / ⚫ Offline).
+  - Real-time job request queue with Accept/Decline actions.
+  - Weekly schedule and earnings breakdown.
+- **Multi-Step Onboarding Wizard (`/provider/onboarding`)**:
+  - Resumable five-step flows for models and home-service providers.
+  - City/neighbourhood selectors, choice controls, availability, UGX rate increments, profile details, and portfolio photo upload.
+  - Provider-owned drafts stay private until admin verification; verified profiles load from Supabase on their public profile page.
+- **Admin Moderation & Audit Queue (`/admin`)**:
+  - Supabase Auth sign-in restricted to administrator and moderator roles.
+  - Database-backed profile verification and Mobile Money payment queues.
+  - Transaction-safe payment review that activates the related subscription.
+  - Dashboard counts for profiles, bookings, payments, and recently submitted media.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 Getting Started Locally
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+### 1. Install Dependencies
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+npm install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+Add your Supabase project URL and anon/publishable key:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-## Contributing
+### 3. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 4. Build for Production
+```bash
+npm run build
+```
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 📦 Supabase Database Setup
 
-## Security Vulnerabilities
+1. Open your Supabase Dashboard: [https://supabase.com](https://supabase.com)
+2. Go to **SQL Editor**.
+3. Run the migrations in order: `20261009000000_init_schema.sql`, `20261010000000_admin_dashboard.sql`, then `20261011000000_provider_onboarding.sql`.
+4. (Optional) Run `supabase/seed.sql` to add sample listings and places.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Create the first admin login
 
-## License
+Admin accounts use Supabase Auth credentials; Honeybee does not ship a shared or hardcoded admin password.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# honeybee
+1. In Supabase, open **Authentication → Users** and create/confirm the admin user with the desired email and password.
+2. Copy that user's UUID from the Auth user list.
+3. In the SQL Editor, promote only that trusted account (replace both placeholders):
+   ```sql
+   UPDATE public.profiles
+   SET role = 'super_admin', account_kind = 'admin'
+   WHERE id = 'AUTH_USER_UUID' AND email = 'admin@example.com';
+   ```
+4. Sign in at `/login` with the email and password set in Supabase Auth. Admins and moderators are redirected to `/admin`.
+
+New client and provider registrations create their profiles automatically with non-admin roles. The admin payment review function and dashboard reads are protected by database role checks and row-level security.
+
+---
+
+## ☁️ Vercel Deployment
+
+This project is 100% ready for zero-config Vercel deployment:
+1. Push this repository to GitHub/GitLab.
+2. Import the repository in [Vercel](https://vercel.com/new).
+3. Under **Environment Variables**, add:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Click **Deploy**!
+
+---
+
+## 🗄️ Legacy Architecture Reference
+The previous PHP/Laravel application and migrations are preserved intact in `_legacy_laravel/` for historical data reference.
