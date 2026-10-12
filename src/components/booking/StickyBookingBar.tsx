@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Listing } from "@/lib/supabase/types";
 import { formatUGX } from "@/lib/utils";
-import { MessageCircle, Send, Calendar, Phone } from "lucide-react";
+import { MessageCircle, Send, ListChecks, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingModal } from "./BookingModal";
 
@@ -127,13 +127,13 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
               </div>
             )}
 
-            {/* Book Now Button */}
+            {/* Service request */}
             <Button
               onClick={() => setModalOpen(true)}
-              className="bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md px-5 sm:px-7 rounded-full text-xs sm:text-sm gap-1.5"
+              className="bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md px-4 sm:px-6 rounded-full text-xs sm:text-sm gap-1.5"
             >
-              <Calendar className="h-4 w-4" />
-              <span>Book Appointment</span>
+              <ListChecks className="h-4 w-4" />
+              <span>Choose a service</span>
             </Button>
           </div>
         </div>

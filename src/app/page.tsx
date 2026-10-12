@@ -14,6 +14,7 @@ import {
 import { DiscoveryFilters, DiscoveryStatus } from "@/components/layout/DiscoveryFilters";
 import { ListingGrid } from "@/components/listings/ListingGrid";
 import { OnlineNowStrip } from "@/components/listings/OnlineNowStrip";
+import { FeaturedAdsCarousel } from "@/components/listings/FeaturedAdsCarousel";
 import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { calculateDistanceKm } from "@/lib/utils";
 import { Listing } from "@/lib/supabase/types";
@@ -61,6 +62,8 @@ export default function HomePage() {
         const { data: media, error: mediaError } = await client
           .from("profile_media")
           .select("listing_id,url,sort_order")
+          .eq("verification_status", "verified")
+          .eq("kind", "photo")
           .in("listing_id", listingIds)
           .order("sort_order", { ascending: true });
 
@@ -94,10 +97,20 @@ export default function HomePage() {
     };
 
     void loadListings();
+    const channel = client
+      .channel("homepage-featured-listings")
+      .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => {
+        void loadListings();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profile_media" }, () => {
+        void loadListings();
+      })
+      .subscribe();
     const refreshInterval = window.setInterval(() => void loadListings(), 60_000);
     return () => {
       cancelled = true;
       window.clearInterval(refreshInterval);
+      void client.removeChannel(channel);
     };
   }, []);
 
@@ -115,6 +128,19 @@ export default function HomePage() {
       listing.last_seen_at !== undefined &&
       Date.now() - Date.parse(listing.last_seen_at) < 5 * 60 * 1000
     ),
+    [listings, onlineUpdatedAt]
+  );
+  const featuredAds = useMemo(
+    () =>
+      isSupabaseConfigured
+        ? listings.filter(
+            (listing) =>
+              listing.is_featured &&
+              listing.featured_until !== null &&
+              listing.featured_until !== undefined &&
+              Date.parse(listing.featured_until) > Date.now()
+          )
+        : [],
     [listings, onlineUpdatedAt]
   );
 
@@ -261,31 +287,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-b border-border/70 bg-neutral-950">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 px-5 py-5 sm:grid-cols-3 sm:px-8">
-          <div className="flex items-center gap-3 sm:justify-center">
-            <ShieldCheck className="h-5 w-5 shrink-0 text-[#e45b63]" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">Trust starts with verification</p>
-              <p className="text-xs text-muted-foreground">Profiles are reviewed before they appear.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 sm:justify-center sm:border-x sm:border-border/70 sm:px-4">
-            <MapPin className="h-5 w-5 shrink-0 text-[#e45b63]" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">Rooted in your neighbourhood</p>
-              <p className="text-xs text-muted-foreground">Explore providers and specialists nearby.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 sm:justify-center">
-            <BadgeCheck className="h-5 w-5 shrink-0 text-[#e45b63]" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">No guesswork on rates</p>
-              <p className="text-xs text-muted-foreground">See profile pricing before you connect.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <OnlineNowStrip listings={onlineListings} />
+
+      <FeaturedAdsCarousel listings={featuredAds} />
 
       <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-8 sm:pt-14">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -348,8 +352,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-5 pt-6 sm:px-8 md:grid-cols-[220px_minmax(0,1fr)] md:items-start md:gap-8">
-        <div className="hidden md:block">
+      <div className="mx-auto grid max-w-7xl gap-6 px-5 pt-6 sm:px-8 md:grid-cols-[minmax(0,1fr)_220px] md:items-start md:gap-8">
+        <aside className="order-2 hidden space-y-5 md:sticky md:top-24 md:block">
           <DiscoveryFilters
             locationListId="uganda-locations-desktop"
             location={searchLocation}
@@ -369,9 +373,25 @@ export default function HomePage() {
             }}
             onReset={resetFilters}
           />
-        </div>
-        <main className="min-w-0">
-          <OnlineNowStrip listings={onlineListings} />
+          <section className="overflow-hidden rounded-3xl border border-[#e5b34c]/25 bg-gradient-to-b from-neutral-900 to-neutral-950 p-4 shadow-lg">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#ffe5a3]">
+              <Sparkles className="h-3.5 w-3.5" /> Reserved ad space
+            </div>
+            {featuredAds[0] ? (
+              <Link href={`/profiles/${featuredAds[0].slug}`} className="mt-4 block rounded-2xl border border-neutral-700 bg-neutral-900 p-3 transition hover:border-[#e5b34c]/60">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#e5b34c]">Admin featured</span>
+                <p className="mt-1 truncate text-sm font-bold text-white">{featuredAds[0].title}</p>
+                <p className="mt-1 truncate text-xs text-neutral-400">{featuredAds[0].neighborhood}, {featuredAds[0].city}</p>
+              </Link>
+            ) : (
+              <p className="mt-3 text-xs leading-5 text-neutral-400">Approved featured ads will appear here.</p>
+            )}
+            <Link href="/advertise" className="mt-4 flex items-center justify-between rounded-xl bg-[#d3444d] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-[#ad3039]">
+              Post an ad <ArrowRight className="h-4 w-4" />
+            </Link>
+          </section>
+        </aside>
+        <main className="order-1 min-w-0">
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e45b63]">Thoughtfully selected</p>

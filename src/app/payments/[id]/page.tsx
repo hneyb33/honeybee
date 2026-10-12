@@ -14,25 +14,25 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase/client";
 
-const PLAN_PRICES: Record<string, { daily: number; monthly: number }> = {
-  client_basic: { daily: 2000, monthly: 18500 },
-  client_premium: { daily: 10000, monthly: 50000 },
-  specialist: { daily: 20000, monthly: 100000 },
-  escort_vip: { daily: 25000, monthly: 120000 },
+const PLAN_PRICES: Record<string, number> = {
+  client_premium: 35_000,
+  escort_vip: 80_000,
+  specialist: 50_000,
+  escort_premium: 50_000,
+  advertiser_premium: 50_000,
 };
 
 function PaymentContent() {
   const searchParams = useSearchParams();
 
   const plan = searchParams.get("plan") || "";
-  const requestedPeriod = searchParams.get("period");
-  const period = requestedPeriod === "daily" ? "daily" : "monthly";
+  const period = searchParams.get("period");
   const listingId = searchParams.get("listing_id");
-  const amount = PLAN_PRICES[plan]?.[period] ?? 0;
-  const planError = amount === 0 || (requestedPeriod !== "daily" && requestedPeriod !== "monthly")
+  const amount = PLAN_PRICES[plan] ?? 0;
+  const planError = amount === 0 || period !== "monthly"
     ? "This payment plan is invalid or incomplete."
-    : listingId && plan !== "escort_vip"
-      ? "Choose the VIP placement plan to feature this ad."
+    : (plan === "advertiser_premium") !== Boolean(listingId)
+      ? "Choose the Advertising plan with a listing, or select a non-ad membership."
       : "";
 
   const [provider, setProvider] = useState<"mtn" | "airtel">("mtn");
@@ -64,7 +64,7 @@ function PaymentContent() {
 
     const { error: insertError } = await supabase.from("payments").insert({
       user_id: authData.user.id,
-      listing_id: listingId,
+      listing_id: listingId || null,
       plan,
       period,
       provider: provider === "mtn" ? "mtn_momo" : "airtel_money",
@@ -106,7 +106,7 @@ function PaymentContent() {
                 Plan Selected
               </p>
               <h4 className="text-base font-bold text-foreground capitalize">
-                {listingId ? "Featured ad placement" : plan.replace("_", " ")} ({period})
+                {listingId ? "Advertising placement" : plan.replaceAll("_", " ")} ({period})
               </h4>
             </div>
             {planError && !submitted && <p role="alert" className="text-sm text-destructive">{planError}</p>}

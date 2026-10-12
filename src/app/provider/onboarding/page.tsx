@@ -18,6 +18,7 @@ import {
   Trash2,
   UserRound,
   Utensils,
+  Video,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,17 @@ const SERVICE_OPTIONS: Record<string, string[]> = {
   private_massage: ["Relaxation massage", "Deep tissue massage", "Sports recovery", "At-home sessions"],
   other: ["At-home service", "Scheduled appointments", "Custom requests"],
 };
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+const MAX_PROFILE_MEDIA = 9;
+
+interface ExistingMedia {
+  url: string;
+  kind: "photo" | "video";
+  verification_status: "pending" | "verified" | "rejected";
+}
 
 interface OnboardingForm {
   title: string;
@@ -126,7 +138,8 @@ export default function ProviderOnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [existingMedia, setExistingMedia] = useState<ExistingMedia[]>([]);
+  const [listingStatus, setListingStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -248,7 +261,7 @@ export default function ProviderOnboardingPage() {
 
         const { data: media, error: mediaError } = await supabase
           .from("profile_media")
-          .select("url,sort_order")
+          .select("url,sort_order,kind,verification_status")
           .eq("listing_id", listing.id)
           .order("sort_order", { ascending: true });
 
@@ -263,13 +276,29 @@ export default function ProviderOnboardingPage() {
         if (!cancelled) {
           setListingId(listing.id);
           setSlug(listing.slug);
-          const mediaImages = (media ?? []).map((item) => item.url);
-          setExistingImages(mediaImages.length > 0 ? mediaImages : Array.isArray(listing.images) ? listing.images : []);
+          setListingStatus(listing.verification_status);
+          const savedMedia: ExistingMedia[] = (media ?? []).map((item) => ({
+            url: item.url,
+            kind: item.kind === "video" ? "video" : "photo",
+            verification_status:
+              item.verification_status === "verified" || item.verification_status === "rejected"
+                ? item.verification_status
+                : "pending",
+          }));
+          const legacyImages = Array.isArray(listing.images)
+            ? listing.images.map((url: string) => ({
+                url,
+                kind: "photo" as const,
+                verification_status: "verified" as const,
+              }))
+            : [];
+          setExistingMedia(savedMedia.length > 0 ? savedMedia : legacyImages);
           const savedStep = Number(details.onboardingStep);
           setCurrentStep(
             listing.verification_status === "draft" && Number.isInteger(savedStep)
               ? Math.min(4, Math.max(0, savedStep))
-              : listing.verification_status === "draft" ? 0 : 4
+              : listing.verification_status === "verified" ? 3
+                : listing.verification_status === "draft" ? 0 : 4
           );
         }
       }
@@ -319,7 +348,7 @@ export default function ProviderOnboardingPage() {
     }
     if (step === 2 && form.availableDays.length === 0) return "Choose at least one day you are available.";
     if (step === 3 && form.description.trim().length < 40) return "Add at least 40 characters describing your profile.";
-    if (step === 3 && existingImages.length + files.length === 0) return "Upload at least one portfolio photo.";
+    if (step === 3 && existingMedia.length + files.length === 0) return "Upload at least one portfolio photo or video.";
     return "";
   };
 
@@ -337,8 +366,17 @@ export default function ProviderOnboardingPage() {
       return false;
     }
 
-    if (submit && existingImages.length + files.length === 0) {
-      setError("Upload at least one portfolio photo before submitting your profile.");
+    if (submit && existingMedia.length + files.length === 0) {
+      setError("Upload at least one portfolio photo or video before submitting your profile.");
+      return false;
+    }
+    if (
+      submit &&
+      listingStatus === "verified" &&
+      files.length === 0 &&
+      !existingMedia.some((item) => item.verification_status === "pending")
+    ) {
+      setError("Add at least one new photo or video to submit for media review.");
       return false;
     }
 
@@ -385,8 +423,10 @@ export default function ProviderOnboardingPage() {
       whatsapp_code: form.whatsappCode,
       telegram: form.telegram.trim() || null,
       telegram_code: "+256",
-      cover_image: existingImages[0] ?? null,
-      images: existingImages,
+      cover_image: existingMedia.find((item) => item.kind === "photo" && item.verification_status === "verified")?.url ?? null,
+      images: existingMedia
+        .filter((item) => item.kind === "photo" && item.verification_status === "verified")
+        .map((item) => item.url),
       travel_km: form.travelKm,
       advertiser_type: isModel ? advertiserType ?? "independent" : null,
       has_certificate: form.certified,
@@ -404,7 +444,7 @@ export default function ProviderOnboardingPage() {
     };
 
     let savedListingId = listingId;
-    if (savedListingId) {
+    if (savedListingId && listingStatus !== "verified") {
       const { error: updateError } = await supabase
         .from("listings")
         .update(payload)
@@ -415,7 +455,7 @@ export default function ProviderOnboardingPage() {
         setError(updateError.message);
         return false;
       }
-    } else {
+    } else if (!savedListingId) {
       const { data: inserted, error: insertError } = await supabase
         .from("listings")
         .insert(payload)
@@ -429,6 +469,7 @@ export default function ProviderOnboardingPage() {
       savedListingId = inserted.id;
       setListingId(inserted.id);
       setSlug(profileSlug);
+      setListingStatus(submit ? "pending" : "draft");
     }
 
     if (files.length > 0 && savedListingId) {
@@ -456,8 +497,9 @@ export default function ProviderOnboardingPage() {
       const mediaRows = uploaded.map((item, index) => ({
         listing_id: savedListingId,
         url: item.url,
-        kind: "photo",
-        sort_order: existingImages.length + index,
+        kind: files[index].type.startsWith("video/") ? "video" : "photo",
+        verification_status: "pending",
+        sort_order: existingMedia.length + index,
       }));
       const { error: mediaError } = await supabase.from("profile_media").insert(mediaRows);
       if (mediaError) {
@@ -470,17 +512,14 @@ export default function ProviderOnboardingPage() {
         return false;
       }
 
-      const allImages = [...existingImages, ...uploaded.map((item) => item.url)];
-      const { error: imageUpdateError } = await supabase
-        .from("listings")
-        .update({ images: allImages, cover_image: allImages[0] })
-        .eq("id", savedListingId);
-      if (imageUpdateError) {
-        setSaving(false);
-        setError(imageUpdateError.message);
-        return false;
-      }
-      setExistingImages(allImages);
+      setExistingMedia((current) => [
+        ...current,
+        ...uploaded.map((item, index) => ({
+          url: item.url,
+          kind: files[index].type.startsWith("video/") ? "video" as const : "photo" as const,
+          verification_status: "pending" as const,
+        })),
+      ]);
       setFiles([]);
     }
 
@@ -504,7 +543,7 @@ export default function ProviderOnboardingPage() {
     isModel ? "Set up your model profile" : "Set up your service profile",
     "Where clients can find you",
     isModel ? "What experiences do you offer?" : "What services do you provide?",
-    "Tell your story and add photos",
+    "Tell your story and add media",
     "Review before submitting",
   ][currentStep];
 
@@ -533,10 +572,16 @@ export default function ProviderOnboardingPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40">
             <CheckCircle2 className="h-9 w-9" />
           </div>
-          <Badge variant="secondary" className="mt-5">Submitted for review</Badge>
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight">Your Honeybee profile is in review</h1>
+          <Badge variant="secondary" className="mt-5">
+            {listingStatus === "verified" ? "Media submitted for review" : "Submitted for review"}
+          </Badge>
+          <h1 className="mt-3 text-2xl font-extrabold tracking-tight">
+            {listingStatus === "verified" ? "Your new media is in review" : "Your Honeybee profile is in review"}
+          </h1>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-            Thanks, {form.title}. Your ad is saved but won&apos;t appear in discovery until a moderator verifies it. You can return to onboarding to update it while it is awaiting review. Once it is approved, you can pay to feature it.
+            {listingStatus === "verified"
+              ? `Thanks, ${form.title}. Your existing profile remains published; the new photos and videos will appear after a moderator verifies them.`
+              : `Thanks, ${form.title}. Your ad is saved but won’t appear in discovery until a moderator verifies it. You can return to onboarding to update it while it is awaiting review. Once it is approved, you can pay to feature it.`}
           </p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Link href="/provider/onboarding">
@@ -547,9 +592,10 @@ export default function ProviderOnboardingPage() {
                 onClick={() => {
                   setListingId(null);
                   setSlug("");
+                  setListingStatus(null);
                   setForm({ ...emptyForm, serviceType: "" });
                   setFiles([]);
-                  setExistingImages([]);
+                  setExistingMedia([]);
                   setCurrentStep(0);
                   setSubmitted(false);
                 }}
@@ -760,6 +806,7 @@ export default function ProviderOnboardingPage() {
                 <textarea
                   value={form.description}
                   onChange={(event) => update("description", event.target.value)}
+                  readOnly={listingStatus === "verified"}
                   rows={5}
                   maxLength={2500}
                   placeholder={isModel ? "Introduce yourself, your interests, and what clients can expect..." : "Tell clients about your experience, approach, and the quality of your work..."}
@@ -773,6 +820,7 @@ export default function ProviderOnboardingPage() {
                     id="certified"
                     type="checkbox"
                     checked={form.certified}
+                    disabled={listingStatus === "verified"}
                     onChange={(event) => update("certified", event.target.checked)}
                     className="mt-0.5 h-4 w-4 rounded border-input accent-emerald-600"
                   />
@@ -782,39 +830,65 @@ export default function ProviderOnboardingPage() {
                   </label>
                 </div>
               )}
-              <Field label="Portfolio photos" hint="Upload up to 9 JPEG, PNG, or WebP images, maximum 10 MB each. Use photos you have permission to publish.">
+              <Field label="Profile photos and videos" hint="Upload up to 9 items: JPEG, PNG, or WebP photos (10 MB max) and MP4, WebM, or MOV videos (50 MB max). New uploads are reviewed before publication.">
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 px-5 py-8 text-center transition hover:border-airbnb-coral">
-                  <ImagePlus className="mb-2 h-7 w-7 text-airbnb-coral" />
-                  <span className="text-sm font-semibold">Choose photos</span>
-                  <span className="mt-1 text-xs text-muted-foreground">Tap to browse or take a photo</span>
+                  <div className="mb-2 flex items-center gap-2 text-airbnb-coral">
+                    <ImagePlus className="h-7 w-7" />
+                    <Video className="h-7 w-7" />
+                  </div>
+                  <span className="text-sm font-semibold">Choose photos or videos</span>
+                  <span className="mt-1 text-xs text-muted-foreground">Tap to browse or record a video</span>
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                     multiple
                     className="sr-only"
                     onChange={(event) => {
                       const selected = Array.from(event.target.files ?? []);
-                      const valid = selected.filter((file) => file.size <= 10 * 1024 * 1024);
-                      if (valid.length !== selected.length) setError("Each photo must be smaller than 10 MB.");
-                      const combined = [...files, ...valid].slice(0, Math.max(0, 9 - existingImages.length));
-                      if (files.length + existingImages.length + valid.length > 9) setError("A profile can have up to 9 portfolio photos.");
+                      setError("");
+                      const valid = selected.filter((file) => {
+                        const allowedImage = IMAGE_MIME_TYPES.has(file.type);
+                        const allowedVideo = VIDEO_MIME_TYPES.has(file.type);
+                        const withinSizeLimit = file.size <= (allowedVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE);
+                        if (!allowedImage && !allowedVideo) setError("Choose JPEG, PNG, WebP, MP4, WebM, or MOV files.");
+                        else if (!withinSizeLimit) {
+                          setError(allowedVideo ? "Each video must be smaller than 50 MB." : "Each photo must be smaller than 10 MB.");
+                        }
+                        return (allowedImage || allowedVideo) && withinSizeLimit;
+                      });
+                      const remaining = Math.max(0, MAX_PROFILE_MEDIA - existingMedia.length - files.length);
+                      const combined = [...files, ...valid].slice(0, remaining);
+                      if (valid.length > remaining) setError("A profile can have up to 9 photos and videos combined.");
                       setFiles(combined);
                       event.currentTarget.value = "";
                     }}
                   />
                 </label>
-                {(existingImages.length > 0 || previews.length > 0) && (
+                {(existingMedia.length > 0 || previews.length > 0) && (
                   <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {existingImages.map((url, index) => (
-                      <div key={url} className="relative aspect-square overflow-hidden rounded-xl">
-                        <Image src={url} alt={`Portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
-                        {index === 0 && <Badge className="absolute left-1 top-1 text-[10px]">Cover</Badge>}
+                    {existingMedia.map((media, index) => (
+                      <div key={media.url} className="relative aspect-square overflow-hidden rounded-xl bg-neutral-900">
+                        {media.kind === "video" ? (
+                          <video src={media.url} controls playsInline preload="metadata" className="h-full w-full object-cover" aria-label={`Portfolio video ${index + 1}`} />
+                        ) : (
+                          <Image src={media.url} alt={`Portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
+                        )}
+                        {media.kind === "photo" && index === existingMedia.findIndex((item) => item.kind === "photo" && item.verification_status === "verified") && (
+                          <Badge className="absolute left-1 top-1 text-[10px]">Cover</Badge>
+                        )}
+                        <Badge variant="secondary" className="absolute bottom-1 left-1 text-[9px]">
+                          {media.verification_status === "verified" ? "Verified" : media.verification_status === "rejected" ? "Rejected" : "Pending review"}
+                        </Badge>
                       </div>
                     ))}
                     {previews.map((url, index) => (
-                      <div key={url} className="relative aspect-square overflow-hidden rounded-xl">
-                        <Image src={url} alt={`New portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
-                        <button type="button" aria-label={`Remove selected photo ${index + 1}`} onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white">
+                      <div key={url} className="relative aspect-square overflow-hidden rounded-xl bg-neutral-900">
+                        {files[index]?.type.startsWith("video/") ? (
+                          <video src={url} controls playsInline preload="metadata" className="h-full w-full object-cover" aria-label={`New portfolio video ${index + 1}`} />
+                        ) : (
+                          <Image src={url} alt={`New portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
+                        )}
+                        <button type="button" aria-label={`Remove selected media ${index + 1}`} onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -831,7 +905,7 @@ export default function ProviderOnboardingPage() {
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                 <div>
                   <p className="text-sm font-bold">Your profile is reviewed before it is published</p>
-                  <p className="mt-1 text-xs">Only verified profiles appear in public search. Your photos will be visible with the profile after approval.</p>
+                  <p className="mt-1 text-xs">Profiles appear in public search after approval. Photos and videos are also reviewed individually before they appear on your profile or in directories.</p>
                 </div>
               </div>
               <ReviewRow icon={<UserRound className="h-4 w-4" />} label="Profile" value={`${form.title}${isModel ? ` · ${form.age} years · ${form.gender}` : ` · ${SERVICE_TYPES.find((item) => item.value === form.serviceType)?.label}`} `} />
@@ -843,9 +917,16 @@ export default function ProviderOnboardingPage() {
                 <p className="text-sm leading-relaxed">{form.description || "Add a description before submitting."}</p>
               </div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {[...existingImages, ...previews].slice(0, 5).map((url, index) => (
-                  <div key={`${url}-${index}`} className="relative aspect-square overflow-hidden rounded-xl">
-                    <Image src={url} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
+                {[
+                  ...existingMedia.map((media) => ({ url: media.url, kind: media.kind })),
+                  ...previews.map((url, index) => ({ url, kind: files[index]?.type.startsWith("video/") ? "video" : "photo" })),
+                ].slice(0, 5).map((media, index) => (
+                  <div key={`${media.url}-${index}`} className="relative aspect-square overflow-hidden rounded-xl bg-neutral-900">
+                    {media.kind === "video" ? (
+                      <video src={media.url} controls playsInline preload="metadata" className="h-full w-full object-cover" aria-label={`Profile video ${index + 1}`} />
+                    ) : (
+                      <Image src={media.url} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -856,7 +937,7 @@ export default function ProviderOnboardingPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={saving || currentStep === 0}
+              disabled={saving || currentStep === 0 || listingStatus === "verified"}
               onClick={() => { setError(""); setCurrentStep((step) => Math.max(0, step - 1)); }}
               className="rounded-xl"
             >
@@ -868,10 +949,14 @@ export default function ProviderOnboardingPage() {
               onClick={() => void nextStep()}
               className="rounded-xl bg-airbnb-coral font-bold text-white hover:bg-[#AD3039]"
             >
-              {saving ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : currentStep === 4 ? <><CheckCircle2 className="mr-2 h-4 w-4" /> Submit for review</> : <>Save &amp; continue <ChevronRight className="ml-1 h-4 w-4" /></>}
+              {saving ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : currentStep === 4 ? <><CheckCircle2 className="mr-2 h-4 w-4" /> {listingStatus === "verified" ? "Submit media for review" : "Submit for review"}</> : <>Save &amp; continue <ChevronRight className="ml-1 h-4 w-4" /></>}
             </Button>
           </div>
-          <p className="text-center text-xs text-muted-foreground">Your progress is saved as you continue. You can return to edit an unverified profile.</p>
+          <p className="text-center text-xs text-muted-foreground">
+            {listingStatus === "verified"
+              ? "Your profile stays published; this page lets you submit additional media for review."
+              : "Your progress is saved as you continue. You can return to edit an unverified profile."}
+          </p>
         </CardContent>
       </Card>
 

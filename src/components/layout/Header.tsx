@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTheme } from "next-themes";
+import { usePathname } from "next/navigation";
 import {
   Compass,
   LayoutDashboard,
@@ -11,12 +11,15 @@ import {
   UserPlus,
   LogIn,
   LogOut,
-  Sun,
-  Moon,
   Menu,
   Shield,
   Crown,
   ChefHat,
+  Video,
+  Images,
+  Building2,
+  PanelsTopLeft,
+  Contact,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -30,14 +33,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
 
 export function Header() {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
 
   useEffect(() => {
-    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -86,6 +87,14 @@ export function Header() {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Could not sign out:", error.message);
   };
+
+  const secondaryLinks = [
+    { href: "/escort-videos", label: "Escort videos", icon: Video },
+    { href: "/escort-images", label: "Escort images", icon: Images },
+    { href: "/agencies", label: "Agencies", icon: Building2 },
+    { href: "/classified-ads", label: "Classified ads", icon: PanelsTopLeft },
+    { href: "/contact", label: "Contact us", icon: Contact },
+  ];
 
   return (
     <header
@@ -142,23 +151,6 @@ export function Header() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Theme Toggle */}
-          {mounted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full text-muted-foreground hover:text-foreground"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle Theme"
-            >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-
           {/* List Your Profile / Host CTA */}
           <Link href="/advertise" aria-label="Post an ad">
             <Button
@@ -257,6 +249,28 @@ export function Header() {
           </DropdownMenu>
         </div>
       </div>
+      <nav aria-label="Explore Honeybee" className="border-t border-border/70">
+        <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2 no-scrollbar sm:justify-center sm:px-8">
+          {secondaryLinks.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors sm:px-4 ${
+                  active
+                    ? "bg-rose-500/10 text-rose-300"
+                    : "text-muted-foreground hover:bg-neutral-800 hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </header>
   );
 }
