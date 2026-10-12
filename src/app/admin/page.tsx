@@ -315,17 +315,18 @@ export default function AdminModerationDashboard() {
             <StatCard label="Payments to review" value={dashboard.pendingPayments} />
           </div>
 
-          <Tabs defaultValue="verifications" className="w-full">
-            <TabsList className="mb-5 rounded-full bg-muted p-1">
-              <TabsTrigger value="verifications" className="rounded-full text-xs font-semibold">
+          <Tabs defaultValue="verifications" className="grid w-full gap-5 md:grid-cols-[220px_minmax(0,1fr)] md:items-start">
+            <TabsList className="mb-0 flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-muted p-2 md:sticky md:top-24 md:flex-col md:items-stretch md:overflow-visible">
+              <TabsTrigger value="verifications" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
                 <UserCheck className="mr-1.5 h-3.5 w-3.5" />
                 Profile reviews ({dashboard.listings.length})
               </TabsTrigger>
-              <TabsTrigger value="payments" className="rounded-full text-xs font-semibold">
+              <TabsTrigger value="payments" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
                 <CreditCard className="mr-1.5 h-3.5 w-3.5" />
                 Payment reviews ({dashboard.payments.length})
               </TabsTrigger>
-              <TabsTrigger value="management" className="rounded-full text-xs font-semibold">
+              <TabsTrigger value="management" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
+                <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
                 Manage platform
               </TabsTrigger>
             </TabsList>

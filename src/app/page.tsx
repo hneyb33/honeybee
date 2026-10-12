@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -286,8 +287,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8">
-        <div className="md:hidden">
+      <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8 lg:hidden">
+        <div>
           <DiscoveryFilters
             locationListId="uganda-locations-mobile"
             location={searchLocation}
@@ -310,8 +311,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-5 pt-6 sm:px-8 md:grid-cols-[minmax(0,1fr)_220px] md:items-start md:gap-8">
-        <aside className="order-2 hidden space-y-5 md:sticky md:top-24 md:block">
+      <div className="mx-auto grid max-w-7xl gap-6 px-5 pt-6 sm:px-8 lg:grid-cols-[210px_minmax(0,1fr)_210px] lg:items-start lg:gap-6">
+        <aside className="hidden lg:sticky lg:top-24 lg:block">
           <DiscoveryFilters
             locationListId="uganda-locations-desktop"
             location={searchLocation}
@@ -331,25 +332,8 @@ export default function HomePage() {
             }}
             onReset={resetFilters}
           />
-          <section className="overflow-hidden rounded-3xl border border-[#e5b34c]/25 bg-gradient-to-b from-neutral-900 to-neutral-950 p-4 shadow-lg">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#ffe5a3]">
-              <Sparkles className="h-3.5 w-3.5" /> Reserved ad space
-            </div>
-            {featuredAds[0] ? (
-              <Link href={`/profiles/${featuredAds[0].slug}`} className="mt-4 block rounded-2xl border border-neutral-700 bg-neutral-900 p-3 transition hover:border-[#e5b34c]/60">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-[#e5b34c]">Admin featured</span>
-                <p className="mt-1 truncate text-sm font-bold text-white">{featuredAds[0].title}</p>
-                <p className="mt-1 truncate text-xs text-neutral-400">{featuredAds[0].neighborhood}, {featuredAds[0].city}</p>
-              </Link>
-            ) : (
-              <p className="mt-3 text-xs leading-5 text-neutral-400">Approved featured ads will appear here.</p>
-            )}
-            <Link href="/advertise" className="mt-4 flex items-center justify-between rounded-xl bg-[#d3444d] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-[#ad3039]">
-              Post an ad <ArrowRight className="h-4 w-4" />
-            </Link>
-          </section>
         </aside>
-        <main className="order-1 min-w-0">
+        <main className="min-w-0">
           <div className="mb-2 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e45b63]">Thoughtfully selected</p>
@@ -383,6 +367,35 @@ export default function HomePage() {
             onResetFilters={resetFilters}
           />
         </main>
+        <aside aria-label="Featured advertisements" className="hidden min-h-[1px] lg:sticky lg:top-24 lg:block">
+          {featuredAds[0]?.slug.trim() ? (
+            <Link
+              href={`/profiles/${featuredAds[0].slug}`}
+              className="group relative block aspect-[3/4] overflow-hidden rounded-3xl border border-[#e5b34c]/30 bg-neutral-900 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e5b34c]"
+            >
+              <Image
+                src={featuredAds[0].cover_image || featuredAds[0].images[0] || "/images/logo.jpeg"}
+                alt={featuredAds[0].title}
+                fill
+                sizes="210px"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+              <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-[#e5b34c]/40 bg-black/70 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wider text-[#ffe5a3]">
+                <Sparkles className="h-3 w-3" /> Admin featured
+              </span>
+              <div className="absolute inset-x-3 bottom-4 text-white">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-white/70">
+                  {featuredAds[0].kind === "service" ? "Service provider" : "Model"}
+                </p>
+                <p className="mt-1 truncate text-sm font-bold">{featuredAds[0].title}</p>
+                <p className="mt-1 truncate text-xs text-white/75">
+                  {featuredAds[0].neighborhood}, {featuredAds[0].city}
+                </p>
+              </div>
+            </Link>
+          ) : null}
+        </aside>
       </div>
     </div>
   );
