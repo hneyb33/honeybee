@@ -53,7 +53,6 @@ interface RecentMedia {
   id: string;
   url: string;
   kind: string;
-  verification_status: "pending" | "verified" | "rejected";
   created_at: string;
   listings: { title: string }[] | { title: string } | null;
 }
@@ -164,10 +163,9 @@ export default function AdminModerationDashboard() {
         .limit(30),
       supabase
         .from("profile_media")
-        .select("id,url,kind,verification_status,created_at,listings(title)")
-        .eq("verification_status", "pending")
+        .select("id,url,kind,created_at,listings(title)")
         .order("created_at", { ascending: false })
-        .limit(30),
+        .limit(12),
     ]);
 
     const queryError = [
@@ -204,17 +202,6 @@ export default function AdminModerationDashboard() {
 
   useEffect(() => {
     void loadDashboard();
-    if (!supabase) return;
-    const client = supabase;
-    const channel = client
-      .channel("admin-profile-media-review")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profile_media" }, () => {
-        void loadDashboard();
-      })
-      .subscribe();
-    return () => {
-      void client.removeChannel(channel);
-    };
   }, [loadDashboard]);
 
   const reviewListing = async (listing: ListingReview, status: "verified" | "rejected") => {
@@ -232,39 +219,6 @@ export default function AdminModerationDashboard() {
 
     if (updateError || !data) {
       setError(updateError?.message ?? "This listing was already reviewed. Refresh the queue and try again.");
-      setUpdatingId(null);
-      return;
-    }
-
-    await loadDashboard();
-    setUpdatingId(null);
-  };
-
-  const reviewMedia = async (media: RecentMedia, status: "verified" | "rejected") => {
-    if (!supabase) return;
-    setUpdatingId(media.id);
-    setError("");
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      setError(authError?.message ?? "Your session expired. Sign in again to review media.");
-      setUpdatingId(null);
-      return;
-    }
-
-    const { data, error: updateError } = await supabase
-      .from("profile_media")
-      .update({
-        verification_status: status,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: authData.user.id,
-      })
-      .eq("id", media.id)
-      .eq("verification_status", "pending")
-      .select("id")
-      .maybeSingle();
-
-    if (updateError || !data) {
-      setError(updateError?.message ?? "This media was already reviewed. Refresh the queue and try again.");
       setUpdatingId(null);
       return;
     }
@@ -503,49 +457,24 @@ export default function AdminModerationDashboard() {
           <section className="space-y-3 border-t border-border pt-6">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-bold">
-                <ImageIcon className="h-5 w-5 text-airbnb-coral" /> Media verification queue
+                <ImageIcon className="h-5 w-5 text-airbnb-coral" /> Recently submitted media
               </h2>
-              <p className="text-xs text-muted-foreground">Review photos and videos before they appear on public profiles and in directories.</p>
+              <p className="text-xs text-muted-foreground">Latest photos and videos added to provider profiles.</p>
             </div>
             {dashboard.media.length === 0 ? (
-              <EmptyQueue>No profile photos or videos are awaiting review.</EmptyQueue>
+              <EmptyQueue>No profile media has been submitted.</EmptyQueue>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {dashboard.media.map((media) => (
-                  <Card key={media.id} className="overflow-hidden rounded-2xl">
-                    <div className="relative aspect-video overflow-hidden bg-black">
-                      {media.kind === "video" ? (
-                        <video src={media.url} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Submitted profile video for ${(Array.isArray(media.listings) ? media.listings[0] : media.listings)?.title ?? "profile"}`} />
-                      ) : (
-                        <Image src={media.url} alt="" fill unoptimized className="object-contain" />
-                      )}
+                  <div key={media.id} className="group">
+                    <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                      <Image src={media.url} alt="" fill unoptimized className="object-cover transition-transform group-hover:scale-105" />
                     </div>
-                    <div className="space-y-3 p-4">
-                      <div>
-                        <p className="truncate text-sm font-semibold">
-                          {(Array.isArray(media.listings) ? media.listings[0] : media.listings)?.title ?? "Profile media"}
-                        </p>
-                        <p className="text-xs capitalize text-muted-foreground">{media.kind} · {relativeTime(media.created_at)}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          disabled={updatingId === media.id}
-                          onClick={() => void reviewMedia(media, "verified")}
-                          className="flex-1 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                        >
-                          <Check className="mr-1 h-4 w-4" /> Verify
-                        </Button>
-                        <Button
-                          variant="outline"
-                          disabled={updatingId === media.id}
-                          onClick={() => void reviewMedia(media, "rejected")}
-                          className="flex-1 rounded-xl text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="mr-1 h-4 w-4" /> Reject
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
+                    <p className="mt-1 truncate text-xs font-medium">
+                      {(Array.isArray(media.listings) ? media.listings[0] : media.listings)?.title ?? "Profile media"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{media.kind} · {relativeTime(media.created_at)}</p>
+                  </div>
                 ))}
               </div>
             )}

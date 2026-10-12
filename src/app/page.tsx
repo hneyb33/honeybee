@@ -7,7 +7,6 @@ import {
   BadgeCheck,
   Compass,
   Handshake,
-  MapPin,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -62,8 +61,6 @@ export default function HomePage() {
         const { data: media, error: mediaError } = await client
           .from("profile_media")
           .select("listing_id,url,sort_order")
-          .eq("verification_status", "verified")
-          .eq("kind", "photo")
           .in("listing_id", listingIds)
           .order("sort_order", { ascending: true });
 
@@ -100,9 +97,6 @@ export default function HomePage() {
     const channel = client
       .channel("homepage-featured-listings")
       .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => {
-        void loadListings();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "profile_media" }, () => {
         void loadListings();
       })
       .subscribe();
@@ -247,49 +241,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative mx-auto hidden h-[430px] w-full max-w-[530px] lg:block">
-            <div
-              className="absolute right-2 top-0 h-[380px] w-[72%] overflow-hidden rounded-[2rem] bg-cover bg-center shadow-[0_24px_70px_rgba(39,61,47,0.2)]"
-              style={{
-                backgroundImage:
-                  "linear-gradient(180deg, transparent 55%, rgba(20,36,27,.72)), url('https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1000&q=85')",
-              }}
-              role="img"
-              aria-label="A Honeybee community member"
-            >
-              <div className="absolute bottom-6 left-6 text-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Made for real life</p>
-                <p className="mt-1 font-display text-2xl">Meet someone remarkable.</p>
-              </div>
-            </div>
-            <div
-              className="absolute bottom-4 left-0 h-56 w-40 overflow-hidden rounded-[1.5rem] border-4 border-[#090909] bg-cover bg-center shadow-xl"
-              style={{
-                backgroundImage:
-                  "url('https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=500&q=80')",
-              }}
-              role="img"
-              aria-label="A local culinary specialist at work"
-            />
-            <div className="absolute bottom-12 left-24 rounded-2xl border border-neutral-700 bg-neutral-900/95 px-4 py-3 shadow-lg backdrop-blur">
-              <div className="flex items-center gap-2 text-sm font-bold text-white">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-950 text-rose-300">
-                  <MapPin className="h-4 w-4" />
-                </span>
-                Kampala & beyond
-              </div>
-              <p className="mt-1 pl-10 text-xs text-neutral-400">Good things are closer than you think.</p>
-            </div>
-            <div className="absolute right-0 top-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e5b34c] text-white shadow-lg">
-              <Sparkles className="h-6 w-6" />
-            </div>
+          <div className="relative mx-auto w-full max-w-[530px]">
+            <FeaturedAdsCarousel listings={featuredAds} />
           </div>
         </div>
       </section>
 
       <OnlineNowStrip listings={onlineListings} />
-
-      <FeaturedAdsCarousel listings={featuredAds} />
 
       <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-8 sm:pt-14">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">

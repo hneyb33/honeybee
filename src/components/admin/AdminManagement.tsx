@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Pencil, Save, Shield, Trash2, X } from "lucide-react";
+import { Check, Pencil, Shield, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,15 +57,6 @@ type ManagedSubscription = {
 };
 
 type RelatedProfile = { name: string; email: string | null } | { name: string; email: string | null }[] | null;
-type SitePageKey = "privacy" | "terms" | "faqs" | "disclaimer";
-type EditableSitePage = { page_key: SitePageKey; title: string; content: string };
-
-const editablePages: Array<{ key: SitePageKey; label: string }> = [
-  { key: "privacy", label: "Privacy Policy" },
-  { key: "terms", label: "Terms and Conditions" },
-  { key: "faqs", label: "FAQs" },
-  { key: "disclaimer", label: "Disclaimer" },
-];
 
 const roleOptions = [
   "client_free",
@@ -323,7 +314,6 @@ export function AdminManagement({ canManageAdmins }: { canManageAdmins: boolean 
           <TabsTrigger value="payments">Payments ({payments.length})</TabsTrigger>
           <TabsTrigger value="subscriptions">Subscriptions ({subscriptions.length})</TabsTrigger>
           <TabsTrigger value="ads">Ads ({listings.filter((item) => item.is_featured).length})</TabsTrigger>
-          <TabsTrigger value="settings">Website settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-2">
@@ -435,140 +425,7 @@ export function AdminManagement({ canManageAdmins }: { canManageAdmins: boolean 
             </Card>
           ))}
         </TabsContent>
-
-        <TabsContent value="settings">
-          <SitePageSettings />
-        </TabsContent>
       </Tabs>
     </section>
-  );
-}
-
-function SitePageSettings() {
-  const [pages, setPages] = useState<EditableSitePage[]>([]);
-  const [loadingPages, setLoadingPages] = useState(true);
-  const [savingPage, setSavingPage] = useState<SitePageKey | null>(null);
-  const [pageError, setPageError] = useState("");
-  const [savedPage, setSavedPage] = useState<SitePageKey | null>(null);
-
-  const loadPages = useCallback(async () => {
-    if (!supabase) {
-      setPageError("Configure Supabase to edit website pages.");
-      setLoadingPages(false);
-      return;
-    }
-    const { data, error: queryError } = await supabase
-      .from("site_pages")
-      .select("page_key,title,content")
-      .order("page_key");
-    if (queryError) {
-      setPageError(queryError.message);
-      setLoadingPages(false);
-      return;
-    }
-    setPages((data ?? []) as EditableSitePage[]);
-    setPageError("");
-    setLoadingPages(false);
-  }, []);
-
-  useEffect(() => {
-    void loadPages();
-  }, [loadPages]);
-
-  const updatePage = (key: SitePageKey, updates: Partial<EditableSitePage>) => {
-    setPages((current) => current.map((page) => page.page_key === key ? { ...page, ...updates } : page));
-    setSavedPage(null);
-  };
-
-  const savePage = async (page: EditableSitePage) => {
-    if (!supabase) return;
-    if (!page.title.trim() || page.title.length > 120 || page.content.length > 50000) {
-      setPageError("Enter a title of 1–120 characters and page content no longer than 50,000 characters.");
-      return;
-    }
-
-    setSavingPage(page.page_key);
-    setPageError("");
-    setSavedPage(null);
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
-      setPageError(authError?.message ?? "Your session expired. Sign in again to save website content.");
-      setSavingPage(null);
-      return;
-    }
-
-    const { error: saveError } = await supabase
-      .from("site_pages")
-      .upsert({
-        page_key: page.page_key,
-        title: page.title.trim(),
-        content: page.content,
-        updated_at: new Date().toISOString(),
-        updated_by: authData.user.id,
-      });
-    if (saveError) {
-      setPageError(saveError.message);
-    } else {
-      setSavedPage(page.page_key);
-    }
-    setSavingPage(null);
-  };
-
-  if (loadingPages) {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Loading website settings…</p>;
-  }
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-bold">Public page content</h3>
-        <p className="text-sm text-muted-foreground">
-          Edit the titles and copy shown on the footer-linked policy, FAQ, and disclaimer pages. Plain text and line breaks are supported.
-        </p>
-      </div>
-      {pageError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{pageError}</p>}
-      {pages.length === 0 && !pageError && (
-        <p className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">No editable pages are configured.</p>
-      )}
-      {editablePages.map(({ key, label }) => {
-        const page = pages.find((item) => item.page_key === key);
-        if (!page) return null;
-        return (
-          <Card key={key} className="space-y-3 rounded-2xl p-4 sm:p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h4 className="font-semibold">{label}</h4>
-              <Button
-                size="sm"
-                disabled={savingPage !== null}
-                onClick={() => void savePage(page)}
-                className="rounded-xl"
-              >
-                <Save className="mr-1.5 h-4 w-4" />
-                {savingPage === key ? "Saving…" : savedPage === key ? "Saved" : "Save changes"}
-              </Button>
-            </div>
-            <label className="block space-y-1.5 text-sm font-medium">
-              Page title
-              <input
-                value={page.title}
-                maxLength={120}
-                onChange={(event) => updatePage(key, { title: event.target.value })}
-                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-normal"
-              />
-            </label>
-            <label className="block space-y-1.5 text-sm font-medium">
-              Page content
-              <textarea
-                value={page.content}
-                maxLength={50000}
-                rows={9}
-                onChange={(event) => updatePage(key, { content: event.target.value })}
-                className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-normal leading-6"
-              />
-            </label>
-          </Card>
-        );
-      })}
-    </div>
   );
 }
