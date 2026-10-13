@@ -95,7 +95,7 @@ export function Header() {
             width={180}
             height={59}
             sizes="(max-width: 639px) 108px, (max-width: 1023px) 148px, 180px"
-            className="h-9 w-[108px] rounded-md border border-red-500 object-contain transition-opacity group-hover:opacity-85 sm:h-[49px] sm:w-[148px] lg:h-[59px] lg:w-[180px]"
+            className="h-9 w-[108px] object-contain transition-opacity group-hover:opacity-85 sm:h-[49px] sm:w-[148px] lg:h-[59px] lg:w-[180px]"
             priority
           />
         </Link>
