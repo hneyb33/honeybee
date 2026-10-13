@@ -25,14 +25,18 @@ Uganda's verified platform for private specialists, culinary masters, and compan
   - Real-time job request queue with Accept/Decline actions.
   - Weekly schedule and earnings breakdown.
 - **Multi-Step Onboarding Wizard (`/provider/onboarding`)**:
-  - Resumable five-step flows for models and home-service providers.
-  - City/neighbourhood selectors, choice controls, availability, UGX rate increments, profile details, and portfolio photo upload.
+  - Resumable five-step flows for models, agencies, and home-service providers.
+  - City/neighbourhood selectors, choice controls, availability, UGX rate increments, profile details, and required portfolio upload of at least one photo and one video (up to 9 photos and 3 videos).
+  - JPEG, PNG, and WebP photos (10 MB each) and MP4, WebM, and QuickTime videos (100 MB each) are submitted together for profile review.
   - Provider-owned drafts stay private until admin verification; verified profiles load from Supabase on their public profile page.
 - **Admin Moderation & Audit Queue (`/admin`)**:
   - Supabase Auth sign-in restricted to administrator and moderator roles.
-  - Database-backed profile verification and Mobile Money payment queues.
+  - Database-backed profile verification presents each profile's details, photos, and videos together for a single verify/reject decision; media is not approved independently.
   - Transaction-safe payment review that activates the related subscription.
-  - Dashboard counts for profiles, bookings, payments, and recently submitted media.
+  - Dashboard counts for profiles, bookings, and payments.
+- **Provider media catalogues (`/escort-images`, `/escort-videos`)**:
+  - Verified profiles from every provider category can appear in the photo and video galleries.
+  - Profile pages show photos and submitted videos after the full profile is verified.
 - **Advertiser tools (`/advertise`)**:
   - Fast single-ad, independent, and agency registration paths.
   - Profiles remain private until moderator verification; verified Mobile Money payments activate featured placement.
@@ -75,7 +79,7 @@ npm run build
 
 1. Open your Supabase Dashboard: [https://supabase.com](https://supabase.com)
 2. Go to **SQL Editor**.
-3. Run the migrations in order: `20261009000000_init_schema.sql`, `20261010000000_admin_dashboard.sql`, `20261011000000_provider_onboarding.sql`, then `20261012000000_advertisers_presence_and_features.sql`.
+3. Run every SQL migration in `supabase/migrations/` in filename order. The latest migration, `20261020000000_profile_media_video_uploads.sql`, enables the supported video formats and uploads up to 100 MB.
 4. (Optional) Run `supabase/seed.sql` to add sample listings and places.
 
 ### Create the first admin login

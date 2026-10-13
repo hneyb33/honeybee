@@ -63,6 +63,7 @@ export default function HomePage() {
           .from("profile_media")
           .select("listing_id,url,sort_order")
           .in("listing_id", listingIds)
+          .eq("kind", "photo")
           .order("sort_order", { ascending: true });
 
         if (mediaError) {

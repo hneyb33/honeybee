@@ -34,6 +34,7 @@ export default function ProfileDetailPage() {
     () => MOCK_LISTINGS.find((item) => item.slug === slug)
   );
   const [relatedListings, setRelatedListings] = useState<Listing[]>(MOCK_LISTINGS);
+  const [profileVideos, setProfileVideos] = useState<string[]>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [loadError, setLoadError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -44,6 +45,7 @@ export default function ProfileDetailPage() {
     let cancelled = false;
 
     const loadListing = async () => {
+      setProfileVideos([]);
       if (!supabase) {
         setListing(MOCK_LISTINGS.find((item) => item.slug === slug));
         setRelatedListings(MOCK_LISTINGS);
@@ -80,7 +82,7 @@ export default function ProfileDetailPage() {
       const [mediaResult, offeringsResult, relatedResult] = await Promise.all([
         supabase
           .from("profile_media")
-          .select("url,sort_order")
+          .select("url,kind,sort_order")
           .eq("listing_id", data.id)
           .order("sort_order", { ascending: true }),
         supabase
@@ -109,15 +111,17 @@ export default function ProfileDetailPage() {
 
       const mappedListing = mapListingRow(
         data,
-        (mediaResult.data ?? []).map((media) => media.url),
+        (mediaResult.data ?? []).filter((media) => media.kind === "photo").map((media) => media.url),
         offeringsResult.data ?? []
       );
+      const videos = (mediaResult.data ?? []).filter((media) => media.kind === "video").map((media) => media.url);
       if (relatedResult.error) {
         console.error("Could not load recommended profiles:", relatedResult.error.message);
       }
 
       if (!cancelled) {
         setListing(mappedListing);
+        setProfileVideos(videos);
         setRelatedListings((relatedResult.data ?? []).map((row) => mapListingRow(row)));
         setLoading(false);
       }
@@ -236,6 +240,26 @@ export default function ProfileDetailPage() {
 
       {/* Profile photo gallery */}
       <PhotoMosaic images={listing.images} title={listing.title} />
+      {profileVideos.length > 0 && (
+        <section className="mt-8 space-y-4" aria-labelledby="profile-videos-heading">
+          <div>
+            <h2 id="profile-videos-heading" className="text-xl font-bold text-foreground">Profile videos</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Videos submitted with this verified profile.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {profileVideos.map((url, index) => (
+              <video
+                key={url}
+                src={url}
+                controls
+                preload="metadata"
+                className="aspect-video w-full rounded-2xl bg-black object-contain"
+                aria-label={`${listing.title} profile video ${index + 1}`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Profile Information & Highlights */}
       <div className="mt-8 border-b border-border pb-8">

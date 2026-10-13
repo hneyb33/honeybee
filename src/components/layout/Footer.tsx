@@ -8,16 +8,16 @@ export function Footer() {
     <footer className="mt-10 border-t border-neutral-800 bg-[#090909]">
       <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 px-5 py-10 text-sm text-foreground sm:px-8 md:flex-row md:items-end">
         <div className="max-w-md space-y-2">
-          <div className="flex items-center gap-2.5">
+          <Link href="/" aria-label="Honeybee home" className="inline-flex">
             <Image
-              src="/images/logo.jpeg"
+              src="/images/footerbg.jpeg"
               alt="Honeybee"
-              width={36}
-              height={36}
-              className="h-9 w-9 rounded-xl object-cover"
+              width={180}
+              height={59}
+              sizes="(max-width: 639px) 148px, 180px"
+              className="h-[49px] w-[148px] rounded-md border border-red-500 object-contain sm:h-[59px] sm:w-[180px]"
             />
-            <div className="font-display text-lg font-semibold tracking-tight">Honeybee</div>
-          </div>
+          </Link>
           <p className="text-sm leading-6 text-muted-foreground">
             A more thoughtful way to find trusted people and independent services across Uganda.
           </p>

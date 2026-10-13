@@ -35,8 +35,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
       const { data: listings, error: listingsError } = await client
         .from("listings")
         .select("id,title,slug")
-        .eq("verification_status", "verified")
-        .eq("kind", "escort");
+        .eq("verification_status", "verified");
 
       if (listingsError) {
         if (!cancelled) {
@@ -102,7 +101,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
           {isVideo ? "Profile videos" : "Profile photos"}
         </h1>
         <p className="relative mt-3 max-w-2xl text-sm leading-6 text-neutral-300">
-          Recent {isVideo ? "videos" : "photos"} from verified profiles. Open a profile to learn more.
+          Recent {isVideo ? "videos" : "photos"} from verified provider profiles. Open a profile to learn more.
         </p>
       </header>
 

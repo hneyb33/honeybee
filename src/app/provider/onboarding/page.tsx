@@ -26,7 +26,15 @@ import { Input } from "@/components/ui/input";
 import { UGANDA_LOCATIONS } from "@/lib/data/uganda-locations";
 import { supabase } from "@/lib/supabase/client";
 
-const STEPS = ["About you", "Location", "Services & rates", "Photos & experience", "Preview"];
+const STEPS = ["About you", "Location", "Services & rates", "Media & experience", "Preview"];
+const MAX_PHOTOS = 9;
+const MAX_VIDEOS = 3;
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
+const MEDIA_TYPES: Record<"photo" | "video", string[]> = {
+  photo: ["image/jpeg", "image/png", "image/webp"],
+  video: ["video/mp4", "video/webm", "video/quicktime"],
+};
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const LANGUAGES = ["English", "Luganda", "Swahili", "Runyankole", "Lusoga", "Acholi", "Other"];
 const MODEL_SERVICES = [
@@ -106,6 +114,9 @@ const cities = Array.from(new Set(UGANDA_LOCATIONS.map((place) => place.city)));
 const nationalities = ["Ugandan", "Kenyan", "Rwandan", "Tanzanian", "South Sudanese", "Other"];
 const orientations = ["Straight", "Bi-sexual", "Lesbian", "Gay", "Prefer not to say"];
 
+type PortfolioMedia = { url: string; kind: "photo" | "video" };
+type PendingMedia = { file: File; kind: "photo" | "video" };
+
 function safeSlug(value: string) {
   const slug = value
     .normalize("NFKD")
@@ -124,9 +135,9 @@ export default function ProviderOnboardingPage() {
   const [listingId, setListingId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<PendingMedia[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [existingMedia, setExistingMedia] = useState<PortfolioMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -139,7 +150,7 @@ export default function ProviderOnboardingPage() {
   );
 
   useEffect(() => {
-    const urls = files.map((file) => URL.createObjectURL(file));
+    const urls = files.map(({ file }) => URL.createObjectURL(file));
     setPreviews(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [files]);
@@ -248,7 +259,7 @@ export default function ProviderOnboardingPage() {
 
         const { data: media, error: mediaError } = await supabase
           .from("profile_media")
-          .select("url,sort_order")
+          .select("url,kind,sort_order")
           .eq("listing_id", listing.id)
           .order("sort_order", { ascending: true });
 
@@ -263,8 +274,15 @@ export default function ProviderOnboardingPage() {
         if (!cancelled) {
           setListingId(listing.id);
           setSlug(listing.slug);
-          const mediaImages = (media ?? []).map((item) => item.url);
-          setExistingImages(mediaImages.length > 0 ? mediaImages : Array.isArray(listing.images) ? listing.images : []);
+          const savedMedia = (media ?? []).map((item) => ({
+            url: item.url,
+            kind: item.kind === "video" ? "video" as const : "photo" as const,
+          }));
+          setExistingMedia(
+            savedMedia.length > 0
+              ? savedMedia
+              : (Array.isArray(listing.images) ? listing.images : []).map((url: string) => ({ url, kind: "photo" as const }))
+          );
           const savedStep = Number(details.onboardingStep);
           setCurrentStep(
             listing.verification_status === "draft" && Number.isInteger(savedStep)
@@ -319,7 +337,8 @@ export default function ProviderOnboardingPage() {
     }
     if (step === 2 && form.availableDays.length === 0) return "Choose at least one day you are available.";
     if (step === 3 && form.description.trim().length < 40) return "Add at least 40 characters describing your profile.";
-    if (step === 3 && existingImages.length + files.length === 0) return "Upload at least one portfolio photo.";
+    if (step === 3 && existingMedia.filter((item) => item.kind === "photo").length + files.filter((item) => item.kind === "photo").length === 0) return "Upload at least one portfolio photo.";
+    if (step === 3 && existingMedia.filter((item) => item.kind === "video").length + files.filter((item) => item.kind === "video").length === 0) return "Upload at least one portfolio video.";
     return "";
   };
 
@@ -337,8 +356,11 @@ export default function ProviderOnboardingPage() {
       return false;
     }
 
-    if (submit && existingImages.length + files.length === 0) {
-      setError("Upload at least one portfolio photo before submitting your profile.");
+    if (submit && (
+      existingMedia.filter((item) => item.kind === "photo").length + files.filter((item) => item.kind === "photo").length === 0
+      || existingMedia.filter((item) => item.kind === "video").length + files.filter((item) => item.kind === "video").length === 0
+    )) {
+      setError("Submit at least one portfolio photo and one portfolio video.");
       return false;
     }
 
@@ -385,8 +407,8 @@ export default function ProviderOnboardingPage() {
       whatsapp_code: form.whatsappCode,
       telegram: form.telegram.trim() || null,
       telegram_code: "+256",
-      cover_image: existingImages[0] ?? null,
-      images: existingImages,
+      cover_image: existingMedia.find((item) => item.kind === "photo")?.url ?? null,
+      images: existingMedia.filter((item) => item.kind === "photo").map((item) => item.url),
       travel_km: form.travelKm,
       advertiser_type: isModel ? advertiserType ?? "independent" : null,
       has_certificate: form.certified,
@@ -432,8 +454,9 @@ export default function ProviderOnboardingPage() {
     }
 
     if (files.length > 0 && savedListingId) {
-      const uploaded: Array<{ path: string; url: string }> = [];
-      for (const file of files) {
+      const uploaded: Array<{ path: string; url: string; kind: "photo" | "video" }> = [];
+      for (const item of files) {
+        const { file, kind } = item;
         const path = `${authData.user.id}/${savedListingId}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
         const { error: uploadError } = await supabase.storage
           .from("honeybee-profile-media")
@@ -450,14 +473,14 @@ export default function ProviderOnboardingPage() {
           return false;
         }
         const { data: publicUrl } = supabase.storage.from("honeybee-profile-media").getPublicUrl(path);
-        uploaded.push({ path, url: publicUrl.publicUrl });
+        uploaded.push({ path, url: publicUrl.publicUrl, kind });
       }
 
       const mediaRows = uploaded.map((item, index) => ({
         listing_id: savedListingId,
         url: item.url,
-        kind: "photo",
-        sort_order: existingImages.length + index,
+        kind: item.kind,
+        sort_order: existingMedia.length + index,
       }));
       const { error: mediaError } = await supabase.from("profile_media").insert(mediaRows);
       if (mediaError) {
@@ -470,7 +493,8 @@ export default function ProviderOnboardingPage() {
         return false;
       }
 
-      const allImages = [...existingImages, ...uploaded.map((item) => item.url)];
+      const allMedia = [...existingMedia, ...uploaded.map(({ url, kind }) => ({ url, kind }))];
+      const allImages = allMedia.filter((item) => item.kind === "photo").map((item) => item.url);
       const { error: imageUpdateError } = await supabase
         .from("listings")
         .update({ images: allImages, cover_image: allImages[0] })
@@ -480,7 +504,7 @@ export default function ProviderOnboardingPage() {
         setError(imageUpdateError.message);
         return false;
       }
-      setExistingImages(allImages);
+      setExistingMedia(allMedia);
       setFiles([]);
     }
 
@@ -549,7 +573,7 @@ export default function ProviderOnboardingPage() {
                   setSlug("");
                   setForm({ ...emptyForm, serviceType: "" });
                   setFiles([]);
-                  setExistingImages([]);
+                  setExistingMedia([]);
                   setCurrentStep(0);
                   setSubmitted(false);
                 }}
@@ -782,45 +806,83 @@ export default function ProviderOnboardingPage() {
                   </label>
                 </div>
               )}
-              <Field label="Portfolio photos" hint="Upload up to 9 JPEG, PNG, or WebP images, maximum 10 MB each. Use photos you have permission to publish.">
+              <Field
+                label="Portfolio photos and videos"
+                hint="Required: at least 1 photo and 1 video. Upload up to 9 JPEG, PNG, or WebP photos (10 MB each) and up to 3 MP4, WebM, or QuickTime videos (100 MB each). Use media you have permission to publish."
+              >
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 px-5 py-8 text-center transition hover:border-airbnb-coral">
                   <ImagePlus className="mb-2 h-7 w-7 text-airbnb-coral" />
-                  <span className="text-sm font-semibold">Choose photos</span>
-                  <span className="mt-1 text-xs text-muted-foreground">Tap to browse or take a photo</span>
+                  <span className="text-sm font-semibold">Choose photos and videos</span>
+                  <span className="mt-1 text-xs text-muted-foreground">Select one or more files from your device</span>
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                     multiple
                     className="sr-only"
                     onChange={(event) => {
                       const selected = Array.from(event.target.files ?? []);
-                      const valid = selected.filter((file) => file.size <= 10 * 1024 * 1024);
-                      if (valid.length !== selected.length) setError("Each photo must be smaller than 10 MB.");
-                      const combined = [...files, ...valid].slice(0, Math.max(0, 9 - existingImages.length));
-                      if (files.length + existingImages.length + valid.length > 9) setError("A profile can have up to 9 portfolio photos.");
-                      setFiles(combined);
+                      const counts = {
+                        photo: existingMedia.filter((item) => item.kind === "photo").length + files.filter((item) => item.kind === "photo").length,
+                        video: existingMedia.filter((item) => item.kind === "video").length + files.filter((item) => item.kind === "video").length,
+                      };
+                      const errors: string[] = [];
+                      const additions: PendingMedia[] = [];
+                      for (const file of selected) {
+                        const kind = MEDIA_TYPES.photo.includes(file.type)
+                          ? "photo"
+                          : MEDIA_TYPES.video.includes(file.type) ? "video" : null;
+                        if (!kind) {
+                          errors.push("Choose JPEG, PNG, or WebP photos and MP4, WebM, or QuickTime videos.");
+                          continue;
+                        }
+                        const maxSize = kind === "photo" ? MAX_PHOTO_SIZE : MAX_VIDEO_SIZE;
+                        if (file.size > maxSize) {
+                          errors.push(kind === "photo" ? "Each photo must be 10 MB or smaller." : "Each video must be 100 MB or smaller.");
+                          continue;
+                        }
+                        const maxCount = kind === "photo" ? MAX_PHOTOS : MAX_VIDEOS;
+                        if (counts[kind] >= maxCount) {
+                          errors.push(kind === "photo" ? "A profile can have up to 9 photos." : "A profile can have up to 3 videos.");
+                          continue;
+                        }
+                        additions.push({ file, kind });
+                        counts[kind] += 1;
+                      }
+                      setFiles((current) => [...current, ...additions]);
+                      setError(errors.join(" "));
                       event.currentTarget.value = "";
                     }}
                   />
                 </label>
-                {(existingImages.length > 0 || previews.length > 0) && (
+                {(existingMedia.length > 0 || previews.length > 0) && (
                   <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {existingImages.map((url, index) => (
-                      <div key={url} className="relative aspect-square overflow-hidden rounded-xl">
-                        <Image src={url} alt={`Portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
-                        {index === 0 && <Badge className="absolute left-1 top-1 text-[10px]">Cover</Badge>}
+                    {existingMedia.map((item, index) => (
+                      <div key={item.url} className="relative aspect-square overflow-hidden rounded-xl bg-black">
+                        {item.kind === "video" ? (
+                          <video src={item.url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Portfolio video ${index + 1}`} />
+                        ) : (
+                          <Image src={item.url} alt={`Portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
+                        )}
+                        {item.kind === "photo" && existingMedia.filter((media) => media.kind === "photo")[0]?.url === item.url && <Badge className="absolute left-1 top-1 text-[10px]">Cover</Badge>}
                       </div>
                     ))}
                     {previews.map((url, index) => (
-                      <div key={url} className="relative aspect-square overflow-hidden rounded-xl">
-                        <Image src={url} alt={`New portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
-                        <button type="button" aria-label={`Remove selected photo ${index + 1}`} onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white">
+                      <div key={url} className="relative aspect-square overflow-hidden rounded-xl bg-black">
+                        {files[index]?.kind === "video" ? (
+                          <video src={url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`New portfolio video ${index + 1}`} />
+                        ) : (
+                          <Image src={url} alt={`New portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
+                        )}
+                        <button type="button" aria-label={`Remove selected media ${index + 1}`} onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     ))}
                   </div>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  {existingMedia.filter((item) => item.kind === "photo").length + files.filter((item) => item.kind === "photo").length}/{MAX_PHOTOS} photos · {existingMedia.filter((item) => item.kind === "video").length + files.filter((item) => item.kind === "video").length}/{MAX_VIDEOS} videos
+                </p>
               </Field>
             </div>
           )}
@@ -831,7 +893,7 @@ export default function ProviderOnboardingPage() {
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                 <div>
                   <p className="text-sm font-bold">Your profile is reviewed before it is published</p>
-                  <p className="mt-1 text-xs">Only verified profiles appear in public search. Your photos will be visible with the profile after approval.</p>
+                  <p className="mt-1 text-xs">Only verified profiles appear in public search. Your photos and videos will be visible with the profile after approval.</p>
                 </div>
               </div>
               <ReviewRow icon={<UserRound className="h-4 w-4" />} label="Profile" value={`${form.title}${isModel ? ` · ${form.age} years · ${form.gender}` : ` · ${SERVICE_TYPES.find((item) => item.value === form.serviceType)?.label}`} `} />
@@ -843,9 +905,16 @@ export default function ProviderOnboardingPage() {
                 <p className="text-sm leading-relaxed">{form.description || "Add a description before submitting."}</p>
               </div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {[...existingImages, ...previews].slice(0, 5).map((url, index) => (
-                  <div key={`${url}-${index}`} className="relative aspect-square overflow-hidden rounded-xl">
-                    <Image src={url} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
+                {[
+                  ...existingMedia.map((item) => ({ ...item, previewUrl: item.url })),
+                  ...previews.map((url, index) => ({ url, previewUrl: url, kind: files[index]?.kind ?? "photo" as const })),
+                ].slice(0, 5).map((item, index) => (
+                  <div key={`${item.url}-${index}`} className="relative aspect-square overflow-hidden rounded-xl bg-black">
+                    {item.kind === "video" ? (
+                      <video src={item.previewUrl} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
+                    ) : (
+                      <Image src={item.previewUrl} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
+                    )}
                   </div>
                 ))}
               </div>

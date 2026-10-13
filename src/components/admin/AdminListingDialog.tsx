@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -360,8 +361,28 @@ export function AdminListingDialog({
                 </div>)}
               </dl>
             </section>
+            <section className="rounded-xl border p-4">
+              <h3 className="mb-3 font-semibold">Profile photos and videos</h3>
+              {!media.length ? <p className="text-sm text-muted-foreground">No portfolio media submitted.</p> : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {media.map((row, index) => {
+                    const url = typeof row.url === "string" ? row.url : "";
+                    const kind = row.kind === "video" ? "video" : "photo";
+                    return (
+                      <div key={String(row.id ?? index)} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
+                        {kind === "video" ? (
+                          <video src={url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
+                        ) : (
+                          <Image src={url} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
+                        )}
+                        <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-1 text-[10px] font-semibold capitalize text-white">{kind}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
             {[
-              ["Gallery media", media],
               ["Service offerings", offerings],
               ["References", references],
             ].map(([title, records]) => <section key={title as string} className="rounded-xl border p-4">

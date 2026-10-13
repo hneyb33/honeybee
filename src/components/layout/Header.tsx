@@ -87,24 +87,17 @@ export function Header() {
         isScrolled ? "shadow-sm" : ""
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-        <Link href="/" className="group flex shrink-0 items-center gap-2.5">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-8 sm:py-3.5">
+        <Link href="/" aria-label="Honeybee home" className="group flex shrink-0 items-center">
           <Image
-            src="/images/logo.jpeg"
+            src="/images/footerbg.jpeg"
             alt="Honeybee"
-            width={40}
-            height={40}
-            className="h-10 w-10 rounded-2xl object-cover shadow-sm transition-transform group-hover:-rotate-6"
+            width={180}
+            height={59}
+            sizes="(max-width: 639px) 108px, (max-width: 1023px) 148px, 180px"
+            className="h-9 w-[108px] rounded-md border border-red-500 object-contain transition-opacity group-hover:opacity-85 sm:h-[49px] sm:w-[148px] lg:h-[59px] lg:w-[180px]"
             priority
           />
-          <span>
-            <span className="block font-display text-xl font-semibold leading-none tracking-tight text-[#1b3028] dark:text-white">
-              Honeybee
-            </span>
-            <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.2em] text-[#718177] dark:text-neutral-400">
-              Local, connected
-            </span>
-          </span>
         </Link>
 
         {/* Center Navigation Links */}

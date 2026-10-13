@@ -44,6 +44,20 @@ interface ListingReview {
   verification_status: QueueStatus;
   created_at: string;
   cover_image: string | null;
+  age: number | null;
+  gender: string | null;
+  nationality: string | null;
+  description: string;
+  summary_line: string | null;
+  images: string[];
+  hourly_rate: number;
+  services_offered: string[];
+  languages: string[];
+  availability: Array<{ label: string; on: boolean; from?: string; to?: string }>;
+  whatsapp_number: string | null;
+  whatsapp_code: string | null;
+  telegram: string | null;
+  media: Array<{ id: string; url: string; kind: "photo" | "video"; sort_order: number }>;
 }
 
 interface PaymentReview {
@@ -62,14 +76,6 @@ interface PaymentReview {
   listings: { title: string }[] | { title: string } | null;
 }
 
-interface RecentMedia {
-  id: string;
-  url: string;
-  kind: string;
-  created_at: string;
-  listings: { title: string }[] | { title: string } | null;
-}
-
 interface AdminDashboardData {
   models: number;
   providers: number;
@@ -79,7 +85,6 @@ interface AdminDashboardData {
   pendingPayments: number;
   listings: ListingReview[];
   payments: PaymentReview[];
-  media: RecentMedia[];
 }
 
 const emptyDashboard: AdminDashboardData = {
@@ -91,7 +96,6 @@ const emptyDashboard: AdminDashboardData = {
   pendingPayments: 0,
   listings: [],
   payments: [],
-  media: [],
 };
 
 function relativeTime(value: string): string {
@@ -151,7 +155,6 @@ export default function AdminModerationDashboard() {
       pendingPaymentsResult,
       listingsResult,
       paymentsResult,
-      mediaResult,
     ] = await Promise.all([
       supabase.from("listings").select("id", { count: "exact", head: true }).eq("kind", "escort"),
       supabase.from("listings").select("id", { count: "exact", head: true }).eq("kind", "service"),
@@ -164,7 +167,7 @@ export default function AdminModerationDashboard() {
       supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "submitted"),
       supabase
         .from("listings")
-        .select("id,title,kind,category,city,neighborhood,verification_status,created_at,cover_image")
+        .select("id,title,kind,category,city,neighborhood,verification_status,created_at,cover_image,images,age,gender,nationality,description,summary_line,hourly_rate,services_offered,languages,availability,whatsapp_number,whatsapp_code,telegram")
         .in("verification_status", ["pending", "under_review"])
         .order("created_at", { ascending: true })
         .limit(30),
@@ -174,11 +177,6 @@ export default function AdminModerationDashboard() {
         .eq("status", "submitted")
         .order("submitted_at", { ascending: true })
         .limit(30),
-      supabase
-        .from("profile_media")
-        .select("id,url,kind,created_at,listings(title)")
-        .order("created_at", { ascending: false })
-        .limit(12),
     ]);
 
     const queryError = [
@@ -190,13 +188,38 @@ export default function AdminModerationDashboard() {
       pendingPaymentsResult.error,
       listingsResult.error,
       paymentsResult.error,
-      mediaResult.error,
     ].find(Boolean);
 
     if (queryError) {
       setLoading(false);
       setError(queryError.message);
       return;
+    }
+
+    const pendingListings = listingsResult.data ?? [];
+    const listingIds = pendingListings.map((listing) => listing.id);
+    const mediaByListing = new Map<string, ListingReview["media"]>();
+    if (listingIds.length > 0) {
+      const { data: media, error: mediaError } = await supabase
+        .from("profile_media")
+        .select("id,url,kind,listing_id,sort_order")
+        .in("listing_id", listingIds)
+        .order("sort_order", { ascending: true });
+      if (mediaError) {
+        setLoading(false);
+        setError(mediaError.message);
+        return;
+      }
+      for (const item of media ?? []) {
+        const listingMedia = mediaByListing.get(item.listing_id) ?? [];
+        listingMedia.push({
+          id: item.id,
+          url: item.url,
+          kind: item.kind === "video" ? "video" : "photo",
+          sort_order: item.sort_order,
+        });
+        mediaByListing.set(item.listing_id, listingMedia);
+      }
     }
 
     setDashboard({
@@ -206,9 +229,16 @@ export default function AdminModerationDashboard() {
       whatsappBookings: whatsappResult.count ?? 0,
       telegramBookings: telegramResult.count ?? 0,
       pendingPayments: pendingPaymentsResult.count ?? 0,
-      listings: (listingsResult.data ?? []) as ListingReview[],
+      listings: pendingListings.map((listing) => ({
+        ...listing,
+        media: mediaByListing.get(listing.id) ?? (listing.images ?? []).map((url: string, index: number) => ({
+          id: `legacy-${listing.id}-${index}`,
+          url,
+          kind: "photo" as const,
+          sort_order: index,
+        })),
+      })) as ListingReview[],
       payments: (paymentsResult.data ?? []) as PaymentReview[],
-      media: (mediaResult.data ?? []) as RecentMedia[],
     });
     setLoading(false);
   }, [router]);
@@ -409,31 +439,6 @@ export default function AdminModerationDashboard() {
                       </div>
                     </Card>
                   </div>
-                  <Card className="rounded-2xl border-slate-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
-                    <div className="mb-4 flex items-center justify-between">
-                      <div><h2 className="font-bold">Recently submitted media</h2><p className="mt-1 text-xs text-muted-foreground">Latest photos and videos from profile listings</p></div>
-                      <ImageIcon className="h-5 w-5 text-[#5b82ff]" />
-                    </div>
-                    {dashboard.media.length === 0 ? (
-                      <EmptyQueue>No profile media has been submitted.</EmptyQueue>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                        {dashboard.media.map((media) => (
-                          <div key={media.id} className="group">
-                            <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-                              {media.kind === "video" ? (
-                                <video src={media.url} controls preload="metadata" className="h-full w-full object-cover" aria-label="Submitted profile video" />
-                              ) : (
-                                <Image src={media.url} alt="" fill unoptimized className="object-cover transition-transform group-hover:scale-105" />
-                              )}
-                            </div>
-                            <p className="mt-1 truncate text-xs font-medium">{(Array.isArray(media.listings) ? media.listings[0] : media.listings)?.title ?? "Profile media"}</p>
-                            <p className="text-xs text-muted-foreground">{media.kind} · {relativeTime(media.created_at)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Card>
                 </TabsContent>
                 <TabsContent value="models" className="mt-0">
                   <AdminManagement canManageAdmins={canManageAdmins} section="listings" listingKindFilter="escort" />
@@ -508,6 +513,48 @@ export default function AdminModerationDashboard() {
                         >
                           <X className="mr-1 h-4 w-4" /> Reject
                         </Button>
+                      </div>
+                    </div>
+                    <div className="mt-5 grid gap-5 border-t border-border pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold">Profile details</h3>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{listing.description || listing.summary_line || "No profile description provided."}</p>
+                        <dl className="grid gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
+                          <div><dt className="text-muted-foreground">Age / gender</dt><dd>{listing.age ? `${listing.age} · ${listing.gender ?? "Not specified"}` : listing.gender ?? "Not applicable"}</dd></div>
+                          <div><dt className="text-muted-foreground">Nationality</dt><dd>{listing.nationality ?? "Not specified"}</dd></div>
+                          <div><dt className="text-muted-foreground">Hourly rate</dt><dd>{formatUGX(listing.hourly_rate || 0)}</dd></div>
+                          <div><dt className="text-muted-foreground">Languages</dt><dd>{listing.languages?.join(", ") || "Not specified"}</dd></div>
+                          <div><dt className="text-muted-foreground">Services</dt><dd>{listing.services_offered?.join(", ") || "Not specified"}</dd></div>
+                          <div><dt className="text-muted-foreground">Availability</dt><dd>{listing.availability?.filter((day) => day.on).map((day) => `${day.label} ${day.from ?? ""}-${day.to ?? ""}`).join(", ") || "Not specified"}</dd></div>
+                          <div><dt className="text-muted-foreground">WhatsApp</dt><dd>{listing.whatsapp_number ? `${listing.whatsapp_code ?? ""} ${listing.whatsapp_number}` : "Not provided"}</dd></div>
+                          {listing.telegram && <div><dt className="text-muted-foreground">Telegram</dt><dd>{listing.telegram}</dd></div>}
+                        </dl>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold">Submitted photos and videos</h3>
+                          <span className="text-xs text-muted-foreground">{listing.media.length} items</span>
+                        </div>
+                        {listing.media.length === 0 ? (
+                          listing.cover_image ? (
+                            <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
+                              <Image src={listing.cover_image} alt={`${listing.title} cover photo`} fill unoptimized className="object-cover" />
+                            </div>
+                          ) : <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">No portfolio media submitted.</p>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            {listing.media.map((media) => (
+                              <div key={media.id} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
+                                {media.kind === "video" ? (
+                                  <video src={media.url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video for ${listing.title}`} />
+                                ) : (
+                                  <Image src={media.url} alt={`Profile photo for ${listing.title}`} fill unoptimized className="object-cover" />
+                                )}
+                                <Badge variant="secondary" className="absolute left-2 top-2 capitalize">{media.kind}</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Card>
