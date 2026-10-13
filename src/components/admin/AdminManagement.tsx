@@ -5,7 +5,7 @@ import { Check, Pencil, Shield, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { formatUGX } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 
@@ -67,12 +67,20 @@ const roleOptions = [
   "super_admin",
 ];
 
+export type AdminManagementSection = "users" | "listings" | "payments" | "subscriptions" | "ads";
+
 function displayName(profile: RelatedProfile) {
   const value = Array.isArray(profile) ? profile[0] : profile;
   return value?.name || value?.email || "Account";
 }
 
-export function AdminManagement({ canManageAdmins }: { canManageAdmins: boolean }) {
+export function AdminManagement({
+  canManageAdmins,
+  section,
+}: {
+  canManageAdmins: boolean;
+  section: AdminManagementSection;
+}) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [listings, setListings] = useState<ManagedListing[]>([]);
   const [payments, setPayments] = useState<ManagedPayment[]>([]);
@@ -307,15 +315,7 @@ export function AdminManagement({ canManageAdmins }: { canManageAdmins: boolean 
   return (
     <section className="space-y-4">
       {error && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{error}</p>}
-      <Tabs defaultValue="users">
-        <TabsList className="mb-4 flex h-auto flex-wrap justify-start gap-1 rounded-2xl bg-muted p-1">
-          <TabsTrigger value="users">Users ({users.length})</TabsTrigger>
-          <TabsTrigger value="listings">Models &amp; providers ({listings.length})</TabsTrigger>
-          <TabsTrigger value="payments">Payments ({payments.length})</TabsTrigger>
-          <TabsTrigger value="subscriptions">Subscriptions ({subscriptions.length})</TabsTrigger>
-          <TabsTrigger value="ads">Ads ({listings.filter((item) => item.is_featured).length})</TabsTrigger>
-        </TabsList>
-
+      <Tabs value={section}>
         <TabsContent value="users" className="space-y-2">
           {users.map((user) => (
             <Card key={user.id} className="flex flex-col justify-between gap-3 rounded-2xl p-4 sm:flex-row sm:items-center">

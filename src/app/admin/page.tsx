@@ -4,12 +4,17 @@ import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  BadgeDollarSign,
   Check,
   CreditCard,
   Image as ImageIcon,
+  List,
   LoaderCircle,
+  Megaphone,
+  ReceiptText,
   ShieldCheck,
   UserCheck,
+  Users,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -316,23 +321,51 @@ export default function AdminModerationDashboard() {
           </div>
 
           <Tabs defaultValue="verifications" className="grid w-full gap-5 md:grid-cols-[220px_minmax(0,1fr)] md:items-start">
-            <TabsList className="mb-0 flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-muted p-2 md:sticky md:top-24 md:flex-col md:items-stretch md:overflow-visible">
+            <TabsList aria-label="Admin modules" className="mb-0 flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-muted p-2 md:sticky md:top-24 md:flex-col md:items-stretch md:overflow-visible">
               <TabsTrigger value="verifications" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
                 <UserCheck className="mr-1.5 h-3.5 w-3.5" />
                 Profile reviews ({dashboard.listings.length})
               </TabsTrigger>
-              <TabsTrigger value="payments" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
+                <TabsTrigger value="payment-reviews" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
                 <CreditCard className="mr-1.5 h-3.5 w-3.5" />
                 Payment reviews ({dashboard.payments.length})
               </TabsTrigger>
-              <TabsTrigger value="management" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-                Manage platform
+                <TabsTrigger value="users" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
+                  <Users className="mr-1.5 h-3.5 w-3.5" />
+                  Users &amp; roles
               </TabsTrigger>
+                <TabsTrigger value="listings" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
+                  <List className="mr-1.5 h-3.5 w-3.5" />
+                  Listings
+                </TabsTrigger>
+                <TabsTrigger value="managed-payments" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
+                  <ReceiptText className="mr-1.5 h-3.5 w-3.5" />
+                  Payment records
+                </TabsTrigger>
+                <TabsTrigger value="subscriptions" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
+                  <BadgeDollarSign className="mr-1.5 h-3.5 w-3.5" />
+                  Subscriptions
+                </TabsTrigger>
+                <TabsTrigger value="ads" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
+                  <Megaphone className="mr-1.5 h-3.5 w-3.5" />
+                  Advertising
+                </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="management">
-              <AdminManagement canManageAdmins={canManageAdmins} />
+            <TabsContent value="users">
+              <AdminManagement canManageAdmins={canManageAdmins} section="users" />
+            </TabsContent>
+            <TabsContent value="listings">
+              <AdminManagement canManageAdmins={canManageAdmins} section="listings" />
+            </TabsContent>
+            <TabsContent value="managed-payments">
+              <AdminManagement canManageAdmins={canManageAdmins} section="payments" />
+            </TabsContent>
+            <TabsContent value="subscriptions">
+              <AdminManagement canManageAdmins={canManageAdmins} section="subscriptions" />
+            </TabsContent>
+            <TabsContent value="ads">
+              <AdminManagement canManageAdmins={canManageAdmins} section="ads" />
             </TabsContent>
 
             <TabsContent value="verifications" className="space-y-3">
@@ -387,7 +420,7 @@ export default function AdminModerationDashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="payments" className="space-y-3">
+            <TabsContent value="payment-reviews" className="space-y-3">
               {dashboard.payments.length === 0 ? (
                 <EmptyQueue>No submitted payments are waiting for review.</EmptyQueue>
               ) : (
