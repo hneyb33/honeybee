@@ -5,15 +5,20 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   BadgeDollarSign,
+  Building2,
   Check,
   CreditCard,
+  FileText,
   Image as ImageIcon,
   List,
   LoaderCircle,
   Megaphone,
+  MessageCircle,
   ReceiptText,
+  Settings2,
   ShieldCheck,
   UserCheck,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -24,6 +29,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatUGX } from "@/lib/utils";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { AdminManagement } from "@/components/admin/AdminManagement";
+import { AdminSitePagesSettings } from "@/components/admin/AdminSitePagesSettings";
+import { AdminBillingSettings } from "@/components/admin/AdminBillingSettings";
 
 type QueueStatus = "pending" | "under_review";
 
@@ -46,6 +53,7 @@ interface PaymentReview {
   period: string;
   provider: string;
   amount: number;
+  merchant_code: string | null;
   payer_phone: string | null;
   transaction_id: string | null;
   submitted_at: string | null;
@@ -162,7 +170,7 @@ export default function AdminModerationDashboard() {
         .limit(30),
       supabase
         .from("payments")
-        .select("id,user_id,plan,period,provider,amount,payer_phone,transaction_id,submitted_at,proof_url,profiles(name,email),listings(title)")
+        .select("id,user_id,plan,period,provider,amount,merchant_code,payer_phone,transaction_id,submitted_at,proof_url,profiles!payments_user_id_fkey(name,email),listings(title)")
         .eq("status", "submitted")
         .order("submitted_at", { ascending: true })
         .limit(30),
@@ -281,23 +289,25 @@ export default function AdminModerationDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
-      <div className="flex flex-col justify-between gap-4 border-b border-border pb-6 sm:flex-row sm:items-center">
-        <div>
-          <Badge variant="vip" className="mb-1 text-xs">
-            <ShieldCheck className="mr-1 h-3 w-3" /> Honeybee Admin
-          </Badge>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-            Platform dashboard
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-            Review listing verification and submitted Mobile Money payments.
-          </p>
-        </div>
-        <Button variant="outline" onClick={signOut} className="rounded-full">
-          Sign out
-        </Button>
-      </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-neutral-950">
+      <div className="mx-auto max-w-[1600px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
+        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5b82ff] text-white">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-display text-lg font-bold tracking-tight">Honeybee</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Administration</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="vip" className="text-xs">
+              <ShieldCheck className="mr-1 h-3 w-3" /> Admin
+            </Badge>
+            <Button variant="outline" onClick={signOut} className="rounded-xl">Sign out</Button>
+          </div>
+        </header>
 
       {error && (
         <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -311,62 +321,147 @@ export default function AdminModerationDashboard() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <StatCard label="Models" value={dashboard.models} />
-            <StatCard label="Private service providers" value={dashboard.providers} />
-            <StatCard label="Profiles awaiting review" value={dashboard.pendingProfiles} />
-            <StatCard label="WhatsApp bookings" value={dashboard.whatsappBookings} />
-            <StatCard label="Telegram bookings" value={dashboard.telegramBookings} />
-            <StatCard label="Payments to review" value={dashboard.pendingPayments} />
+          <section className="relative overflow-hidden rounded-2xl border border-sky-100 bg-sky-50 px-6 py-5 dark:border-sky-900/50 dark:bg-sky-950/30 sm:px-8">
+            <div className="absolute -right-8 -top-20 h-48 w-48 rounded-full bg-sky-200/50 blur-3xl dark:bg-sky-600/10" />
+            <div className="relative flex items-center gap-4">
+                <div className="hidden h-12 w-12 items-center justify-center rounded-full bg-white text-xl shadow-sm dark:bg-neutral-900 sm:flex">🐝</div>
+                <div>
+                  <h1 className="text-lg font-bold text-slate-900 dark:text-white sm:text-xl">Welcome back, Honeybee Admin</h1>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-neutral-300">Your platform overview and moderation activity.</p>
+                </div>
+            </div>
+          </section>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+            <StatCard label="Models" value={dashboard.models} icon={UserRound} tone="teal" />
+            <StatCard label="Service providers" value={dashboard.providers} icon={Building2} tone="rose" />
+            <StatCard label="Profiles to review" value={dashboard.pendingProfiles} icon={UserCheck} tone="sky" />
+            <StatCard label="WhatsApp bookings" value={dashboard.whatsappBookings} icon={MessageCircle} tone="amber" />
+            <StatCard label="Telegram bookings" value={dashboard.telegramBookings} icon={MessageCircle} tone="violet" />
+            <StatCard label="Payments to review" value={dashboard.pendingPayments} icon={CreditCard} tone="rose" />
           </div>
 
-          <Tabs defaultValue="verifications" className="grid w-full gap-5 md:grid-cols-[220px_minmax(0,1fr)] md:items-start">
-            <TabsList aria-label="Admin modules" className="mb-0 flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-muted p-2 md:sticky md:top-24 md:flex-col md:items-stretch md:overflow-visible">
-              <TabsTrigger value="verifications" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                <UserCheck className="mr-1.5 h-3.5 w-3.5" />
-                Profile reviews ({dashboard.listings.length})
-              </TabsTrigger>
-                <TabsTrigger value="payment-reviews" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                Payment reviews ({dashboard.payments.length})
-              </TabsTrigger>
-                <TabsTrigger value="users" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                  <Users className="mr-1.5 h-3.5 w-3.5" />
-                  Users &amp; roles
-              </TabsTrigger>
-                <TabsTrigger value="listings" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                  <List className="mr-1.5 h-3.5 w-3.5" />
-                  Listings
-                </TabsTrigger>
-                <TabsTrigger value="managed-payments" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                  <ReceiptText className="mr-1.5 h-3.5 w-3.5" />
-                  Payment records
-                </TabsTrigger>
-                <TabsTrigger value="subscriptions" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                  <BadgeDollarSign className="mr-1.5 h-3.5 w-3.5" />
-                  Subscriptions
-                </TabsTrigger>
-                <TabsTrigger value="ads" className="justify-start rounded-xl px-3 text-xs font-semibold md:w-full">
-                  <Megaphone className="mr-1.5 h-3.5 w-3.5" />
-                  Advertising
-                </TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="overview" className="grid w-full gap-5 lg:grid-cols-[248px_minmax(0,1fr)] lg:items-start">
+            <aside className="space-y-5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 lg:sticky lg:top-24">
+                <div className="px-3 pt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Home</div>
+                <TabsList aria-label="Dashboard navigation" className="flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl bg-transparent p-0">
+                  <TabsTrigger value="overview" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none">
+                    <List className="mr-2 h-4 w-4" /> Overview
+                  </TabsTrigger>
+                </TabsList>
+                <div className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Reviews</div>
+                <TabsList aria-label="Review modules" className="flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl bg-transparent p-0">
+                  <TabsTrigger value="verifications" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none">
+                    <UserCheck className="mr-2 h-4 w-4" /> Profile reviews <span className="ml-auto text-xs">{dashboard.listings.length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="payment-reviews" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none">
+                    <CreditCard className="mr-2 h-4 w-4" /> Payment reviews <span className="ml-auto text-xs">{dashboard.payments.length}</span>
+                  </TabsTrigger>
+                </TabsList>
+                <div className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Profiles &amp; users</div>
+                <TabsList aria-label="Profile and user modules" className="flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl bg-transparent p-0">
+                  <TabsTrigger value="models" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><UserRound className="mr-2 h-4 w-4" /> Models</TabsTrigger>
+                  <TabsTrigger value="service-providers" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><Building2 className="mr-2 h-4 w-4" /> Service providers</TabsTrigger>
+                  <TabsTrigger value="listings" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><List className="mr-2 h-4 w-4" /> All listings</TabsTrigger>
+                  <TabsTrigger value="users" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><Users className="mr-2 h-4 w-4" /> Users &amp; roles</TabsTrigger>
+                </TabsList>
+                <div className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Payments</div>
+                <TabsList aria-label="Payment modules" className="flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl bg-transparent p-0">
+                  <TabsTrigger value="managed-payments" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><ReceiptText className="mr-2 h-4 w-4" /> Payment records</TabsTrigger>
+                  <TabsTrigger value="subscriptions" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><BadgeDollarSign className="mr-2 h-4 w-4" /> Subscriptions</TabsTrigger>
+                  <TabsTrigger value="billing-settings" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><Settings2 className="mr-2 h-4 w-4" /> Billing settings</TabsTrigger>
+                </TabsList>
+                <div className="px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Platform</div>
+                <TabsList aria-label="Platform modules" className="flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl bg-transparent p-0">
+                  <TabsTrigger value="ads" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><Megaphone className="mr-2 h-4 w-4" /> Advertising</TabsTrigger>
+                  <TabsTrigger value="site-settings" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><FileText className="mr-2 h-4 w-4" /> Site settings</TabsTrigger>
+                </TabsList>
+            </aside>
 
-            <TabsContent value="users">
+            <div className="min-w-0">
+                <TabsContent value="overview" className="mt-0 space-y-5">
+                  <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.8fr)]">
+                    <Card className="rounded-2xl border-slate-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h2 className="font-bold">Platform activity</h2>
+                          <p className="mt-1 text-xs text-muted-foreground">Current review and engagement snapshot</p>
+                        </div>
+                        <Badge variant="secondary">Live totals</Badge>
+                      </div>
+                      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                        <OverviewMetric label="Profile reviews waiting" value={dashboard.pendingProfiles} description="Listings needing moderation" />
+                        <OverviewMetric label="Payments waiting" value={dashboard.pendingPayments} description="Submitted payments to verify" />
+                        <OverviewMetric label="WhatsApp bookings" value={dashboard.whatsappBookings} description="Bookings via WhatsApp" />
+                        <OverviewMetric label="Telegram bookings" value={dashboard.telegramBookings} description="Bookings via Telegram" />
+                      </div>
+                    </Card>
+                    <Card className="rounded-2xl border-slate-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+                      <h2 className="font-bold">Review summary</h2>
+                      <p className="mt-1 text-xs text-muted-foreground">Queues needing admin attention</p>
+                      <div className="mt-5 space-y-4">
+                        <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-neutral-800">
+                          <span className="text-sm font-medium">Profile verification</span><Badge variant="secondary">{dashboard.listings.length}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-neutral-800">
+                          <span className="text-sm font-medium">Payment verification</span><Badge variant="secondary">{dashboard.payments.length}</Badge>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                  <Card className="rounded-2xl border-slate-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div><h2 className="font-bold">Recently submitted media</h2><p className="mt-1 text-xs text-muted-foreground">Latest photos and videos from profile listings</p></div>
+                      <ImageIcon className="h-5 w-5 text-[#5b82ff]" />
+                    </div>
+                    {dashboard.media.length === 0 ? (
+                      <EmptyQueue>No profile media has been submitted.</EmptyQueue>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+                        {dashboard.media.map((media) => (
+                          <div key={media.id} className="group">
+                            <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                              {media.kind === "video" ? (
+                                <video src={media.url} controls preload="metadata" className="h-full w-full object-cover" aria-label="Submitted profile video" />
+                              ) : (
+                                <Image src={media.url} alt="" fill unoptimized className="object-cover transition-transform group-hover:scale-105" />
+                              )}
+                            </div>
+                            <p className="mt-1 truncate text-xs font-medium">{(Array.isArray(media.listings) ? media.listings[0] : media.listings)?.title ?? "Profile media"}</p>
+                            <p className="text-xs text-muted-foreground">{media.kind} · {relativeTime(media.created_at)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                </TabsContent>
+                <TabsContent value="models" className="mt-0">
+                  <AdminManagement canManageAdmins={canManageAdmins} section="listings" listingKindFilter="escort" />
+                </TabsContent>
+                <TabsContent value="service-providers" className="mt-0">
+                  <AdminManagement canManageAdmins={canManageAdmins} section="listings" listingKindFilter="service" />
+                </TabsContent>
+                <TabsContent value="users" className="mt-0">
               <AdminManagement canManageAdmins={canManageAdmins} section="users" />
             </TabsContent>
-            <TabsContent value="listings">
+                <TabsContent value="listings" className="mt-0">
               <AdminManagement canManageAdmins={canManageAdmins} section="listings" />
             </TabsContent>
-            <TabsContent value="managed-payments">
+                <TabsContent value="managed-payments" className="mt-0">
               <AdminManagement canManageAdmins={canManageAdmins} section="payments" />
             </TabsContent>
-            <TabsContent value="subscriptions">
+                <TabsContent value="subscriptions" className="mt-0">
               <AdminManagement canManageAdmins={canManageAdmins} section="subscriptions" />
             </TabsContent>
-            <TabsContent value="ads">
-              <AdminManagement canManageAdmins={canManageAdmins} section="ads" />
+                <TabsContent value="billing-settings" className="mt-0">
+                  <AdminBillingSettings />
             </TabsContent>
+                <TabsContent value="ads" className="mt-0">
+                  <AdminManagement canManageAdmins={canManageAdmins} section="ads" />
+            </TabsContent>
+                <TabsContent value="site-settings" className="mt-0">
+                  <AdminSitePagesSettings />
+                </TabsContent>
 
             <TabsContent value="verifications" className="space-y-3">
               {dashboard.listings.length === 0 ? (
@@ -445,6 +540,9 @@ export default function AdminModerationDashboard() {
                           Phone: {payment.payer_phone ?? "—"} · Transaction: {payment.transaction_id ?? "—"}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
+                          Merchant code: {payment.merchant_code ?? "—"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
                           Submitted {payment.submitted_at ? relativeTime(payment.submitted_at) : "—"}
                         </p>
                         {payment.proof_url && (
@@ -486,45 +584,49 @@ export default function AdminModerationDashboard() {
                 ))
               )}
             </TabsContent>
-          </Tabs>
-
-          <section className="space-y-3 border-t border-border pt-6">
-            <div>
-              <h2 className="flex items-center gap-2 text-lg font-bold">
-                <ImageIcon className="h-5 w-5 text-airbnb-coral" /> Recently submitted media
-              </h2>
-              <p className="text-xs text-muted-foreground">Latest photos and videos added to provider profiles.</p>
             </div>
-            {dashboard.media.length === 0 ? (
-              <EmptyQueue>No profile media has been submitted.</EmptyQueue>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                {dashboard.media.map((media) => (
-                  <div key={media.id} className="group">
-                    <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-                      <Image src={media.url} alt="" fill unoptimized className="object-cover transition-transform group-hover:scale-105" />
-                    </div>
-                    <p className="mt-1 truncate text-xs font-medium">
-                      {(Array.isArray(media.listings) ? media.listings[0] : media.listings)?.title ?? "Profile media"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{media.kind} · {relativeTime(media.created_at)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          </Tabs>
         </>
       )}
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "teal" | "rose" | "sky" | "amber" | "violet";
+}) {
+  const tones = {
+    teal: "bg-teal-50 text-teal-600 dark:bg-teal-950/30 dark:text-teal-300",
+    rose: "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-300",
+    sky: "bg-sky-50 text-sky-600 dark:bg-sky-950/30 dark:text-sky-300",
+    amber: "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-300",
+    violet: "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-300",
+  };
   return (
-    <Card className="rounded-2xl p-5 shadow-sm">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-2 text-3xl font-extrabold tracking-tight">{value.toLocaleString()}</p>
+    <Card className={`rounded-2xl border-0 p-4 shadow-sm ${tones[tone]}`}>
+      <Icon className="h-5 w-5" />
+      <p className="mt-3 text-xs font-semibold">{label}</p>
+      <p className="mt-1 text-2xl font-extrabold tracking-tight">{value.toLocaleString()}</p>
     </Card>
+  );
+}
+
+function OverviewMetric({ label, value, description }: { label: string; value: number; description: string }) {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-neutral-800 dark:bg-neutral-800/70">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-bold">{value.toLocaleString()}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{description}</p>
+    </div>
   );
 }
 

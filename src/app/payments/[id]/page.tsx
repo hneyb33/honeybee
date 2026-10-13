@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatUGX } from "@/lib/utils";
@@ -28,8 +28,11 @@ function PaymentContent() {
   const plan = searchParams.get("plan") || "";
   const period = searchParams.get("period");
   const listingId = searchParams.get("listing_id");
-  const amount = PLAN_PRICES[plan] ?? 0;
-  const planError = amount === 0 || period !== "monthly"
+  const [amount, setAmount] = useState(0);
+  const [merchantCode, setMerchantCode] = useState("");
+  const [configurationLoading, setConfigurationLoading] = useState(true);
+  const [configurationError, setConfigurationError] = useState("");
+  const planError = !PLAN_PRICES[plan] || period !== "monthly"
     ? "This payment plan is invalid or incomplete."
     : (plan === "advertiser_premium") !== Boolean(listingId)
       ? "Choose the Advertising plan with a listing, or select a non-ad membership."
@@ -42,6 +45,67 @@ function PaymentContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      setConfigurationError("Payment settings are unavailable until Supabase is configured.");
+      setConfigurationLoading(false);
+      return;
+    }
+    if (planError) {
+      setConfigurationError("");
+      setConfigurationLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setConfigurationLoading(true);
+    setConfigurationError("");
+    const providerId = provider === "mtn" ? "mtn_momo" : "airtel_money";
+
+    const loadConfiguration = async () => {
+      const [planResult, providerResult] = await Promise.all([
+        client
+          .from("subscription_plan_prices")
+          .select("amount,currency,is_active")
+          .eq("plan", plan)
+          .maybeSingle(),
+        client
+          .from("payment_provider_settings")
+          .select("merchant_code")
+          .eq("provider", providerId)
+          .maybeSingle(),
+      ]);
+
+      if (cancelled) return;
+      const queryError = planResult.error ?? providerResult.error;
+      if (queryError) {
+        setConfigurationError(queryError.message);
+        setConfigurationLoading(false);
+        return;
+      }
+      if (!planResult.data || !planResult.data.is_active || planResult.data.currency !== "UGX") {
+        setConfigurationError("This subscription plan is unavailable. Return to subscriptions to choose another plan.");
+        setConfigurationLoading(false);
+        return;
+      }
+      if (!providerResult.data?.merchant_code.trim()) {
+        setConfigurationError(`The ${provider === "mtn" ? "MTN MoMo" : "Airtel Money"} merchant code has not been configured.`);
+        setConfigurationLoading(false);
+        return;
+      }
+
+      setAmount(planResult.data.amount);
+      setMerchantCode(providerResult.data.merchant_code);
+      setConfigurationLoading(false);
+    };
+
+    void loadConfiguration();
+    return () => {
+      cancelled = true;
+    };
+  }, [plan, planError, provider]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -49,8 +113,8 @@ function PaymentContent() {
       setError("Payments are unavailable until Supabase is configured.");
       return;
     }
-    if (planError) {
-      setError(planError);
+    if (planError || configurationLoading || configurationError || amount <= 0) {
+      setError(planError || configurationError || "Payment settings are still loading.");
       return;
     }
 
@@ -69,6 +133,7 @@ function PaymentContent() {
       period,
       provider: provider === "mtn" ? "mtn_momo" : "airtel_money",
       amount,
+      merchant_code: merchantCode,
       payer_phone: payerPhone.trim(),
       transaction_id: transactionId.trim(),
       status: "submitted",
@@ -109,10 +174,12 @@ function PaymentContent() {
                 {listingId ? "Advertising placement" : plan.replaceAll("_", " ")} ({period})
               </h4>
             </div>
-            {planError && !submitted && <p role="alert" className="text-sm text-destructive">{planError}</p>}
+            {!submitted && (planError || configurationError) && (
+              <p role="alert" className="text-sm text-destructive">{planError || configurationError}</p>
+            )}
             <div className="text-right">
               <span className="text-xl font-extrabold text-airbnb-coral">
-                {formatUGX(amount)}
+                {configurationLoading ? "Loading price..." : formatUGX(amount)}
               </span>
             </div>
           </div>
@@ -192,7 +259,7 @@ function PaymentContent() {
                 </p>
                 <p>
                   1. Transfer <strong>{formatUGX(amount)}</strong> to Honeybee Merchant Code:{" "}
-                  <strong>600492</strong> (Name: <strong>Honeybee Services</strong>).
+                  <strong>{merchantCode || "Not configured"}</strong> (Name: <strong>Honeybee Services</strong>).
                 </p>
                 <p>
                   2. Wait for SMS confirmation from {provider === "mtn" ? "MTN MoMo" : "Airtel Money"}.
@@ -235,7 +302,7 @@ function PaymentContent() {
               )}
               <Button
                 type="submit"
-                disabled={submitting || !amount || Boolean(planError)}
+                disabled={submitting || configurationLoading || !amount || Boolean(planError || configurationError)}
                 className="w-full h-12 rounded-2xl bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md"
               >
                 {submitting ? "Submitting payment..." : "Submit Payment for Verification"}

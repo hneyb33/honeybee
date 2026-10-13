@@ -142,10 +142,58 @@ type OwnedListing = { id: string; title: string; kind: string; verification_stat
 function SubscribeContent() {
   const searchParams = useSearchParams();
   const requestedListingId = searchParams.get("listing_id") ?? "";
+  const [planPrices, setPlanPrices] = useState<Record<string, number>>(
+    Object.fromEntries(plans.map((plan) => [plan.id, plan.price]))
+  );
+  const [activePlans, setActivePlans] = useState<Set<string>>(new Set(plans.map((plan) => plan.id)));
+  const [pricingLoading, setPricingLoading] = useState(true);
+  const [pricingError, setPricingError] = useState("");
   const [listings, setListings] = useState<OwnedListing[]>([]);
   const [selectedListingId, setSelectedListingId] = useState(requestedListingId);
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listingsError, setListingsError] = useState("");
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      setPricingError("Subscription pricing is unavailable until Supabase is configured.");
+      setPricingLoading(false);
+      setActivePlans(new Set());
+      return;
+    }
+    let cancelled = false;
+
+    const loadPlanPrices = async () => {
+      const { data, error } = await client
+        .from("subscription_plan_prices")
+        .select("plan,amount,currency,is_active");
+      if (cancelled) return;
+      if (error) {
+        setPricingError(error.message);
+        setPricingLoading(false);
+        setActivePlans(new Set());
+        return;
+      }
+
+      const nextPrices: Record<string, number> = {};
+      const nextActivePlans = new Set<string>();
+      for (const row of data ?? []) {
+        if (row.currency === "UGX" && Number.isSafeInteger(row.amount) && row.amount > 0) {
+          nextPrices[row.plan] = row.amount;
+          if (row.is_active) nextActivePlans.add(row.plan);
+        }
+      }
+      setPlanPrices(nextPrices);
+      setActivePlans(nextActivePlans);
+      setPricingError("");
+      setPricingLoading(false);
+    };
+
+    void loadPlanPrices();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setSelectedListingId(requestedListingId);
@@ -228,6 +276,7 @@ function SubscribeContent() {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f17d83]">Simple monthly pricing</p>
             <h2 id="plans-heading" className="mt-1 font-display text-2xl font-semibold sm:text-3xl">Five plans. One clear next step.</h2>
           </div>
+          {pricingError && <p role="alert" className="mb-5 rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-200">Could not load current subscription fees: {pricingError}</p>}
           <p className="text-xs text-neutral-400">All prices are in UGX and cover one month.</p>
         </div>
 
@@ -242,8 +291,11 @@ function SubscribeContent() {
             const style = accentStyles[plan.accent];
             const Icon = plan.icon;
             const activeListing = listings.find((listing) => listing.id === selectedListingId);
+            const planIsAvailable = activePlans.has(plan.id) && planPrices[plan.id] !== undefined;
             const needsListingSelection = plan.requiresListing && !selectedListingId;
             const checkoutDisabled =
+              pricingLoading ||
+              !planIsAvailable ||
               (plan.requiresListing && (listingsLoading || listings.length === 0 || needsListingSelection)) ||
               (plan.requiresListing && !!selectedListingId && !activeListing);
 
@@ -263,7 +315,7 @@ function SubscribeContent() {
                   <h3 className="mt-5 text-xl font-bold">{plan.name}</h3>
                   <p className="mt-2 min-h-10 text-sm leading-5 text-neutral-400">{plan.description}</p>
                   <div className="mt-5 border-b border-neutral-800 pb-5">
-                    <span className="text-3xl font-extrabold tracking-tight">{formatUGX(plan.price)}</span>
+                    <span className="text-3xl font-extrabold tracking-tight">{pricingLoading ? "Loading..." : planIsAvailable ? formatUGX(planPrices[plan.id]) : "Unavailable"}</span>
                     <span className="ml-1 text-sm text-neutral-400">/ month</span>
                   </div>
 
@@ -314,7 +366,13 @@ function SubscribeContent() {
                   </ul>
                   {checkoutDisabled ? (
                     <Button disabled className="h-11 w-full rounded-xl bg-neutral-800 text-neutral-500">
-                      {listingsLoading && plan.requiresListing ? "Loading listings…" : "Select a listing first"}
+                      {pricingLoading
+                        ? "Loading subscription fees…"
+                        : !planIsAvailable
+                          ? "Plan unavailable"
+                          : listingsLoading && plan.requiresListing
+                            ? "Loading listings…"
+                            : "Select a listing first"}
                     </Button>
                   ) : (
                     <Link href={paymentHref(plan)} className="mt-auto block">

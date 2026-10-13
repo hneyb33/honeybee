@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, FileText, Send, Mail } from "lucide-react";
+import { Shield, FileText, Send, Mail, HelpCircle, ShieldAlert, MessageCircle } from "lucide-react";
 
 export function Footer() {
   return (
@@ -28,6 +28,13 @@ export function Footer() {
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-medium sm:text-sm">
           <Link
+            href="/faqs"
+            className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground hover:underline"
+          >
+            <HelpCircle className="h-4 w-4" />
+            FAQs
+          </Link>
+          <Link
             href="/privacy"
             className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground hover:underline"
           >
@@ -40,6 +47,20 @@ export function Footer() {
           >
             <FileText className="h-4 w-4" />
             Terms of Service
+          </Link>
+          <Link
+            href="/disclaimer"
+            className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground hover:underline"
+          >
+            <ShieldAlert className="h-4 w-4" />
+            Disclaimer
+          </Link>
+          <Link
+            href="/contact"
+            className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground hover:underline"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Contact
           </Link>
           <a
             href="https://t.me/honeybee"
