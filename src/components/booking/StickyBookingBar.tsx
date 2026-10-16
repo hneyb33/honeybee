@@ -15,9 +15,19 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
-  // WhatsApp Pre-filled URL
-  const whatsappUrl = listing.whatsapp_number
-    ? `https://wa.me/${listing.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent(
+  const contactDigits = listing.whatsapp_number?.replace(/\D/g, "") ?? "";
+  const countryDigits = listing.whatsapp_code?.replace(/\D/g, "") || "256";
+  const phoneDigits = contactDigits
+    ? contactDigits.startsWith("00")
+      ? contactDigits.slice(2)
+      : contactDigits.startsWith(countryDigits)
+        ? contactDigits
+        : `${countryDigits}${contactDigits.startsWith("0") ? contactDigits.slice(1) : contactDigits}`
+    : "";
+
+  // WhatsApp requires the full international number without a leading plus.
+  const whatsappUrl = phoneDigits
+    ? `https://wa.me/${phoneDigits}?text=${encodeURIComponent(
         `Hello ${listing.title}, I saw your verified profile on Honeybee and would like to inquire about booking.`
       )}`
     : null;
@@ -26,11 +36,6 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
   const telegramUrl = listing.telegram
     ? `https://t.me/${listing.telegram.replace("@", "")}`
     : null;
-  const contactDigits = listing.whatsapp_number?.replace(/\D/g, "");
-  const countryDigits = listing.whatsapp_code?.replace(/\D/g, "") ?? "";
-  const phoneDigits = contactDigits?.startsWith("0") && countryDigits
-    ? `${countryDigits}${contactDigits.slice(1)}`
-    : contactDigits;
   const callUrl = phoneDigits ? `tel:+${phoneDigits}` : null;
 
   return (

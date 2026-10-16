@@ -209,45 +209,6 @@ export default function HomePage() {
 
   return (
     <div className="w-full">
-      <section className="relative overflow-hidden border-b border-neutral-800 bg-[#090909]">
-        <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full bg-[#d3444d]/20 blur-3xl" />
-        <div className="absolute -bottom-44 left-[38%] h-80 w-80 rounded-full bg-white/[0.04] blur-3xl" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-12 lg:py-20">
-          <div className="relative z-10">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900 px-3.5 py-2 text-xs font-semibold tracking-wide text-rose-300 shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-[#d3444d]" />
-              LOCAL PEOPLE. A MORE PERSONAL KIND OF SERVICE.
-            </div>
-            <h1 className="max-w-2xl font-display text-4xl font-semibold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.65rem]">
-              Find your kind of{" "}
-              <span className="italic text-[#e45b63]">good</span>
-              , right around the corner.
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-7 text-neutral-300 sm:text-lg">
-              Discover trusted companions and independent specialists across Uganda. Clear profiles, upfront rates, and real local connections.
-            </p>
-
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-neutral-400">
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="h-4 w-4 text-[#e45b63]" />
-                Verified profiles
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <BadgeCheck className="h-4 w-4 text-[#e45b63]" />
-                Clear pricing
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Handshake className="h-4 w-4 text-[#e45b63]" />
-                Local connections
-              </span>
-            </div>
-          </div>
-
-          <div className="relative mx-auto w-full max-w-[530px]">
-            <FeaturedAdsCarousel listings={featuredAds} />
-          </div>
-        </div>
-      </section>
 
       <OnlineNowStrip listings={onlineListings} />
 

@@ -15,11 +15,11 @@ export function Footer() {
               width={180}
               height={59}
               sizes="(max-width: 639px) 148px, 180px"
-              className="h-[49px] w-[148px] rounded-md border border-red-500 object-contain sm:h-[59px] sm:w-[180px]"
+              className="h-[49px] w-[148px] object-contain sm:h-[59px] sm:w-[180px]"
             />
           </Link>
           <p className="text-sm leading-6 text-muted-foreground">
-            A more thoughtful way to find trusted people and independent services across Uganda.
+            A more thoughtful way to find trusted models and independent services across Uganda.
           </p>
           <p className="pt-1 text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Honeybee. Strictly 18+. All rights reserved.

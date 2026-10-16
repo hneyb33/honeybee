@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import {
   Compass,
   LayoutDashboard,
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
 
 export function Header() {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
 
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
@@ -80,6 +82,15 @@ export function Header() {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Could not sign out:", error.message);
   };
+
+  const directoryLinks = [
+    { href: "/escort-images", label: "Escort Images" },
+    { href: "/escort-videos", label: "Escort Videos" },
+    { href: "/telegram-links", label: "Telegram Links" },
+    { href: "/agencies", label: "Agencies" },
+    { href: "/classified-ads", label: "Classified ads" },
+    { href: "/about-us", label: "About Us" },
+  ];
 
   return (
     <header
@@ -227,6 +238,27 @@ export function Header() {
           </DropdownMenu>
         </div>
       </div>
+      <nav aria-label="Directories and information" className="border-t border-border/60">
+        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-3 py-2 no-scrollbar sm:justify-center sm:gap-2 sm:px-8">
+          {directoryLinks.map(({ href, label }) => {
+            const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold transition-colors sm:px-4 ${
+                  isActive
+                    ? "bg-rose-950/60 text-rose-200"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </header>
   );
 }

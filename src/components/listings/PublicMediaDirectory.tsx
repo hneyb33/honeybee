@@ -13,6 +13,9 @@ type MediaItem = {
   listing_id: string;
   title: string;
   slug: string;
+  kind: string;
+  category: string;
+  advertiser_type: string | null;
 };
 
 export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
@@ -34,7 +37,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
     const loadMedia = async () => {
       const { data: listings, error: listingsError } = await client
         .from("listings")
-        .select("id,title,slug")
+        .select("id,title,slug,kind,category,advertiser_type")
         .eq("verification_status", "verified");
 
       if (listingsError) {
@@ -76,7 +79,14 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
           (media ?? []).flatMap((item) => {
             const listing = listingById.get(item.listing_id);
             return listing
-              ? [{ ...item, title: listing.title, slug: listing.slug }]
+              ? [{
+                  ...item,
+                  title: listing.title,
+                  slug: listing.slug,
+                  kind: listing.kind,
+                  category: listing.category,
+                  advertiser_type: listing.advertiser_type,
+                }]
               : [];
           })
         );
@@ -125,11 +135,20 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
                     <Image src={item.url} alt={`Photo from ${item.title}`} fill unoptimized sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
                   </div>
                 )}
-                <div className="flex items-center justify-between gap-2 px-3 py-3">
+                <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
                   <span className="truncate text-sm font-semibold text-foreground">{item.title}</span>
                   <ArrowRight className="h-4 w-4 shrink-0 text-[#f17d83]" />
                 </div>
               </Link>
+              <div className="px-3 pb-3">
+                <span className="inline-flex rounded-full border border-neutral-700 px-2 py-1 text-[10px] font-semibold capitalize text-neutral-300">
+                  {item.kind === "service"
+                    ? "Specialist"
+                    : item.advertiser_type === "agency"
+                      ? "Agency"
+                      : item.category}
+                </span>
+              </div>
             </Card>
           ))}
         </div>
