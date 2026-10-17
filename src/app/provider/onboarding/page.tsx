@@ -482,8 +482,9 @@ export default function ProviderOnboardingPage() {
         url: item.url,
         kind: item.kind,
         sort_order: existingMedia.length + index,
+        processing_status: item.kind === "video" ? "pending" : "ready",
         ...(item.kind === "video"
-          ? { original_url: item.url, source_path: item.path, processing_status: "pending" }
+          ? { original_url: item.url, source_path: item.path }
           : {}),
       }));
       const { error: mediaError } = await supabase.from("profile_media").insert(mediaRows);

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
-import { Grid } from "lucide-react";
+import { ChevronLeft, ChevronRight, Grid } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface PhotoMosaicProps {
@@ -18,21 +18,6 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
 
   const displayImages = images.length > 0 ? images : ["/images/footer_bg.jpeg"];
 
-  useEffect(() => {
-    const track = mobileTrackRef.current;
-    if (!track || displayImages.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      const nextIndex = (activeMobileIndex + 1) % displayImages.length;
-      track.scrollTo({ left: nextIndex * track.clientWidth, behavior: "smooth" });
-      setActiveMobileIndex(nextIndex);
-    }, 5000);
-
-    return () => window.clearInterval(interval);
-  }, [activeMobileIndex, displayImages.length]);
-
   const handleOpenPhoto = (img: string) => {
     setSelectedPhoto(img);
     setModalOpen(true);
@@ -42,26 +27,50 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
     <div className="relative w-full">
       {/* Mobile Slider */}
       <div
-        ref={mobileTrackRef}
-        onScroll={(event) => {
-          const track = event.currentTarget;
-          if (track.clientWidth > 0) setActiveMobileIndex(Math.round(track.scrollLeft / track.clientWidth));
-        }}
-        className="relative flex aspect-[4/4.5] w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-2xl no-scrollbar md:hidden"
+        className="relative aspect-[4/4.5] w-full overflow-hidden rounded-2xl md:hidden"
         aria-label={`${title} photos`}
       >
-        {displayImages.map((image, index) => (
-          <div key={`${image}-${index}`} className="relative h-full w-full shrink-0 snap-center">
-            <Image
-              src={image}
-              alt={`${title} photo ${index + 1}`}
-              fill
-              sizes="100vw"
-              className="object-cover"
-              priority={index === 0}
-            />
-          </div>
-        ))}
+        <div
+          ref={mobileTrackRef}
+          onScroll={(event) => {
+            const track = event.currentTarget;
+            if (track.clientWidth > 0) setActiveMobileIndex(Math.round(track.scrollLeft / track.clientWidth));
+          }}
+          className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden no-scrollbar"
+        >
+          {displayImages.map((image, index) => (
+            <div key={`${image}-${index}`} className="relative h-full w-full shrink-0 snap-center">
+              <Image
+                src={image}
+                alt={`${title} photo ${index + 1}`}
+                fill
+                sizes="100vw"
+                className="object-cover"
+                priority={index === 0}
+              />
+            </div>
+          ))}
+        </div>
+        {displayImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => mobileTrackRef.current?.scrollBy({ left: -(mobileTrackRef.current.clientWidth), behavior: "smooth" })}
+              aria-label="Previous profile photo"
+              className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => mobileTrackRef.current?.scrollBy({ left: mobileTrackRef.current.clientWidth, behavior: "smooth" })}
+              aria-label="Next profile photo"
+              className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
         {displayImages.length > 1 && (
           <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1.5 backdrop-blur">
             {displayImages.map((_, index) => (

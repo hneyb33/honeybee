@@ -1,5 +1,9 @@
+"use client";
+
+import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Listing } from "@/lib/supabase/types";
 
 interface OnlineNowStripProps {
@@ -7,6 +11,8 @@ interface OnlineNowStripProps {
 }
 
 export function OnlineNowStrip({ listings }: OnlineNowStripProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+
   return (
     <section aria-label="Models and service providers online now" className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
       <div className="mb-4 flex items-end justify-between gap-3">
@@ -14,14 +20,26 @@ export function OnlineNowStrip({ listings }: OnlineNowStripProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#e45b63]">Here right now</p>
           <h2 className="mt-1 text-lg font-bold text-foreground sm:text-xl">Models &amp; service providers online</h2>
         </div>
-        <span className="shrink-0 text-xs text-muted-foreground">{listings.length} online</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-xs text-muted-foreground">{listings.length} online</span>
+          {listings.length > 1 && (
+            <>
+              <button type="button" onClick={() => trackRef.current?.scrollBy({ left: -trackRef.current.clientWidth, behavior: "smooth" })} aria-label="Previous online profiles" className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => trackRef.current?.scrollBy({ left: trackRef.current.clientWidth, behavior: "smooth" })} aria-label="Next online profiles" className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
       {listings.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/50 px-4 py-5 text-sm text-neutral-400">
           No profiles are online right now. Check back soon.
         </p>
       ) : (
-        <div className="flex gap-5 overflow-x-auto pb-2 no-scrollbar">
+        <div ref={trackRef} className="flex gap-5 overflow-x-auto pb-2 no-scrollbar">
           {listings.map((listing) => (
             <Link
               key={listing.id}

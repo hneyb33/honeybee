@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,6 +14,8 @@ import {
   Check,
   Globe2,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { Listing } from "@/lib/supabase/types";
@@ -40,6 +42,7 @@ export default function ProfileDetailPage() {
   const [copied, setCopied] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
+  const videoReelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,13 +246,30 @@ export default function ProfileDetailPage() {
       <section aria-label="Profile photo gallery">
         <PhotoMosaic images={listing.images} title={listing.title} />
       </section>
-      {profileVideos.length > 0 && (
-        <section className="mt-8 space-y-4" aria-labelledby="profile-videos-heading">
+      <section className="mt-8 space-y-4" aria-labelledby="profile-videos-heading">
+        <div className="flex items-end justify-between gap-3">
           <div>
             <h2 id="profile-videos-heading" className="text-xl font-bold text-foreground">Profile video reel</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Swipe to browse videos from this verified profile.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {profileVideos.length > 0
+                ? "Swipe or use the arrows to browse videos from this verified profile."
+                : "No videos have been added to this profile yet."}
+            </p>
           </div>
+          {profileVideos.length > 1 && (
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={() => videoReelRef.current?.scrollBy({ left: -videoReelRef.current.clientWidth, behavior: "smooth" })} aria-label="Previous profile video" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => videoReelRef.current?.scrollBy({ left: videoReelRef.current.clientWidth, behavior: "smooth" })} aria-label="Next profile video" className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+        {profileVideos.length > 0 ? (
           <div
+            ref={videoReelRef}
             className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-3 no-scrollbar sm:gap-4"
             aria-label={`${listing.title} video reel`}
           >
@@ -273,8 +293,12 @@ export default function ProfileDetailPage() {
               </div>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            This profile does not have any videos to show yet.
+          </p>
+        )}
+      </section>
 
       {/* Profile Information & Highlights */}
       <div className="mt-8 border-b border-border pb-8">

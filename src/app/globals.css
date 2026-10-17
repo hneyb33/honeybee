@@ -103,24 +103,3 @@
 .hb-transition {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-@keyframes featured-ads-scroll {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.featured-ads-track {
-  animation: featured-ads-scroll 36s linear infinite;
-}
-
-.featured-ads-mask:hover .featured-ads-track,
-.featured-ads-mask:focus-within .featured-ads-track {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .featured-ads-track {
-    animation: none;
-  }
-}
