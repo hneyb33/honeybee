@@ -371,7 +371,7 @@ export function AdminListingDialog({
                     return (
                       <div key={String(row.id ?? index)} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
                         {kind === "video" ? (
-                          <video src={url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
+                          <video src={url} poster={typeof row.thumbnail_url === "string" ? row.thumbnail_url : undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
                         ) : (
                           <Image src={url} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
                         )}

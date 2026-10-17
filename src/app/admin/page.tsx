@@ -57,7 +57,7 @@ interface ListingReview {
   whatsapp_number: string | null;
   whatsapp_code: string | null;
   telegram: string | null;
-  media: Array<{ id: string; url: string; kind: "photo" | "video"; sort_order: number }>;
+  media: Array<{ id: string; url: string; kind: "photo" | "video"; sort_order: number; thumbnail_url: string | null }>;
 }
 
 interface PaymentReview {
@@ -202,7 +202,7 @@ export default function AdminModerationDashboard() {
     if (listingIds.length > 0) {
       const { data: media, error: mediaError } = await supabase
         .from("profile_media")
-        .select("id,url,kind,listing_id,sort_order")
+        .select("id,url,kind,listing_id,sort_order,thumbnail_url")
         .in("listing_id", listingIds)
         .order("sort_order", { ascending: true });
       if (mediaError) {
@@ -217,6 +217,7 @@ export default function AdminModerationDashboard() {
           url: item.url,
           kind: item.kind === "video" ? "video" : "photo",
           sort_order: item.sort_order,
+          thumbnail_url: item.thumbnail_url,
         });
         mediaByListing.set(item.listing_id, listingMedia);
       }
@@ -546,7 +547,7 @@ export default function AdminModerationDashboard() {
                             {listing.media.map((media) => (
                               <div key={media.id} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
                                 {media.kind === "video" ? (
-                                  <video src={media.url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video for ${listing.title}`} />
+                                  <video src={media.url} poster={media.thumbnail_url ?? undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video for ${listing.title}`} />
                                 ) : (
                                   <Image src={media.url} alt={`Profile photo for ${listing.title}`} fill unoptimized className="object-cover" />
                                 )}

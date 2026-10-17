@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase/client";
 type MediaItem = {
   id: string;
   url: string;
+  thumbnail_url: string | null;
   listing_id: string;
   title: string;
   slug: string;
@@ -60,7 +61,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
 
       const { data: media, error: mediaError } = await client
         .from("profile_media")
-        .select("id,url,listing_id")
+        .select("id,url,thumbnail_url,listing_id")
         .eq("kind", kind)
         .in("listing_id", listingIds)
         .order("created_at", { ascending: false })
@@ -127,18 +128,26 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
           {items.map((item) => (
             <Card key={item.id} className="overflow-hidden rounded-2xl border-neutral-800 bg-[#101211]">
-              <Link href={`/profiles/${item.slug}`} className="group block">
-                {isVideo ? (
-                  <video src={item.url} controls preload="metadata" className="aspect-[3/4] w-full bg-black object-cover" aria-label={`Video from ${item.title}`} />
-                ) : (
+              {isVideo ? (
+                <video
+                  src={item.url}
+                  poster={item.thumbnail_url ?? undefined}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="aspect-[3/4] w-full bg-black object-cover"
+                  aria-label={`Video from ${item.title}`}
+                />
+              ) : (
+                <Link href={`/profiles/${item.slug}`} className="group block">
                   <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900">
                     <Image src={item.url} alt={`Photo from ${item.title}`} fill unoptimized sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
                   </div>
-                )}
-                <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
-                  <span className="truncate text-sm font-semibold text-foreground">{item.title}</span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-[#f17d83]" />
-                </div>
+                </Link>
+              )}
+              <Link href={`/profiles/${item.slug}`} className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
+                <span className="truncate text-sm font-semibold text-foreground">{item.title}</span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-[#f17d83]" />
               </Link>
               <div className="px-3 pb-3">
                 <span className="inline-flex rounded-full border border-neutral-700 px-2 py-1 text-[10px] font-semibold capitalize text-neutral-300">

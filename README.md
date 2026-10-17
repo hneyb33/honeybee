@@ -27,7 +27,7 @@ Uganda's verified platform for private specialists, culinary masters, and compan
 - **Multi-Step Onboarding Wizard (`/provider/onboarding`)**:
   - Resumable five-step flows for models, agencies, and home-service providers.
   - City/neighbourhood selectors, choice controls, availability, UGX rate increments, profile details, and required portfolio upload of at least one photo and one video (up to 9 photos and 3 videos).
-  - JPEG, PNG, and WebP photos (10 MB each) and MP4, WebM, and QuickTime videos (100 MB each) are submitted together for profile review.
+  - JPEG, PNG, and WebP photos (10 MB each) and MP4, WebM, and QuickTime videos (100 MB each) are submitted together for profile review. H.264 MP4 is recommended for mobile playback; WebM and QuickTime support varies by device.
   - Provider-owned drafts stay private until admin verification; verified profiles load from Supabase on their public profile page.
 - **Admin Moderation & Audit Queue (`/admin`)**:
   - Supabase Auth sign-in restricted to administrator and moderator roles.
@@ -36,7 +36,7 @@ Uganda's verified platform for private specialists, culinary masters, and compan
   - Dashboard counts for profiles, bookings, and payments.
 - **Provider media catalogues (`/escort-images`, `/escort-videos`)**:
   - Verified profiles from every provider category can appear in the photo and video galleries.
-  - Profile pages show photos and submitted videos after the full profile is verified.
+  - Profile pages show photos and submitted videos after the full profile is verified. Video originals remain playable while an independent worker retries H.264/AAC MP4 transcoding and poster generation in the background; optimized files replace the playback URL only after both outputs are stored.
 - **Advertiser tools (`/advertise`)**:
   - Fast single-ad, independent, and agency registration paths.
   - Profiles remain private until moderator verification; verified Mobile Money payments activate featured placement.
@@ -79,8 +79,35 @@ npm run build
 
 1. Open your Supabase Dashboard: [https://supabase.com](https://supabase.com)
 2. Go to **SQL Editor**.
-3. Run every SQL migration in `supabase/migrations/` in filename order. The latest migration, `20261020000000_profile_media_video_uploads.sql`, enables the supported video formats and uploads up to 100 MB.
+3. Run every SQL migration in `supabase/migrations/` in filename order. The migrations enable video uploads up to 100 MB and add the asynchronous transcoding queue.
 4. (Optional) Run `supabase/seed.sql` to add sample listings and places.
+
+### Video transcoding worker
+
+The app saves each uploaded video as the playable original and creates a pending database job. Deploy the independent FFmpeg worker in `video-worker/` so it can convert videos to H.264/AAC MP4, generate JPEG posters, and retry failures with exponential backoff (up to one hour between retries). The original remains the playback URL until both generated files have uploaded successfully. Keep the worker running; the database queue also recovers jobs left processing after a worker restart.
+
+For Google Cloud Run:
+
+1. Apply the Supabase migrations, including `20261021000000_profile_video_processing.sql`.
+2. Store the Supabase service-role key in Google Secret Manager as `honeybee-supabase-service-role` and allow the Cloud Run runtime service account to access it. Never expose this key in the browser or commit it.
+3. Deploy from the repository root:
+   ```sh
+   gcloud run deploy honeybee-video-worker \
+     --source video-worker \
+     --region YOUR_REGION \
+     --min 1 \
+     --no-cpu-throttling \
+     --no-allow-unauthenticated \
+     --cpu 2 \
+     --memory 2Gi \
+     --concurrency 1 \
+     --set-env-vars SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+     --set-secrets SUPABASE_SERVICE_ROLE_KEY=honeybee-supabase-service-role:latest
+   ```
+   Keep at least one instance with CPU always allocated so the queue poller keeps running. This has an ongoing infrastructure cost; monitor Cloud Run and Supabase usage.
+4. Check the service logs for `Video worker health endpoint listening` and successful processing messages. The container exposes `GET /healthz` for health checks.
+
+The original is retained in Supabase Storage as a fallback. Failed jobs record their error and are retried indefinitely with capped backoff; conversion success switches playback to the MP4 and attaches the generated poster. Existing videos in the Honeybee media bucket are queued by the migration. Videos stored outside that bucket remain untouched.
 
 ### Create the first admin login
 

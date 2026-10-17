@@ -34,7 +34,7 @@ export default function ProfileDetailPage() {
     () => MOCK_LISTINGS.find((item) => item.slug === slug)
   );
   const [relatedListings, setRelatedListings] = useState<Listing[]>(MOCK_LISTINGS);
-  const [profileVideos, setProfileVideos] = useState<string[]>([]);
+  const [profileVideos, setProfileVideos] = useState<Array<{ url: string; thumbnailUrl: string | null }>>([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [loadError, setLoadError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -82,7 +82,7 @@ export default function ProfileDetailPage() {
       const [mediaResult, offeringsResult, relatedResult] = await Promise.all([
         supabase
           .from("profile_media")
-          .select("url,kind,sort_order")
+          .select("url,kind,sort_order,thumbnail_url")
           .eq("listing_id", data.id)
           .order("sort_order", { ascending: true }),
         supabase
@@ -114,7 +114,9 @@ export default function ProfileDetailPage() {
         (mediaResult.data ?? []).filter((media) => media.kind === "photo").map((media) => media.url),
         offeringsResult.data ?? []
       );
-      const videos = (mediaResult.data ?? []).filter((media) => media.kind === "video").map((media) => media.url);
+      const videos = (mediaResult.data ?? [])
+        .filter((media) => media.kind === "video")
+        .map((media) => ({ url: media.url, thumbnailUrl: media.thumbnail_url }));
       if (relatedResult.error) {
         console.error("Could not load recommended profiles:", relatedResult.error.message);
       }
@@ -247,11 +249,13 @@ export default function ProfileDetailPage() {
             <p className="mt-1 text-sm text-muted-foreground">Videos submitted with this verified profile.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {profileVideos.map((url, index) => (
+            {profileVideos.map((video, index) => (
               <video
-                key={url}
-                src={url}
+                key={video.url}
+                src={video.url}
+                poster={video.thumbnailUrl ?? undefined}
                 controls
+                playsInline
                 preload="metadata"
                 className="aspect-video w-full rounded-2xl bg-black object-contain"
                 aria-label={`${listing.title} profile video ${index + 1}`}

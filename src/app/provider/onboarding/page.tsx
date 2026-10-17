@@ -114,7 +114,7 @@ const cities = Array.from(new Set(UGANDA_LOCATIONS.map((place) => place.city)));
 const nationalities = ["Ugandan", "Kenyan", "Rwandan", "Tanzanian", "South Sudanese", "Other"];
 const orientations = ["Straight", "Bi-sexual", "Lesbian", "Gay", "Prefer not to say"];
 
-type PortfolioMedia = { url: string; kind: "photo" | "video" };
+type PortfolioMedia = { url: string; kind: "photo" | "video"; thumbnailUrl?: string | null };
 type PendingMedia = { file: File; kind: "photo" | "video" };
 
 function safeSlug(value: string) {
@@ -259,7 +259,7 @@ export default function ProviderOnboardingPage() {
 
         const { data: media, error: mediaError } = await supabase
           .from("profile_media")
-          .select("url,kind,sort_order")
+          .select("url,kind,sort_order,thumbnail_url")
           .eq("listing_id", listing.id)
           .order("sort_order", { ascending: true });
 
@@ -277,6 +277,7 @@ export default function ProviderOnboardingPage() {
           const savedMedia = (media ?? []).map((item) => ({
             url: item.url,
             kind: item.kind === "video" ? "video" as const : "photo" as const,
+            thumbnailUrl: item.thumbnail_url,
           }));
           setExistingMedia(
             savedMedia.length > 0
@@ -481,6 +482,9 @@ export default function ProviderOnboardingPage() {
         url: item.url,
         kind: item.kind,
         sort_order: existingMedia.length + index,
+        ...(item.kind === "video"
+          ? { original_url: item.url, source_path: item.path, processing_status: "pending" }
+          : {}),
       }));
       const { error: mediaError } = await supabase.from("profile_media").insert(mediaRows);
       if (mediaError) {
@@ -808,7 +812,7 @@ export default function ProviderOnboardingPage() {
               )}
               <Field
                 label="Portfolio photos and videos"
-                hint="Required: at least 1 photo and 1 video. Upload up to 9 JPEG, PNG, or WebP photos (10 MB each) and up to 3 MP4, WebM, or QuickTime videos (100 MB each). Use media you have permission to publish."
+                hint="Required: at least 1 photo and 1 video. Upload up to 9 JPEG, PNG, or WebP photos (10 MB each) and up to 3 MP4, WebM, or QuickTime videos (100 MB each). For best mobile playback, use H.264 MP4; WebM and QuickTime playback varies by device. Use media you have permission to publish."
               >
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 px-5 py-8 text-center transition hover:border-airbnb-coral">
                   <ImagePlus className="mb-2 h-7 w-7 text-airbnb-coral" />
@@ -859,7 +863,7 @@ export default function ProviderOnboardingPage() {
                     {existingMedia.map((item, index) => (
                       <div key={item.url} className="relative aspect-square overflow-hidden rounded-xl bg-black">
                         {item.kind === "video" ? (
-                          <video src={item.url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Portfolio video ${index + 1}`} />
+                          <video src={item.url} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Portfolio video ${index + 1}`} />
                         ) : (
                           <Image src={item.url} alt={`Portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
                         )}
@@ -869,7 +873,7 @@ export default function ProviderOnboardingPage() {
                     {previews.map((url, index) => (
                       <div key={url} className="relative aspect-square overflow-hidden rounded-xl bg-black">
                         {files[index]?.kind === "video" ? (
-                          <video src={url} controls preload="metadata" className="h-full w-full object-contain" aria-label={`New portfolio video ${index + 1}`} />
+                          <video src={url} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`New portfolio video ${index + 1}`} />
                         ) : (
                           <Image src={url} alt={`New portfolio photo ${index + 1}`} fill unoptimized className="object-cover" />
                         )}
@@ -907,11 +911,16 @@ export default function ProviderOnboardingPage() {
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                 {[
                   ...existingMedia.map((item) => ({ ...item, previewUrl: item.url })),
-                  ...previews.map((url, index) => ({ url, previewUrl: url, kind: files[index]?.kind ?? "photo" as const })),
+                  ...previews.map((url, index) => ({
+                    url,
+                    previewUrl: url,
+                    kind: files[index]?.kind ?? "photo" as const,
+                    thumbnailUrl: null,
+                  })),
                 ].slice(0, 5).map((item, index) => (
                   <div key={`${item.url}-${index}`} className="relative aspect-square overflow-hidden rounded-xl bg-black">
                     {item.kind === "video" ? (
-                      <video src={item.previewUrl} controls preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
+                      <video src={item.previewUrl} poster={item.thumbnailUrl ?? undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
                     ) : (
                       <Image src={item.previewUrl} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
                     )}
