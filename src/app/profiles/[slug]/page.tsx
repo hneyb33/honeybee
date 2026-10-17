@@ -85,7 +85,7 @@ export default function ProfileDetailPage() {
       const [mediaResult, offeringsResult, relatedResult] = await Promise.all([
         supabase
           .from("profile_media")
-          .select("url,kind,sort_order,thumbnail_url")
+          .select("url,kind,sort_order,thumbnail_url,source_path,processed_path,original_url")
           .eq("listing_id", data.id)
           .order("sort_order", { ascending: true }),
         supabase
@@ -117,9 +117,43 @@ export default function ProfileDetailPage() {
         (mediaResult.data ?? []).filter((media) => media.kind === "photo").map((media) => media.url),
         offeringsResult.data ?? []
       );
-      const videos = (mediaResult.data ?? [])
+      const mediaRows = mediaResult.data ?? [];
+      const videos = mediaRows
         .filter((media) => media.kind === "video")
         .map((media) => ({ url: media.url, thumbnailUrl: media.thumbnail_url }));
+
+      if (data.user_id) {
+        const mediaFolder = `${data.user_id}/${data.id}`;
+        const { data: storageItems, error: storageError } = await supabase.storage
+          .from("honeybee-profile-media")
+          .list(mediaFolder, { limit: 100, sortBy: { column: "created_at", order: "asc" } });
+
+        if (storageError) {
+          console.error("Could not check profile storage for unlisted videos:", storageError.message);
+        } else {
+          const registeredVideoPaths = new Set(
+            mediaRows
+              .filter((media) => media.kind === "video")
+              .flatMap((media) => [media.source_path, media.processed_path])
+              .filter((path): path is string => typeof path === "string" && path.length > 0)
+          );
+          for (const item of storageItems ?? []) {
+            const isVideo =
+              item.metadata?.mimetype?.startsWith("video/") ||
+              /\.(mp4|webm|mov)$/i.test(item.name);
+            if (!isVideo) continue;
+
+            const objectPath = `${mediaFolder}/${item.name}`;
+            if (registeredVideoPaths.has(objectPath)) continue;
+
+            const { data: publicUrl } = supabase.storage
+              .from("honeybee-profile-media")
+              .getPublicUrl(objectPath);
+            videos.push({ url: publicUrl.publicUrl, thumbnailUrl: null });
+          }
+        }
+      }
+
       if (relatedResult.error) {
         console.error("Could not load recommended profiles:", relatedResult.error.message);
       }

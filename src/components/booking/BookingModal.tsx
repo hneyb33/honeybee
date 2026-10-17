@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { Listing } from "@/lib/supabase/types";
+import React from "react";
+import { ArrowUpRight, CheckCircle2, Clock, MapPin, MessageCircle } from "lucide-react";
+import { Listing, ProfileOffering } from "@/lib/supabase/types";
 import { formatUGX } from "@/lib/utils";
-import { Calendar, Clock, MapPin, User, Phone, CheckCircle, Shield } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -14,235 +12,140 @@ interface BookingModalProps {
   listing: Listing;
 }
 
-export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
-  const [durationHours, setDurationHours] = useState(2);
-  const [bookingDate, setBookingDate] = useState("");
-  const [bookingTime, setBookingTime] = useState("14:00");
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [meetingLocation, setMeetingLocation] = useState(listing.neighborhood);
-  const [specialNote, setSpecialNote] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
+interface BookingService {
+  name: string;
+  price?: number;
+  pricingModel?: string;
+  groupName?: string;
+  turnaround?: string;
+  locationType?: string;
+}
 
-  const totalPrice = listing.hourly_rate * durationHours;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setConfirmed(true);
-
-    // Save booking into localStorage for demo / local state
-    const existingBookings = JSON.parse(
-      localStorage.getItem("honeybee_bookings") || "[]"
-    );
-    const newBooking = {
-      id: `hb-${Date.now()}`,
-      listing_id: listing.id,
-      listing_title: listing.title,
-      listing_image: listing.cover_image,
-      client_name: clientName,
-      client_phone: clientPhone,
-      starts_at: `${bookingDate} ${bookingTime}`,
-      duration_hours: durationHours,
-      price_amount: totalPrice,
-      status: "requested",
-      location: meetingLocation,
-      created_at: new Date().toISOString(),
-    };
-    localStorage.setItem(
-      "honeybee_bookings",
-      JSON.stringify([newBooking, ...existingBookings])
-    );
+function mapOffering(offering: ProfileOffering): BookingService {
+  return {
+    name: offering.name,
+    price: offering.price,
+    pricingModel: offering.pricing_model,
+    groupName: offering.group_name,
+    turnaround: offering.turnaround,
+    locationType: offering.location_type,
   };
+}
 
-  const resetAndClose = () => {
-    setConfirmed(false);
-    onClose();
+export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
+  const services: BookingService[] = listing.offerings?.length
+    ? listing.offerings.map(mapOffering)
+    : listing.services_offered.map((name) => ({ name }));
+  const contactDigits = listing.whatsapp_number?.replace(/\D/g, "") ?? "";
+  const countryDigits = listing.whatsapp_code?.replace(/\D/g, "") || "256";
+  const phoneDigits = contactDigits
+    ? contactDigits.startsWith("00")
+      ? contactDigits.slice(2)
+      : contactDigits.startsWith(countryDigits)
+        ? contactDigits
+        : `${countryDigits}${contactDigits.startsWith("0") ? contactDigits.slice(1) : contactDigits}`
+    : "";
+
+  const serviceRequestUrl = (service: BookingService) => {
+    if (!phoneDigits) return undefined;
+
+    const details = [
+      service.price != null
+        ? `Listed price: ${formatUGX(service.price)}${service.pricingModel ? ` (${service.pricingModel})` : ""}`
+        : null,
+      service.turnaround ? `Turnaround: ${service.turnaround}` : null,
+      service.locationType ? `Location: ${service.locationType}` : null,
+    ].filter(Boolean);
+    const message = [
+      `Hello ${listing.title}, I saw your verified profile on Honeybee and would like to request your "${service.name}" service.`,
+      ...details,
+      "Please let me know your availability and how to proceed.",
+    ].join("\n");
+
+    return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={resetAndClose}>
-      <DialogContent className="max-w-lg rounded-3xl p-6 sm:p-8">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto rounded-3xl p-6 sm:p-8">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold tracking-tight">
-            Book Appointment with {listing.title}
+            Request a service from {listing.title}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            {listing.kind === "service"
-              ? "Schedule your private home specialist service."
-              : "Arrange discreet and verified companionship."}
+            Choose one of this profile&apos;s registered services to start a personalized WhatsApp request.
           </DialogDescription>
         </DialogHeader>
 
-        {confirmed ? (
-          <div className="py-6 text-center space-y-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40">
-              <CheckCircle className="h-10 w-10" />
-            </div>
-            <div>
-              <h4 className="text-xl font-bold text-foreground">
-                Request Sent Successfully!
-              </h4>
-              <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-                {listing.title} has received your booking request for{" "}
-                <strong className="text-foreground">{durationHours} hours</strong> on{" "}
-                <strong className="text-foreground">{bookingDate || "selected date"}</strong>.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-neutral-50 p-4 text-left text-xs space-y-1.5 dark:bg-neutral-900 border border-border">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Estimated Total:</span>
-                <span className="font-bold text-foreground">{formatUGX(totalPrice)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Location:</span>
-                <span className="font-semibold text-foreground">{meetingLocation}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
-                <span className="font-semibold text-amber-600">Pending Host Confirmation</span>
-              </div>
-            </div>
-
-            <Button
-              onClick={resetAndClose}
-              className="w-full bg-airbnb-coral text-white hover:bg-[#AD3039] rounded-xl"
-            >
-              Done
-            </Button>
+        {services.length > 0 ? (
+          <div className="space-y-3">
+            {services.map((service, index) => {
+              const href = serviceRequestUrl(service);
+              return (
+                <div key={`${service.name}-${index}`} className="rounded-2xl border border-border bg-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      {service.groupName && (
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {service.groupName}
+                        </p>
+                      )}
+                      <h3 className="mt-0.5 font-semibold text-foreground">{service.name}</h3>
+                      {service.price != null && (
+                        <p className="mt-1 text-sm font-bold text-airbnb-coral">
+                          {formatUGX(service.price)}
+                          {service.pricingModel && (
+                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                              · {service.pricingModel}
+                            </span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    {href ? (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={onClose}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Request
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </a>
+                    ) : (
+                      <span className="shrink-0 text-xs text-muted-foreground">WhatsApp unavailable</span>
+                    )}
+                  </div>
+                  {(service.turnaround || service.locationType) && (
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      {service.turnaround && (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {service.turnaround}
+                        </span>
+                      )}
+                      {service.locationType && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {service.locationType}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-            {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-airbnb-coral" /> Date
-                </label>
-                <Input
-                  type="date"
-                  required
-                  value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-airbnb-coral" /> Start Time
-                </label>
-                <Input
-                  type="time"
-                  required
-                  value={bookingTime}
-                  onChange={(e) => setBookingTime(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            {/* Duration Selector */}
-            <div>
-              <label className="text-xs font-semibold text-foreground">
-                Duration: <span className="font-bold text-airbnb-coral">{durationHours} Hours</span>
-              </label>
-              <div className="mt-2 grid grid-cols-4 gap-2">
-                {[1, 2, 3, 5].map((hrs) => (
-                  <button
-                    key={hrs}
-                    type="button"
-                    onClick={() => setDurationHours(hrs)}
-                    className={`rounded-xl border py-2 text-xs font-semibold transition-all ${
-                      durationHours === hrs
-                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                        : "border-border text-foreground hover:border-foreground"
-                    }`}
-                  >
-                    {hrs} {hrs === 1 ? "Hour" : "Hours"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Contact details */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5" /> Your Name
-                </label>
-                <Input
-                  required
-                  placeholder="e.g. David"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5" /> Mobile Phone
-                </label>
-                <Input
-                  required
-                  placeholder="+256 700 000 000"
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5" /> Location / Meeting Address
-              </label>
-              <Input
-                required
-                value={meetingLocation}
-                onChange={(e) => setMeetingLocation(e.target.value)}
-                placeholder="e.g. Hotel in Kololo, or Private Residence in Ntinda"
-                className="mt-1"
-              />
-            </div>
-
-            {/* Special Instructions */}
-            <div>
-              <label className="text-xs font-semibold text-foreground">
-                Notes or Special Requirements
-              </label>
-              <textarea
-                rows={2}
-                value={specialNote}
-                onChange={(e) => setSpecialNote(e.target.value)}
-                placeholder="Any special menu choices, dietary notes, or preferences..."
-                className="mt-1 w-full rounded-xl border border-input bg-transparent p-3 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-
-            {/* Price Breakdown Banner */}
-            <div className="rounded-2xl bg-neutral-50 p-4 dark:bg-neutral-900 border border-border flex items-center justify-between">
-              <div>
-                <span className="text-xs text-muted-foreground block">Estimated Total</span>
-                <span className="text-lg font-bold text-foreground">
-                  {formatUGX(totalPrice)}
-                </span>
-              </div>
-              <div className="text-right text-xs text-muted-foreground">
-                <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                  <Shield className="h-3.5 w-3.5" /> Verified Pricing
-                </span>
-                <span>{formatUGX(listing.hourly_rate)} × {durationHours} hrs</span>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-12 bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] rounded-xl shadow-md"
-            >
-              Confirm Booking Request
-            </Button>
-          </form>
+          <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-5 text-center">
+            <CheckCircle2 className="mx-auto h-6 w-6 text-muted-foreground" />
+            <p className="mt-2 text-sm font-semibold text-foreground">No services are registered yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This profile has not added services that can be requested here.
+            </p>
+          </div>
         )}
       </DialogContent>
     </Dialog>
