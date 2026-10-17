@@ -245,21 +245,31 @@ export default function ProfileDetailPage() {
       {profileVideos.length > 0 && (
         <section className="mt-8 space-y-4" aria-labelledby="profile-videos-heading">
           <div>
-            <h2 id="profile-videos-heading" className="text-xl font-bold text-foreground">Profile videos</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Videos submitted with this verified profile.</p>
+            <h2 id="profile-videos-heading" className="text-xl font-bold text-foreground">Profile video reel</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Swipe to browse videos from this verified profile.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-3 no-scrollbar sm:gap-4"
+            aria-label={`${listing.title} video reel`}
+          >
             {profileVideos.map((video, index) => (
-              <video
+              <div
                 key={video.url}
-                src={video.url}
-                poster={video.thumbnailUrl ?? undefined}
-                controls
-                playsInline
-                preload="metadata"
-                className="aspect-video w-full rounded-2xl bg-black object-contain"
-                aria-label={`${listing.title} profile video ${index + 1}`}
-              />
+                className="w-[78vw] max-w-[340px] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-black sm:w-[45%] lg:w-[31%]"
+              >
+                <video
+                  src={video.url}
+                  poster={video.thumbnailUrl ?? undefined}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="aspect-[3/4] w-full bg-black object-contain"
+                  aria-label={`${listing.title} profile video ${index + 1}`}
+                />
+                <p className="bg-card px-3 py-2 text-xs font-medium text-muted-foreground">
+                  Video {index + 1} of {profileVideos.length}
+                </p>
+              </div>
             ))}
           </div>
         </section>

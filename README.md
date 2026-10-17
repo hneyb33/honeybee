@@ -36,7 +36,7 @@ Uganda's verified platform for private specialists, culinary masters, and compan
   - Dashboard counts for profiles, bookings, and payments.
 - **Provider media catalogues (`/escort-images`, `/escort-videos`)**:
   - Verified profiles from every provider category can appear in the photo and video galleries.
-  - Profile pages show photos and submitted videos after the full profile is verified. Video originals remain playable while an independent worker retries H.264/AAC MP4 transcoding and poster generation in the background; optimized files replace the playback URL only after both outputs are stored.
+  - Verified profile pages show submitted videos in a swipeable video reel directly below the photo gallery. Video originals remain playable while an independent worker retries H.264/AAC MP4 transcoding and poster generation in the background; optimized files replace the playback URL only after both outputs are stored.
 - **Advertiser tools (`/advertise`)**:
   - Fast single-ad, independent, and agency registration paths.
   - Profiles remain private until moderator verification; verified Mobile Money payments activate featured placement.
