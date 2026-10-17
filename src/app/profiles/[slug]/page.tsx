@@ -240,8 +240,9 @@ export default function ProfileDetailPage() {
         </div>
       </div>
 
-      {/* Profile photo gallery */}
-      <PhotoMosaic images={listing.images} title={listing.title} />
+      <section aria-label="Profile photo gallery">
+        <PhotoMosaic images={listing.images} title={listing.title} />
+      </section>
       {profileVideos.length > 0 && (
         <section className="mt-8 space-y-4" aria-labelledby="profile-videos-heading">
           <div>
