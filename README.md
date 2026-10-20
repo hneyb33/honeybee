@@ -20,6 +20,7 @@ Uganda's verified platform for private specialists, culinary masters, and compan
   - Separation between Home Specialists (Chefs, Laundry, Massage) and Companions.
   - Strict verification gating: unverified profiles never appear in discovery.
   - Persistent 18+ age verification gate.
+  - Provider onboarding locations are saved to the public places catalogue and appear in discovery autocomplete and location pills.
 - **Provider Operations Hub (`/provider`)**:
   - Live availability switcher (🟢 Available / 🟡 Busy / ⚫ Offline).
   - Real-time job request queue with Accept/Decline actions.

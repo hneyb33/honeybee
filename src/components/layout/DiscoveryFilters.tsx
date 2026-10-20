@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import { MapPin, Navigation, RotateCcw } from "lucide-react";
-import { SERVICE_TYPES, UGANDA_LOCATIONS } from "@/lib/data/uganda-locations";
+import { SERVICE_TYPES } from "@/lib/data/uganda-locations";
 
 export type DiscoveryStatus = "all" | "online" | "vip" | "premium" | "new" | "service";
 
 interface DiscoveryFiltersProps {
   locationListId: string;
+  locations: string[];
   location: string;
   orientation: string;
   serviceType: string;
@@ -39,6 +40,7 @@ const orientations = [
 
 export function DiscoveryFilters({
   locationListId,
+  locations,
   location,
   orientation,
   serviceType,
@@ -136,7 +138,7 @@ export function DiscoveryFilters({
   return (
     <>
       <datalist id={locationListId}>
-        {Array.from(new Set(UGANDA_LOCATIONS.map((place) => `${place.area}, ${place.city}`))).map((place) => (
+        {locations.map((place) => (
           <option key={place} value={place} />
         ))}
       </datalist>

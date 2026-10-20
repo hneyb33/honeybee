@@ -20,13 +20,23 @@ import { calculateDistanceKm } from "@/lib/utils";
 import { Listing } from "@/lib/supabase/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/map-listing";
+import { UGANDA_LOCATIONS } from "@/lib/data/uganda-locations";
 
-const FEATURED_CITIES = ["Kampala", "Entebbe", "Jinja", "Mbarara"];
+function makeLocationOptions(places: Array<{ area: string; city: string }> = []) {
+  return Array.from(new Set([
+    ...UGANDA_LOCATIONS.flatMap((place) => [place.city, `${place.area}, ${place.city}`]),
+    ...places.flatMap((place) => [place.city, `${place.area}, ${place.city}`]),
+  ].map((location) => location.trim()).filter(Boolean)));
+}
+
+const DEFAULT_LOCATION_OPTIONS = makeLocationOptions();
 
 export default function HomePage() {
   const [listings, setListings] = useState<Listing[]>(isSupabaseConfigured ? [] : MOCK_LISTINGS);
   const [listingsLoading, setListingsLoading] = useState(isSupabaseConfigured);
   const [listingsError, setListingsError] = useState("");
+  const [locationOptions, setLocationOptions] = useState(DEFAULT_LOCATION_OPTIONS);
+  const [locationsError, setLocationsError] = useState("");
   const [discoveryStatus, setDiscoveryStatus] = useState<DiscoveryStatus>("all");
   const [searchLocation, setSearchLocation] = useState("");
   const [searchOrientation, setSearchOrientation] = useState("all");
@@ -38,6 +48,23 @@ export default function HomePage() {
     const client = supabase;
     if (!client) return;
     let cancelled = false;
+
+    const loadLocations = async () => {
+      const { data, error } = await client
+        .from("places")
+        .select("area,city")
+        .order("city", { ascending: true })
+        .order("area", { ascending: true });
+
+      if (cancelled) return;
+      if (error) {
+        setLocationsError(error.message);
+        return;
+      }
+
+      setLocationOptions(makeLocationOptions(data ?? []));
+      setLocationsError("");
+    };
 
     const loadListings = async () => {
       const { data, error } = await client
@@ -96,13 +123,20 @@ export default function HomePage() {
     };
 
     void loadListings();
+    void loadLocations();
     const channel = client
       .channel("homepage-featured-listings")
       .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => {
         void loadListings();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "places" }, () => {
+        void loadLocations();
+      })
       .subscribe();
-    const refreshInterval = window.setInterval(() => void loadListings(), 60_000);
+    const refreshInterval = window.setInterval(() => {
+      void loadListings();
+      void loadLocations();
+    }, 60_000);
     return () => {
       cancelled = true;
       window.clearInterval(refreshInterval);
@@ -184,11 +218,14 @@ export default function HomePage() {
         }
 
         if (searchLocation && searchLocation !== "Near me" && !userCoords) {
-          const locLower = searchLocation.toLowerCase();
-          const matchArea =
-            listing.neighborhood.toLowerCase().includes(locLower) ||
-            listing.city.toLowerCase().includes(locLower);
-          if (!matchArea) return false;
+          const locationTerms = searchLocation
+            .split(",")
+            .map((term) => term.trim().toLowerCase())
+            .filter(Boolean);
+          if (!locationTerms.every((term) =>
+            listing.neighborhood.toLowerCase().includes(term) ||
+            listing.city.toLowerCase().includes(term)
+          )) return false;
         }
 
         return true;
@@ -224,45 +261,45 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-8 sm:pt-14">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e45b63]">A little closer to home</p>
-            <h2 className="mt-1 font-display text-2xl font-semibold text-foreground sm:text-3xl">
-              Start with a place you know
-            </h2>
-          </div>
           <Link
             href="/advertise"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#e45b63] transition-colors hover:text-rose-300"
           >
-            Share what you do <ArrowRight className="h-4 w-4" />
+            Advertise with us <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="mt-5 flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
-          {FEATURED_CITIES.map((city) => (
+          {locationOptions.map((location) => (
             <button
-              key={city}
+              key={location}
               type="button"
               onClick={() => {
-                setSearchLocation(city);
+                setSearchLocation(location);
                 setUserCoords(null);
               }}
-              aria-pressed={searchLocation.toLowerCase() === city.toLowerCase()}
+              aria-pressed={searchLocation.toLowerCase() === location.toLowerCase()}
               className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
-                searchLocation.toLowerCase() === city.toLowerCase()
+                searchLocation.toLowerCase() === location.toLowerCase()
                   ? "border-[#d3444d] bg-[#d3444d] text-white"
                   : "border-neutral-700 bg-neutral-900 text-neutral-200 hover:border-neutral-400"
               }`}
             >
-              {city}
+              {location}
             </button>
           ))}
         </div>
+        {locationsError && (
+          <p role="alert" className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+            Could not refresh saved locations: {locationsError}
+          </p>
+        )}
       </section>
 
       <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8 lg:hidden">
         <div>
           <DiscoveryFilters
             locationListId="uganda-locations-mobile"
+            locations={locationOptions}
             location={searchLocation}
             orientation={searchOrientation}
             serviceType={searchService}
@@ -287,6 +324,7 @@ export default function HomePage() {
         <aside className="hidden lg:sticky lg:top-24 lg:block">
           <DiscoveryFilters
             locationListId="uganda-locations-desktop"
+            locations={locationOptions}
             location={searchLocation}
             orientation={searchOrientation}
             serviceType={searchService}

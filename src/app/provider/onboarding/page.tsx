@@ -338,6 +338,7 @@ export default function ProviderOnboardingPage() {
     if (step === 0 && isModel && !form.gender) return "Choose a gender to continue.";
     if (step === 0 && !isModel && !form.serviceType) return "Choose your main service category.";
     if (step === 1 && (!form.city || !form.neighborhood)) return "Choose your city and neighbourhood.";
+    if (step === 1 && form.neighborhood.trim().toLowerCase() === "other") return "Enter your neighbourhood.";
     if (step === 1 && !form.whatsappNumber.trim()) return "Add a WhatsApp number clients can reach.";
     if (step === 2 && form.services.length === 0) return "Choose at least one service you offer.";
     if (step === 2 && isModel && modelServicesError) return "The hot-offer list could not be loaded. Refresh the page and try again.";
