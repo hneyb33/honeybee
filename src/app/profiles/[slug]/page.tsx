@@ -419,8 +419,10 @@ export default function ProfileDetailPage() {
 
       {/* Services & Packages */}
       <ServiceOfferings
-        offerings={listing.offerings}
+        offerings={listing.kind === "service" ? listing.offerings : undefined}
         generalServices={listing.services_offered}
+        showPrices={listing.kind === "service"}
+        heading={listing.kind === "escort" ? "Hot offers" : "What is offered"}
       />
 
       {/* Availability Schedule */}

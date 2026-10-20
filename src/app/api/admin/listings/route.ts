@@ -108,7 +108,12 @@ export async function POST(request: Request) {
 
   const { error: listingError } = await adminClient
     .from("listings")
-    .insert({ ...parsed.data.listing, user_id: invited.user.id });
+    .insert({
+      ...parsed.data.listing,
+      hourly_rate: parsed.data.listing.kind === "escort" ? 0 : parsed.data.listing.hourly_rate,
+      monthly_price: parsed.data.listing.kind === "escort" ? 0 : parsed.data.listing.monthly_price,
+      user_id: invited.user.id,
+    });
   if (listingError) {
     const { error: cleanupError } = await adminClient.auth.admin.deleteUser(invited.user.id);
     const message = cleanupError

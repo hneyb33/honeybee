@@ -406,7 +406,10 @@ export function AdminManagement({
             <Card key={listing.id} className="flex flex-col justify-between gap-3 rounded-2xl p-4 sm:flex-row sm:items-center">
               <div className="min-w-0">
                 <p className="truncate font-semibold">{listing.title}</p>
-                <p className="text-xs text-muted-foreground">{listing.kind === "service" ? "Service provider" : "Model"} · {listing.neighborhood}, {listing.city} · {formatUGX(listing.hourly_rate)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {listing.kind === "service" ? "Service provider" : "Model"} · {listing.neighborhood}, {listing.city}
+                  {listing.kind === "service" && ` · ${formatUGX(listing.hourly_rate)}`}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">Status: {listing.verification_status.replaceAll("_", " ")}</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -510,7 +513,8 @@ export function AdminManagement({
                   {listing.is_featured && <Badge variant="outline">{(listing.featured_tier ?? "premium").toUpperCase()} featured</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {listing.kind === "service" ? "Service provider" : "Model"} · {listing.neighborhood}, {listing.city} · {formatUGX(listing.hourly_rate)}
+                  {listing.kind === "service" ? "Service provider" : "Model"} · {listing.neighborhood}, {listing.city}
+                  {listing.kind === "service" && ` · ${formatUGX(listing.hourly_rate)}`}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Submitted {new Date(listing.created_at).toLocaleDateString()}

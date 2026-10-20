@@ -9,11 +9,11 @@ Uganda's verified platform for private specialists, culinary masters, and compan
 - **Airbnb-Inspired UX & Aesthetic**:
   - Interactive search capsule (`Where`, `Category`, `Service`, `Near you` geolocation distance calculation).
   - Horizontal tier bar (All, VIP, Premium, Specialists, Women, Men).
-  - Listing cards with multi-photo slider, rating, favorite heart toggle, and upfront UGX hourly rates.
+  - Listing cards with multi-photo slider, rating, and favorite heart toggle. Specialist service rates are shown; model pricing is discussed directly in chat.
   - Signature Airbnb 5-photo mosaic layout on profile detail pages with full-screen lightbox.
 - **Conversion & Experience Optimization (CRO/CXO)**:
   - Sticky bottom booking and direct chat bar (instant WhatsApp pre-filled message & Telegram link).
-  - Interactive booking modal with live pricing breakdown (`UGX rate × duration hours`).
+  - Interactive booking modal for starting WhatsApp service requests; model pricing is discussed directly in chat.
   - Client review submission dialog.
 - **Rectified Business Logic**:
   - Unified currency to Ugandan Shillings (`UGX`).
@@ -26,7 +26,8 @@ Uganda's verified platform for private specialists, culinary masters, and compan
   - Weekly schedule and earnings breakdown.
 - **Multi-Step Onboarding Wizard (`/provider/onboarding`)**:
   - Resumable five-step flows for models, agencies, and home-service providers.
-  - City/neighbourhood selectors, choice controls, availability, UGX rate increments, profile details, and required portfolio upload of at least one photo and one video (up to 9 photos and 3 videos).
+  - Model accounts choose from the database-backed Hot offers catalogue; selected offers appear on their profile and can be opened as WhatsApp chat requests. Model prices are not displayed.
+  - City/neighbourhood selectors, choice controls, availability, specialist service rates, profile details, and required portfolio upload of at least one photo and one video (up to 9 photos and 3 videos).
   - JPEG, PNG, and WebP photos (10 MB each) and MP4, WebM, and QuickTime videos (100 MB each) are submitted together for profile review. H.264 MP4 is recommended for mobile playback; WebM and QuickTime support varies by device.
   - Provider-owned drafts stay private until admin verification; verified profiles load from Supabase on their public profile page.
 - **Admin Moderation & Audit Queue (`/admin`)**:
@@ -79,7 +80,7 @@ npm run build
 
 1. Open your Supabase Dashboard: [https://supabase.com](https://supabase.com)
 2. Go to **SQL Editor**.
-3. Run every SQL migration in `supabase/migrations/` in filename order. The migrations enable video uploads up to 100 MB and add the asynchronous transcoding queue.
+3. Run every SQL migration in `supabase/migrations/` in filename order. The migrations enable video uploads up to 100 MB and add the asynchronous transcoding queue. If the app is already deployed, also run any migrations added since the last deployment; in particular, run `20261022000000_profile_media_processing_status_default.sql` to set the database default for `profile_media.processing_status`.
 4. (Optional) Run `supabase/seed.sql` to add sample listings and places.
 
 ### Video transcoding worker

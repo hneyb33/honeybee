@@ -42,14 +42,17 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
     <>
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur-md px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-          {/* Left Price Info */}
           <div className="min-w-0">
-            <p className="truncate text-sm text-foreground">
-              <span className="text-base sm:text-lg font-bold text-foreground">
-                {formatUGX(listing.hourly_rate)}
-              </span>{" "}
-              <span className="text-xs text-muted-foreground font-normal">/ hour</span>
-            </p>
+            {listing.kind === "service" ? (
+              <p className="truncate text-sm text-foreground">
+                <span className="text-base font-bold text-foreground sm:text-lg">
+                  {formatUGX(listing.hourly_rate)}
+                </span>{" "}
+                <span className="text-xs font-normal text-muted-foreground">/ hour</span>
+              </p>
+            ) : (
+              <p className="truncate text-sm font-semibold text-foreground">Get in touch</p>
+            )}
             <p className="truncate text-xs text-muted-foreground hidden sm:block">
               {listing.neighborhood}, {listing.city} ·{" "}
               {listing.kind === "service" ? "Specialist Service" : listing.category}
@@ -137,8 +140,12 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
               onClick={() => setModalOpen(true)}
               className="bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md px-5 sm:px-7 rounded-full text-xs sm:text-sm gap-1.5"
             >
-              <Calendar className="h-4 w-4" />
-              <span>Book Appointment</span>
+              {listing.kind === "service" ? (
+                <Calendar className="h-4 w-4" />
+              ) : (
+                <MessageCircle className="h-4 w-4" />
+              )}
+              <span>{listing.kind === "service" ? "Book Appointment" : "Hot offers"}</span>
             </Button>
           </div>
         </div>

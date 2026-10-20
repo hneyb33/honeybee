@@ -26,7 +26,8 @@ import { Input } from "@/components/ui/input";
 import { UGANDA_LOCATIONS } from "@/lib/data/uganda-locations";
 import { supabase } from "@/lib/supabase/client";
 
-const STEPS = ["About you", "Location", "Services & rates", "Media & experience", "Preview"];
+const MODEL_STEPS = ["About you", "Location", "Experiences & availability", "Media & experience", "Preview"];
+const SPECIALIST_STEPS = ["About you", "Location", "Services & rates", "Media & experience", "Preview"];
 const MAX_PHOTOS = 9;
 const MAX_VIDEOS = 3;
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
@@ -37,14 +38,6 @@ const MEDIA_TYPES: Record<"photo" | "video", string[]> = {
 };
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const LANGUAGES = ["English", "Luganda", "Swahili", "Runyankole", "Lusoga", "Acholi", "Other"];
-const MODEL_SERVICES = [
-  "Dinner & events",
-  "Social outings",
-  "Travel companion",
-  "Massage",
-  "Private hosting",
-  "Video calls",
-];
 const SERVICE_TYPES = [
   { value: "private_chef", label: "Private chef" },
   { value: "home_laundry", label: "Home laundry" },
@@ -139,6 +132,8 @@ export default function ProviderOnboardingPage() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [existingMedia, setExistingMedia] = useState<PortfolioMedia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modelServiceOptions, setModelServiceOptions] = useState<string[]>([]);
+  const [modelServicesError, setModelServicesError] = useState("");
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -190,6 +185,19 @@ export default function ProviderOnboardingPage() {
       }
 
       const nextKind = profile.account_kind as "model" | "specialist" | "agency";
+      if (nextKind !== "specialist") {
+        const { data: serviceOptions, error: serviceOptionsError } = await supabase
+          .from("escort_service_options")
+          .select("name")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true });
+        if (cancelled) return;
+        if (serviceOptionsError) {
+          setModelServicesError(serviceOptionsError.message);
+        } else {
+          setModelServiceOptions((serviceOptions ?? []).map((option) => option.name));
+        }
+      }
       const requestedType = new URLSearchParams(window.location.search).get("type");
       const nextAdvertiserType =
         requestedType === "fast" || requestedType === "independent" || requestedType === "agency"
@@ -332,8 +340,10 @@ export default function ProviderOnboardingPage() {
     if (step === 1 && (!form.city || !form.neighborhood)) return "Choose your city and neighbourhood.";
     if (step === 1 && !form.whatsappNumber.trim()) return "Add a WhatsApp number clients can reach.";
     if (step === 2 && form.services.length === 0) return "Choose at least one service you offer.";
+    if (step === 2 && isModel && modelServicesError) return "The hot-offer list could not be loaded. Refresh the page and try again.";
+    if (step === 2 && isModel && modelServiceOptions.length === 0) return "No hot offers are available right now. Please try again later.";
     if (step === 2 && form.languages.length === 0) return "Choose at least one language.";
-    if (step === 2 && (!form.rate || Number(form.rate) < 5000 || Number(form.rate) > 999999999)) {
+    if (step === 2 && !isModel && (!form.rate || Number(form.rate) < 5000 || Number(form.rate) > 999999999)) {
       return "Set an hourly rate between UGX 5,000 and UGX 999,999,999.";
     }
     if (step === 2 && form.availableDays.length === 0) return "Choose at least one day you are available.";
@@ -394,8 +404,8 @@ export default function ProviderOnboardingPage() {
       nationality: form.nationality,
       city: form.city,
       neighborhood: form.neighborhood,
-      hourly_rate: Number(form.rate) || 0,
-      monthly_price: Number(form.rate) || 0,
+      hourly_rate: isModel ? 0 : Number(form.rate) || 0,
+      monthly_price: isModel ? 0 : Number(form.rate) || 0,
       currency: "UGX",
       summary_line: form.bio.trim() || form.description.trim().slice(0, 140),
       description: form.description.trim() || "Profile in progress.",
@@ -528,7 +538,8 @@ export default function ProviderOnboardingPage() {
     setSubmitted(true);
   };
 
-  const selectedServiceOptions = isModel ? MODEL_SERVICES : SERVICE_OPTIONS[form.serviceType] ?? [];
+  const selectedServiceOptions = isModel ? modelServiceOptions : SERVICE_OPTIONS[form.serviceType] ?? [];
+  const steps = isModel ? MODEL_STEPS : SPECIALIST_STEPS;
   const stepTitle = [
     isModel ? "Set up your model profile" : "Set up your service profile",
     "Where clients can find you",
@@ -608,18 +619,18 @@ export default function ProviderOnboardingPage() {
       <div className="mb-7">
         <div className="mb-2 flex items-center justify-between gap-4 text-xs font-semibold">
           <span className="uppercase tracking-wide text-muted-foreground">
-            {isModel ? "Model onboarding" : "Service provider onboarding"} · Step {currentStep + 1} of {STEPS.length}
+            {isModel ? "Model onboarding" : "Service provider onboarding"} · Step {currentStep + 1} of {steps.length}
           </span>
-          <span className="text-airbnb-coral">{Math.round(((currentStep + 1) / STEPS.length) * 100)}%</span>
+          <span className="text-airbnb-coral">{Math.round(((currentStep + 1) / steps.length) * 100)}%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-airbnb-coral transition-all duration-500"
-            style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
+            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
           />
         </div>
         <div className="mt-4 hidden grid-cols-5 gap-2 sm:grid">
-          {STEPS.map((step, index) => (
+          {steps.map((step, index) => (
             <div key={step} className={`text-[11px] ${index <= currentStep ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
               <span className={`mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full ${index < currentStep ? "bg-emerald-600 text-white" : index === currentStep ? "bg-airbnb-coral text-white" : "bg-muted"}`}>
                 {index < currentStep ? <Check className="h-3 w-3" /> : index + 1}
@@ -634,13 +645,15 @@ export default function ProviderOnboardingPage() {
         <CardHeader className="bg-gradient-to-br from-rose-50 via-white to-amber-50 pb-5 dark:from-neutral-900 dark:via-card dark:to-neutral-900">
           <div className="flex items-center gap-2">
             <Badge variant="secondary">Step {currentStep + 1}</Badge>
-            <span className="text-xs font-semibold text-muted-foreground">{STEPS[currentStep]}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{steps[currentStep]}</span>
           </div>
           <CardTitle className="mt-2 text-2xl font-extrabold tracking-tight">{stepTitle}</CardTitle>
           <CardDescription className="text-sm">
             {currentStep === 0 && "Choose the public details that help clients recognize and understand your profile."}
             {currentStep === 1 && "Your neighbourhood and contact number help clients discover and reach you."}
-            {currentStep === 2 && "Select services, set your starting rate, and choose when you are available."}
+            {currentStep === 2 && (isModel
+              ? "Choose the experiences you offer and your availability. Discuss pricing directly with clients in chat."
+              : "Select services, set your starting rate, and choose when you are available.")}
             {currentStep === 3 && "A clear introduction and original photos help build trust with clients."}
             {currentStep === 4 && "Check your details. Profiles stay hidden from discovery until an admin verifies them."}
           </CardDescription>
@@ -755,24 +768,39 @@ export default function ProviderOnboardingPage() {
                   </SelectInput>
                 </Field>
               )}
-              <Field label={isModel ? "Experiences offered" : "Services offered"} hint="Choose all that apply.">
-                <CheckboxGrid
-                  options={selectedServiceOptions}
-                  selected={form.services}
-                  onToggle={(service) => toggleChoice("services", service)}
-                />
+              <Field
+                label={isModel ? "Hot offers" : "Services offered"}
+                hint={isModel ? "Choose what you offer. Clients can discuss details and pricing with you in chat." : "Choose all that apply."}
+              >
+                {isModel && modelServicesError ? (
+                  <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                    Could not load hot offers: {modelServicesError}
+                  </p>
+                ) : selectedServiceOptions.length > 0 ? (
+                  <CheckboxGrid
+                    options={selectedServiceOptions}
+                    selected={form.services}
+                    onToggle={(service) => toggleChoice("services", service)}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {isModel ? "Loading hot offers…" : "No services available for this category."}
+                  </p>
+                )}
               </Field>
               <Field label="Languages">
                 <CheckboxGrid options={LANGUAGES} selected={form.languages} onToggle={(language) => toggleChoice("languages", language)} />
               </Field>
-              <Field label="Starting rate per hour (UGX)">
-                <div className="flex items-center gap-3">
-                  <Button type="button" variant="outline" size="icon" aria-label="Decrease hourly rate" onClick={() => update("rate", String(Math.max(5000, (Number(form.rate) || 50000) - 5000)))}>-</Button>
-                  <Input type="number" min={5000} max={999999999} step={5000} value={form.rate} onChange={(event) => update("rate", event.target.value)} placeholder="50,000" className="max-w-xs text-center font-semibold" />
-                  <Button type="button" variant="outline" size="icon" aria-label="Increase hourly rate" onClick={() => update("rate", String((Number(form.rate) || 45000) + 5000))}>+</Button>
-                  <span className="text-xs text-muted-foreground">UGX / hour</span>
-                </div>
-              </Field>
+              {!isModel && (
+                <Field label="Starting rate per hour (UGX)">
+                  <div className="flex items-center gap-3">
+                    <Button type="button" variant="outline" size="icon" aria-label="Decrease hourly rate" onClick={() => update("rate", String(Math.max(5000, (Number(form.rate) || 50000) - 5000)))}>-</Button>
+                    <Input type="number" min={5000} max={999999999} step={5000} value={form.rate} onChange={(event) => update("rate", event.target.value)} placeholder="50,000" className="max-w-xs text-center font-semibold" />
+                    <Button type="button" variant="outline" size="icon" aria-label="Increase hourly rate" onClick={() => update("rate", String((Number(form.rate) || 45000) + 5000))}>+</Button>
+                    <span className="text-xs text-muted-foreground">UGX / hour</span>
+                  </div>
+                </Field>
+              )}
               <Field label="Available days" hint="Select at least one day.">
                 <CheckboxGrid options={DAYS} selected={form.availableDays} onToggle={(day) => toggleChoice("availableDays", day)} columns={4} />
               </Field>
@@ -904,7 +932,11 @@ export default function ProviderOnboardingPage() {
               <ReviewRow icon={<UserRound className="h-4 w-4" />} label="Profile" value={`${form.title}${isModel ? ` · ${form.age} years · ${form.gender}` : ` · ${SERVICE_TYPES.find((item) => item.value === form.serviceType)?.label}`} `} />
               <ReviewRow icon={<MapPin className="h-4 w-4" />} label="Location" value={`${form.neighborhood}, ${form.city} · WhatsApp ${form.whatsappCode} ${form.whatsappNumber}`} />
               <ReviewRow icon={<Sparkles className="h-4 w-4" />} label="Services" value={`${form.services.join(", ")} · ${form.languages.join(", ")}`} />
-              <ReviewRow icon={<Utensils className="h-4 w-4" />} label="Rate & availability" value={`UGX ${Number(form.rate || 0).toLocaleString()} / hour · ${form.availableDays.join(", ")}`} />
+              <ReviewRow
+                icon={<Utensils className="h-4 w-4" />}
+                label={isModel ? "Availability" : "Rate & availability"}
+                value={`${isModel ? "" : `UGX ${Number(form.rate || 0).toLocaleString()} / hour · `}${form.availableDays.join(", ")}`}
+              />
               <div className="rounded-2xl border border-border p-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">About</p>
                 <p className="text-sm leading-relaxed">{form.description || "Add a description before submitting."}</p>

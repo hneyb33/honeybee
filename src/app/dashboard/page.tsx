@@ -163,9 +163,11 @@ export default function ClientDashboardPage() {
                 <p className="text-xs text-muted-foreground truncate">
                   {listing.neighborhood}, {listing.city}
                 </p>
-                <p className="text-xs font-semibold text-foreground mt-1">
-                  {formatUGX(listing.hourly_rate)} / hr
-                </p>
+                {listing.kind === "service" && (
+                  <p className="mt-1 text-xs font-semibold text-foreground">
+                    {formatUGX(listing.hourly_rate)} / hr
+                  </p>
+                )}
               </div>
             </Link>
           ))}

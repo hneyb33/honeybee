@@ -77,9 +77,11 @@ export function FeaturedAdsCarousel({ listings }: { listings: Listing[] }) {
                 <p className="mt-2 flex items-center gap-1.5 text-sm text-white/80">
                   <MapPin className="h-4 w-4 shrink-0" /> {listing.neighborhood}, {listing.city}
                 </p>
-                <p className="mt-3 text-sm font-bold text-white">
-                  {formatUGX(listing.hourly_rate)} <span className="font-normal text-white/70">/ hour</span>
-                </p>
+                {listing.kind === "service" && (
+                  <p className="mt-3 text-sm font-bold text-white">
+                    {formatUGX(listing.hourly_rate)} <span className="font-normal text-white/70">/ hour</span>
+                  </p>
+                )}
                 {href && <span className="mt-4 inline-flex rounded-full bg-white px-4 py-2 text-xs font-bold text-neutral-950">View profile</span>}
               </div>
             </>

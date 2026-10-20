@@ -221,8 +221,8 @@ export function AdminListingDialog({
         ethnicity: form.ethnicity.trim() || null,
         city: form.city.trim(),
         neighborhood: form.neighborhood.trim(),
-        hourly_rate: numeric(form.hourlyRate, "Hourly rate", 0),
-        monthly_price: numeric(form.monthlyPrice || "0", "Monthly price", 0),
+        hourly_rate: kind === "service" ? numeric(form.hourlyRate, "Hourly rate", 0) : 0,
+        monthly_price: kind === "service" ? numeric(form.monthlyPrice || "0", "Monthly price", 0) : 0,
         whatsapp_code: form.whatsappCode.trim() || "+256",
         whatsapp_number: form.whatsappNumber.replace(/\D/g, "") || null,
         telegram: form.telegram.trim() || null,
@@ -290,8 +290,17 @@ export function AdminListingDialog({
   );
 
   const accountFields: (keyof ListingForm)[] = ["name", "email", "phone"];
-  const editableFields: (keyof ListingForm)[] = ["title", "city", "neighborhood", "hourlyRate", "monthlyPrice", "age", "gender", "nationality", "ethnicity", "serviceType", "whatsappCode", "whatsappNumber", "telegram"];
-  const listingValues = details ? Object.entries(details).filter(([key]) => !["images", "services_offered", "languages", "availability", "profile_details"].includes(key)) : [];
+  const editableFields: (keyof ListingForm)[] = [
+    "title", "city", "neighborhood",
+    ...(kind === "service" ? ["hourlyRate", "monthlyPrice"] as const : []),
+    "age", "gender", "nationality", "ethnicity", "serviceType", "whatsappCode", "whatsappNumber", "telegram",
+  ];
+  const listingValues = details
+    ? Object.entries(details).filter(([key]) =>
+        !["images", "services_offered", "languages", "availability", "profile_details"].includes(key) &&
+        (kind !== "escort" || !["hourly_rate", "monthly_price"].includes(key))
+      )
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -383,7 +392,11 @@ export function AdminListingDialog({
               )}
             </section>
             {[
-              ["Service offerings", offerings],
+              ["Service offerings", kind === "escort"
+                ? offerings.map((offering) => Object.fromEntries(
+                    Object.entries(offering).filter(([key]) => key !== "price" && key !== "pricing_model")
+                  ))
+                : offerings],
               ["References", references],
             ].map(([title, records]) => <section key={title as string} className="rounded-xl border p-4">
               <h3 className="mb-3 font-semibold">{title as string}</h3>

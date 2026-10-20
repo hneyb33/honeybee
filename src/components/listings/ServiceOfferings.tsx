@@ -6,11 +6,15 @@ import { Clock, MapPin, CheckCircle2 } from "lucide-react";
 interface ServiceOfferingsProps {
   offerings?: ProfileOffering[];
   generalServices?: string[];
+  showPrices?: boolean;
+  heading?: string;
 }
 
 export function ServiceOfferings({
   offerings,
   generalServices,
+  showPrices = true,
+  heading = "What is offered",
 }: ServiceOfferingsProps) {
   if (offerings && offerings.length > 0) {
     // Group offerings by group_name
@@ -41,14 +45,16 @@ export function ServiceOfferings({
                       <h5 className="font-semibold text-foreground text-sm">
                         {service.name}
                       </h5>
-                      <p className="mt-1 text-base font-bold text-airbnb-coral">
-                        {formatUGX(service.price)}
-                        {service.pricing_model && (
-                          <span className="text-xs font-normal text-muted-foreground ml-1.5">
-                            • {service.pricing_model}
-                          </span>
-                        )}
-                      </p>
+                      {showPrices && (
+                        <p className="mt-1 text-base font-bold text-airbnb-coral">
+                          {formatUGX(service.price)}
+                          {service.pricing_model && (
+                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                              • {service.pricing_model}
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       {service.location_type && (
@@ -77,9 +83,7 @@ export function ServiceOfferings({
   if (generalServices && generalServices.length > 0) {
     return (
       <section className="border-b border-border py-8">
-        <h3 className="mb-4 text-xl font-bold tracking-tight text-foreground">
-          What is offered
-        </h3>
+        <h3 className="mb-4 text-xl font-bold tracking-tight text-foreground">{heading}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {generalServices.map((service, idx) => (
             <div

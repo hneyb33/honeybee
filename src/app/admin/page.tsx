@@ -523,7 +523,7 @@ export default function AdminModerationDashboard() {
                         <dl className="grid gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
                           <div><dt className="text-muted-foreground">Age / gender</dt><dd>{listing.age ? `${listing.age} · ${listing.gender ?? "Not specified"}` : listing.gender ?? "Not applicable"}</dd></div>
                           <div><dt className="text-muted-foreground">Nationality</dt><dd>{listing.nationality ?? "Not specified"}</dd></div>
-                          <div><dt className="text-muted-foreground">Hourly rate</dt><dd>{formatUGX(listing.hourly_rate || 0)}</dd></div>
+                          {listing.kind === "service" && <div><dt className="text-muted-foreground">Hourly rate</dt><dd>{formatUGX(listing.hourly_rate || 0)}</dd></div>}
                           <div><dt className="text-muted-foreground">Languages</dt><dd>{listing.languages?.join(", ") || "Not specified"}</dd></div>
                           <div><dt className="text-muted-foreground">Services</dt><dd>{listing.services_offered?.join(", ") || "Not specified"}</dd></div>
                           <div><dt className="text-muted-foreground">Availability</dt><dd>{listing.availability?.filter((day) => day.on).map((day) => `${day.label} ${day.from ?? ""}-${day.to ?? ""}`).join(", ") || "Not specified"}</dd></div>

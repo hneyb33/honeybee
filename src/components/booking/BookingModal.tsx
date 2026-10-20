@@ -33,7 +33,7 @@ function mapOffering(offering: ProfileOffering): BookingService {
 }
 
 export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
-  const services: BookingService[] = listing.offerings?.length
+  const services: BookingService[] = listing.kind === "service" && listing.offerings?.length
     ? listing.offerings.map(mapOffering)
     : listing.services_offered.map((name) => ({ name }));
   const contactDigits = listing.whatsapp_number?.replace(/\D/g, "") ?? "";
@@ -50,17 +50,19 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
     if (!phoneDigits) return undefined;
 
     const details = [
-      service.price != null
+      listing.kind === "service" && service.price != null
         ? `Listed price: ${formatUGX(service.price)}${service.pricingModel ? ` (${service.pricingModel})` : ""}`
         : null,
       service.turnaround ? `Turnaround: ${service.turnaround}` : null,
       service.locationType ? `Location: ${service.locationType}` : null,
     ].filter(Boolean);
-    const message = [
-      `Hello ${listing.title}, I saw your verified profile on Honeybee and would like to request your "${service.name}" service.`,
-      ...details,
-      "Please let me know your availability and how to proceed.",
-    ].join("\n");
+    const message = listing.kind === "service"
+      ? [
+          `Hello ${listing.title}, I saw your verified profile on Honeybee and would like to request your "${service.name}" service.`,
+          ...details,
+          "Please let me know your availability and how to proceed.",
+        ].join("\n")
+      : `Hello ${listing.title}, I saw your Hot offers on Honeybee and would like to discuss "${service.name}". Please let me know your availability and details.`;
 
     return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
   };
@@ -70,10 +72,12 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto rounded-3xl p-6 sm:p-8">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold tracking-tight">
-            Request a service from {listing.title}
+            {listing.kind === "service" ? `Request a service from ${listing.title}` : `Hot offers from ${listing.title}`}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Choose one of this profile&apos;s registered services to start a personalized WhatsApp request.
+            {listing.kind === "service"
+              ? "Choose one of this profile's registered services to start a personalized WhatsApp request."
+              : "Choose an experience to discuss directly over WhatsApp. You and the model can agree on details in chat."}
           </DialogDescription>
         </DialogHeader>
 
@@ -91,7 +95,7 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
                         </p>
                       )}
                       <h3 className="mt-0.5 font-semibold text-foreground">{service.name}</h3>
-                      {service.price != null && (
+                      {listing.kind === "service" && service.price != null && (
                         <p className="mt-1 text-sm font-bold text-airbnb-coral">
                           {formatUGX(service.price)}
                           {service.pricingModel && (
@@ -111,7 +115,7 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
                         className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
                       >
                         <MessageCircle className="h-4 w-4" />
-                        Request
+                        {listing.kind === "service" ? "Request" : "Chat about this"}
                         <ArrowUpRight className="h-3.5 w-3.5" />
                       </a>
                     ) : (
@@ -141,7 +145,9 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-muted/40 p-5 text-center">
             <CheckCircle2 className="mx-auto h-6 w-6 text-muted-foreground" />
-            <p className="mt-2 text-sm font-semibold text-foreground">No services are registered yet</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+              {listing.kind === "service" ? "No services are registered yet" : "No hot offers selected"}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               This profile has not added services that can be requested here.
             </p>

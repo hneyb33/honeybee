@@ -138,10 +138,12 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-baseline gap-1 border-t border-border/60 pt-2.5 text-sm text-foreground">
-          <span className="font-bold">{formatUGX(listing.hourly_rate)}</span>
-          <span className="text-xs text-muted-foreground">/ hour</span>
-        </div>
+        {listing.kind === "service" && (
+          <div className="mt-2.5 flex items-baseline gap-1 border-t border-border/60 pt-2.5 text-sm text-foreground">
+            <span className="font-bold">{formatUGX(listing.hourly_rate)}</span>
+            <span className="text-xs text-muted-foreground">/ hour</span>
+          </div>
+        )}
       </Link>
     </article>
   );
