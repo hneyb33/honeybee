@@ -295,7 +295,7 @@ export async function POST(request: Request) {
   const playbackUrl = kind === "video" ? derived[0].secure_url : null;
   const thumbnailUrl = kind === "video" ? derived[1].secure_url : null;
   const url = detailUrl ?? playbackUrl;
-  if (!url || (kind === "image" && (!cardUrl || !detailUrl))) {
+  if (!url) {
     return NextResponse.json({ error: "Cloudinary did not return the required media variants." }, { status: 502 });
   }
 
@@ -317,6 +317,10 @@ export async function POST(request: Request) {
   }
 
   if (kind === "image") {
+    if (!cardUrl || !detailUrl) {
+      return NextResponse.json({ error: "Cloudinary did not return the required image variants." }, { status: 502 });
+    }
+
     const { data: listingData, error: listingReadError } = await adminClient
       .from("listings")
       .select("images,cover_image")

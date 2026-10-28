@@ -104,12 +104,13 @@ export default function ProviderOperationsDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!listings.length || !supabase) return;
+    const client = supabase;
+    if (!listings.length || !client) return;
     let active = true;
     let signedIn = false;
 
     const updatePresence = async (online: boolean) => {
-      const { error } = await supabase.rpc("set_listing_presence", { p_online: online });
+      const { error } = await client.rpc("set_listing_presence", { p_online: online });
       if (error && active) {
         setPresenceError(error.message);
         console.error("Could not update provider online status:", error.message);
@@ -124,7 +125,7 @@ export default function ProviderOperationsDashboard() {
       if (signedIn) void updatePresence(false);
     };
 
-    void supabase.auth.getUser().then(({ data, error }) => {
+    void client.auth.getUser().then(({ data, error }) => {
       if (error) {
         setPresenceError(error.message);
         console.error("Could not verify provider session:", error.message);
