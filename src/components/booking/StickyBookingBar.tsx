@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Listing } from "@/lib/supabase/types";
-import { formatUGX } from "@/lib/utils";
 import { MessageCircle, Send, Calendar, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingModal } from "./BookingModal";
@@ -45,16 +44,13 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
           <div className="min-w-0">
             {listing.kind === "service" ? (
               <p className="truncate text-sm text-foreground">
-                <span className="text-base font-bold text-foreground sm:text-lg">
-                  {formatUGX(listing.hourly_rate)}
-                </span>{" "}
-                <span className="text-xs font-normal text-muted-foreground">/ hour</span>
+                <span className="text-sm font-semibold text-foreground sm:text-base">Discuss pricing in chat</span>
               </p>
             ) : (
               <p className="truncate text-sm font-semibold text-foreground">Get in touch</p>
             )}
             <p className="truncate text-xs text-muted-foreground hidden sm:block">
-              {listing.neighborhood}, {listing.city} ·{" "}
+              {listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""} ·{" "}
               {listing.kind === "service" ? "Specialist Service" : listing.category}
             </p>
           </div>
@@ -145,7 +141,7 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
               ) : (
                 <MessageCircle className="h-4 w-4" />
               )}
-              <span>{listing.kind === "service" ? "Book Appointment" : "Hot offers"}</span>
+              <span>{listing.kind === "service" ? "Request a service" : "Hot offers"}</span>
             </Button>
           </div>
         </div>

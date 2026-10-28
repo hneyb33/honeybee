@@ -6,11 +6,22 @@ import Link from "next/link";
 import { ArrowRight, Image as ImageIcon, Video } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase/client";
+import {
+  getMediaImageUrl,
+  getMediaThumbnailUrl,
+  getMediaVideoUrl,
+  isPublicMediaReady,
+} from "@/lib/media-urls";
 
 type MediaItem = {
   id: string;
   url: string;
   thumbnail_url: string | null;
+  card_url: string | null;
+  detail_url: string | null;
+  playback_url: string | null;
+  storage_provider: string | null;
+  processing_status: string | null;
   listing_id: string;
   title: string;
   slug: string;
@@ -61,9 +72,10 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
 
       const { data: media, error: mediaError } = await client
         .from("profile_media")
-        .select("id,url,thumbnail_url,listing_id")
+        .select("id,url,thumbnail_url,card_url,detail_url,playback_url,storage_provider,processing_status,listing_id")
         .eq("kind", kind)
         .in("listing_id", listingIds)
+        .or("storage_provider.eq.supabase,processing_status.eq.ready")
         .order("created_at", { ascending: false })
         .limit(60);
 
@@ -79,7 +91,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
         setItems(
           (media ?? []).flatMap((item) => {
             const listing = listingById.get(item.listing_id);
-            return listing
+            return listing && isPublicMediaReady(item)
               ? [{
                   ...item,
                   title: listing.title,
@@ -130,8 +142,8 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
             <Card key={item.id} className="overflow-hidden rounded-2xl border-neutral-800 bg-[#101211]">
               {isVideo ? (
                 <video
-                  src={item.url}
-                  poster={item.thumbnail_url ?? undefined}
+                  src={getMediaVideoUrl(item)}
+                  poster={getMediaThumbnailUrl(item) ?? undefined}
                   controls
                   playsInline
                   preload="metadata"
@@ -141,7 +153,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
               ) : (
                 <Link href={`/profiles/${item.slug}`} className="group block">
                   <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900">
-                    <Image src={item.url} alt={`Photo from ${item.title}`} fill unoptimized sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <Image src={getMediaImageUrl(item, "card")} alt={`Photo from ${item.title}`} fill unoptimized sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
                   </div>
                 </Link>
               )}

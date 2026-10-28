@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Users, Crown, ChefHat, Building2, Zap, UserRound } from "lucide-react";
+import { Users, Crown, ChefHat, Building2, Zap, UserRound, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { EAST_AFRICAN_COUNTRIES } from "@/lib/data/uganda-locations";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,7 +17,11 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [phone, setPhone] = useState("");
+  const [country, setCountry] = useState("Uganda");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,11 +41,17 @@ export default function RegisterPage() {
   }, []);
 
   const onboardingPath = `/provider/onboarding${advertiserType ? `?type=${advertiserType}` : ""}`;
+  const selectedCountry = EAST_AFRICAN_COUNTRIES.find((item) => item.name === country) ?? EAST_AFRICAN_COUNTRIES[0];
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
     if (!supabase) {
       setError("Registration is unavailable until Supabase is configured.");
@@ -54,7 +65,9 @@ export default function RegisterPage() {
       options: {
         data: {
           name,
-          phone,
+          phone: `${selectedCountry.callingCode} ${phone}`,
+          phone_country: selectedCountry.callingCode,
+          country: selectedCountry.name,
           account_kind: role,
           advertiser_type: advertiserType ?? (role === "agency" ? "agency" : role === "model" ? "independent" : null),
         },
@@ -225,31 +238,89 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="phone" className="text-xs font-semibold text-foreground">Phone Number</label>
-              <Input
-                id="phone"
+              <label htmlFor="country" className="text-xs font-semibold text-foreground">Country</label>
+              <select
+                id="country"
                 required
-                autoComplete="tel"
-                placeholder="+256 700 000 000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1.5"
-              />
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {EAST_AFRICAN_COUNTRIES.map((item) => (
+                  <option key={item.name} value={item.name}>{item.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="text-xs font-semibold text-foreground">Phone Number</label>
+              <div className="mt-1.5 flex gap-2">
+                <span className="inline-flex items-center rounded-md border border-input bg-muted px-3 text-sm font-semibold" aria-label={`Country calling code ${selectedCountry.callingCode}`}>
+                  {selectedCountry.callingCode}
+                </span>
+                <Input
+                  id="phone"
+                  type="tel"
+                  required
+                  autoComplete="tel-national"
+                  inputMode="tel"
+                  placeholder="700 000 000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
             </div>
 
             <div>
               <label htmlFor="password" className="text-xs font-semibold text-foreground">Password</label>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1.5"
-              />
+              <div className="relative mt-1.5">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="confirm-password" className="text-xs font-semibold text-foreground">Confirm password</label>
+              <div className="relative mt-1.5">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((visible) => !visible)}
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  aria-pressed={showConfirmPassword}
+                  className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             {!isSupabaseConfigured && (

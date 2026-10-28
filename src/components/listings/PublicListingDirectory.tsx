@@ -6,6 +6,7 @@ import { ArrowRight, MapPin } from "lucide-react";
 import { ListingGrid } from "@/components/listings/ListingGrid";
 import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { mapListingRow } from "@/lib/supabase/map-listing";
+import { getMediaImageUrl, isPublicMediaReady } from "@/lib/media-urls";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { Listing } from "@/lib/supabase/types";
 
@@ -44,11 +45,17 @@ export function PublicListingDirectory({ agenciesOnly = false }: { agenciesOnly?
       }
 
       const listingIds = (data ?? []).map((listing) => listing.id);
-      const mediaByListing = new Map<string, string[]>();
+      const mediaByListing = new Map<string, Array<{
+        url: string;
+        card_url: string | null;
+        detail_url: string | null;
+        storage_provider: string | null;
+        processing_status: string | null;
+      }>>();
       if (listingIds.length > 0) {
         const { data: media, error: mediaError } = await client
           .from("profile_media")
-          .select("listing_id,url,sort_order")
+          .select("listing_id,url,card_url,detail_url,storage_provider,processing_status,sort_order")
           .in("listing_id", listingIds)
           .eq("kind", "photo")
           .order("sort_order", { ascending: true });
@@ -60,17 +67,26 @@ export function PublicListingDirectory({ agenciesOnly = false }: { agenciesOnly?
           return;
         }
         for (const item of media ?? []) {
+          if (!isPublicMediaReady(item)) continue;
           const images = mediaByListing.get(item.listing_id) ?? [];
-          images.push(item.url);
+          images.push(item);
           mediaByListing.set(item.listing_id, images);
         }
       }
 
       if (!cancelled) {
         setListings(
-          (data ?? []).map((listing) =>
-            mapListingRow(listing, mediaByListing.get(listing.id) ?? [])
-          )
+          (data ?? []).map((listing) => {
+            const listingMedia = mediaByListing.get(listing.id) ?? [];
+            const cover = listingMedia.find((item) =>
+              [item.url, item.card_url, item.detail_url].includes(listing.cover_image)
+            );
+            const cardImages = listingMedia.map((item) => getMediaImageUrl(item, "card"));
+            const coverImage = cover
+              ? getMediaImageUrl(cover, "card")
+              : cardImages[0];
+            return mapListingRow(listing, cardImages, undefined, coverImage);
+          })
         );
         setError("");
         setLoading(false);

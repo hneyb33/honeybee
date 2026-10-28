@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { UGANDA_LOCATIONS } from "@/lib/data/uganda-locations";
+import { EAST_AFRICA_LOCATIONS } from "@/lib/data/uganda-locations";
 import { calculateDistanceKm } from "@/lib/utils";
 
 export async function GET(request: Request) {
@@ -13,10 +13,10 @@ export async function GET(request: Request) {
     const userLng = parseFloat(lng);
 
     // Find closest location
-    let closest = UGANDA_LOCATIONS[0];
+    let closest = EAST_AFRICA_LOCATIONS[0];
     let minDistance = Infinity;
 
-    for (const loc of UGANDA_LOCATIONS) {
+    for (const loc of EAST_AFRICA_LOCATIONS) {
       const dist = calculateDistanceKm(userLat, userLng, loc.latitude, loc.longitude);
       if (dist < minDistance) {
         minDistance = dist;
@@ -31,13 +31,14 @@ export async function GET(request: Request) {
   }
 
   if (query) {
-    const matches = UGANDA_LOCATIONS.filter(
+    const matches = EAST_AFRICA_LOCATIONS.filter(
       (loc) =>
         loc.area.toLowerCase().includes(query) ||
-        loc.city.toLowerCase().includes(query)
+        loc.city.toLowerCase().includes(query) ||
+        loc.country.toLowerCase().includes(query)
     );
     return NextResponse.json(matches);
   }
 
-  return NextResponse.json(UGANDA_LOCATIONS);
+  return NextResponse.json(EAST_AFRICA_LOCATIONS);
 }

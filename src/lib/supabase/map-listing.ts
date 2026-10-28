@@ -11,7 +11,8 @@ function strings(value: unknown): string[] {
 export function mapListingRow(
   row: Record<string, unknown>,
   mediaImages?: string[],
-  offerings?: ProfileOffering[]
+  offerings?: ProfileOffering[],
+  mediaCoverImage?: string
 ): Listing {
   const images = mediaImages?.length ? mediaImages : strings(row.images);
   const details =
@@ -36,6 +37,7 @@ export function mapListingRow(
     gender: text(row.gender) || undefined,
     ethnicity: text(row.ethnicity) || undefined,
     nationality: text(row.nationality) || undefined,
+    country: text(row.country, "Uganda"),
     city: text(row.city, "Kampala"),
     neighborhood: text(row.neighborhood, "Central"),
     latitude: Number(row.latitude ?? 0),
@@ -58,7 +60,7 @@ export function mapListingRow(
     whatsapp_code: text(row.whatsapp_code) || undefined,
     telegram: text(row.telegram) || undefined,
     telegram_code: text(row.telegram_code) || undefined,
-    cover_image: text(row.cover_image) || images[0] || "",
+    cover_image: mediaCoverImage || text(row.cover_image) || images[0] || "",
     images,
     is_featured: featuredActive,
     featured_tier: featuredActive && (row.featured_tier === "vip" || row.featured_tier === "premium")

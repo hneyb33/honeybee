@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, Star, ChevronLeft, ChevronRight, ShieldCheck, Crown, MapPin } from "lucide-react";
 import { Listing } from "@/lib/supabase/types";
-import { formatUGX } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase/client";
+import { CountryFlagBadge } from "@/components/listings/CountryFlagBadge";
 
 interface ListingCardProps {
   listing: Listing;
@@ -15,6 +16,86 @@ interface ListingCardProps {
 export function ListingCard({ listing }: ListingCardProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteLoaded, setFavoriteLoaded] = useState(false);
+  const [favoriteError, setFavoriteError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const finishLoading = () => {
+      if (!cancelled) setFavoriteLoaded(true);
+    };
+    const loadFavorite = async () => {
+      if (!supabase) {
+        finishLoading();
+        return;
+      }
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error("Could not check saved profile state:", authError.message);
+        finishLoading();
+        return;
+      }
+      if (!authData.user) {
+        finishLoading();
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("favorites")
+        .select("listing_id")
+        .eq("user_id", authData.user.id)
+        .eq("listing_id", listing.id)
+        .maybeSingle();
+      if (error) {
+        console.error("Could not load saved profile state:", error.message);
+        finishLoading();
+        return;
+      }
+      if (!cancelled) {
+        setIsFavorite(Boolean(data));
+        setFavoriteLoaded(true);
+      }
+    };
+
+    void loadFavorite();
+    return () => {
+      cancelled = true;
+    };
+  }, [listing.id]);
+
+  const toggleFavorite = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!supabase) {
+      setFavoriteError("Saved profiles are unavailable until the database is configured.");
+      return;
+    }
+
+    setFavoriteBusy(true);
+    setFavoriteError("");
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      setFavoriteError(authError?.message ?? "Sign in to save profiles to your dashboard.");
+      setFavoriteBusy(false);
+      return;
+    }
+
+    const result = isFavorite
+      ? await supabase.from("favorites").delete()
+          .eq("user_id", authData.user.id)
+          .eq("listing_id", listing.id)
+      : await supabase.from("favorites").insert({
+          user_id: authData.user.id,
+          listing_id: listing.id,
+        });
+    if (result.error) {
+      setFavoriteError(result.error.message);
+    } else {
+      setIsFavorite(!isFavorite);
+    }
+    setFavoriteBusy(false);
+  };
 
   const photos = listing.images && listing.images.length > 0
     ? listing.images
@@ -49,6 +130,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           />
           <span className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 to-transparent" />
         </Link>
+        <CountryFlagBadge country={listing.country} />
 
         <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5">
           {(listing.featured_tier ?? listing.escort_tier) === "vip" ? (
@@ -68,10 +150,11 @@ export function ListingCard({ listing }: ListingCardProps) {
 
         <button
           type="button"
-          onClick={() => setIsFavorite((current) => !current)}
+          onClick={(event) => void toggleFavorite(event)}
+          disabled={favoriteBusy || !favoriteLoaded}
           aria-label={isFavorite ? "Remove from saved profiles" : "Save profile"}
           aria-pressed={isFavorite}
-          className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/25 text-white shadow-sm backdrop-blur-md transition hover:scale-105 hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/25 text-white shadow-sm backdrop-blur-md transition hover:scale-105 hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-60"
         >
           <Heart
             className={`h-5 w-5 transition-colors ${
@@ -120,7 +203,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             </h3>
             <p className="mt-1 flex items-center gap-1 truncate text-sm text-muted-foreground">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              {listing.neighborhood}, {listing.city}
+              {listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""}
             </p>
             <p className="mt-1 truncate text-xs text-muted-foreground">
               {listing.summary_line ||
@@ -138,13 +221,10 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         </div>
 
-        {listing.kind === "service" && (
-          <div className="mt-2.5 flex items-baseline gap-1 border-t border-border/60 pt-2.5 text-sm text-foreground">
-            <span className="font-bold">{formatUGX(listing.hourly_rate)}</span>
-            <span className="text-xs text-muted-foreground">/ hour</span>
-          </div>
-        )}
       </Link>
+      {favoriteError && (
+        <p role="alert" className="mt-2 text-xs text-destructive">{favoriteError}</p>
+      )}
     </article>
   );
 }

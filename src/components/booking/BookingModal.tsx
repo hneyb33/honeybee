@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import { ArrowUpRight, CheckCircle2, Clock, MapPin, MessageCircle } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Clock, MapPin, MessageCircle, Send } from "lucide-react";
 import { Listing, ProfileOffering } from "@/lib/supabase/types";
-import { formatUGX } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BookingModalProps {
@@ -14,8 +13,6 @@ interface BookingModalProps {
 
 interface BookingService {
   name: string;
-  price?: number;
-  pricingModel?: string;
   groupName?: string;
   turnaround?: string;
   locationType?: string;
@@ -24,8 +21,6 @@ interface BookingService {
 function mapOffering(offering: ProfileOffering): BookingService {
   return {
     name: offering.name,
-    price: offering.price,
-    pricingModel: offering.pricing_model,
     groupName: offering.group_name,
     turnaround: offering.turnaround,
     locationType: offering.location_type,
@@ -45,26 +40,22 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
         ? contactDigits
         : `${countryDigits}${contactDigits.startsWith("0") ? contactDigits.slice(1) : contactDigits}`
     : "";
+  const telegramUsername = listing.telegram?.replace(/^@/, "").trim();
 
-  const serviceRequestUrl = (service: BookingService) => {
-    if (!phoneDigits) return undefined;
-
+  const requestMessage = (service: BookingService) => {
     const details = [
-      listing.kind === "service" && service.price != null
-        ? `Listed price: ${formatUGX(service.price)}${service.pricingModel ? ` (${service.pricingModel})` : ""}`
-        : null,
       service.turnaround ? `Turnaround: ${service.turnaround}` : null,
       service.locationType ? `Location: ${service.locationType}` : null,
     ].filter(Boolean);
     const message = listing.kind === "service"
       ? [
-          `Hello ${listing.title}, I saw your verified profile on Honeybee and would like to request your "${service.name}" service.`,
+          `Hello ${listing.title}, I found your profile on Honeybee and would like to ask about your "${service.name}" service.`,
           ...details,
-          "Please let me know your availability and how to proceed.",
+          "Please let me know your availability and pricing.",
         ].join("\n")
-      : `Hello ${listing.title}, I saw your Hot offers on Honeybee and would like to discuss "${service.name}". Please let me know your availability and details.`;
+      : `Hello ${listing.title}, I found your profile on Honeybee and am interested in your "${service.name}" experience. Please let me know your availability and pricing.`;
 
-    return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
+    return message;
   };
 
   return (
@@ -76,15 +67,21 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {listing.kind === "service"
-              ? "Choose one of this profile's registered services to start a personalized WhatsApp request."
-              : "Choose an experience to discuss directly over WhatsApp. You and the model can agree on details in chat."}
+              ? "Choose a registered service to send a personalized request by WhatsApp or Telegram. Discuss pricing directly in chat."
+              : "Choose an experience to send a personalized request by WhatsApp or Telegram. Discuss details directly in chat."}
           </DialogDescription>
         </DialogHeader>
 
         {services.length > 0 ? (
           <div className="space-y-3">
             {services.map((service, index) => {
-              const href = serviceRequestUrl(service);
+              const message = requestMessage(service);
+              const whatsappUrl = phoneDigits
+                ? `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`
+                : undefined;
+              const telegramUrl = telegramUsername
+                ? `https://t.me/${telegramUsername}?text=${encodeURIComponent(message)}`
+                : undefined;
               return (
                 <div key={`${service.name}-${index}`} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -95,32 +92,40 @@ export function BookingModal({ isOpen, onClose, listing }: BookingModalProps) {
                         </p>
                       )}
                       <h3 className="mt-0.5 font-semibold text-foreground">{service.name}</h3>
-                      {listing.kind === "service" && service.price != null && (
-                        <p className="mt-1 text-sm font-bold text-airbnb-coral">
-                          {formatUGX(service.price)}
-                          {service.pricingModel && (
-                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                              · {service.pricingModel}
-                            </span>
-                          )}
-                        </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                      {whatsappUrl && (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={onClose}
+                          aria-label={`Request ${service.name} via WhatsApp`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          WhatsApp
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      {telegramUrl && (
+                        <a
+                          href={telegramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={onClose}
+                          aria-label={`Request ${service.name} via Telegram`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
+                        >
+                          <Send className="h-4 w-4" />
+                          Telegram
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      {!whatsappUrl && !telegramUrl && (
+                        <span className="text-xs text-muted-foreground">Messaging unavailable</span>
                       )}
                     </div>
-                    {href ? (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={onClose}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        {listing.kind === "service" ? "Request" : "Chat about this"}
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </a>
-                    ) : (
-                      <span className="shrink-0 text-xs text-muted-foreground">WhatsApp unavailable</span>
-                    )}
                   </div>
                   {(service.turnaround || service.locationType) && (
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">

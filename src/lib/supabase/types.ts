@@ -13,6 +13,7 @@ export interface Profile {
   name: string;
   phone?: string;
   phone_country?: string;
+  country?: string;
   advertiser_type?: AdvertiserType;
   account_kind: AccountKind;
   role: UserRole;
@@ -57,6 +58,7 @@ export interface Listing {
   gender?: string;
   ethnicity?: string;
   nationality?: string;
+  country?: string;
   city: string;
   neighborhood: string;
   latitude: number;

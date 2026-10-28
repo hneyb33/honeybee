@@ -27,6 +27,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatUGX } from "@/lib/utils";
+import {
+  getMediaImageUrl,
+  getMediaThumbnailUrl,
+  getMediaVideoUrl,
+} from "@/lib/media-urls";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { AdminManagement } from "@/components/admin/AdminManagement";
 import { AdminSitePagesSettings } from "@/components/admin/AdminSitePagesSettings";
@@ -57,7 +62,18 @@ interface ListingReview {
   whatsapp_number: string | null;
   whatsapp_code: string | null;
   telegram: string | null;
-  media: Array<{ id: string; url: string; kind: "photo" | "video"; sort_order: number; thumbnail_url: string | null }>;
+  media: Array<{
+    id: string;
+    url: string;
+    kind: "photo" | "video";
+    sort_order: number;
+    thumbnail_url: string | null;
+    card_url?: string | null;
+    detail_url?: string | null;
+    playback_url?: string | null;
+    storage_provider?: string | null;
+    processing_status?: string | null;
+  }>;
 }
 
 interface PaymentReview {
@@ -85,6 +101,15 @@ interface AdminDashboardData {
   pendingPayments: number;
   listings: ListingReview[];
   payments: PaymentReview[];
+}
+
+function getReviewCoverUrl(listing: ListingReview): string | null {
+  const photos = listing.media.filter((media) => media.kind === "photo");
+  const matchingPhoto = photos.find((media) =>
+    [media.url, media.card_url, media.detail_url].includes(listing.cover_image)
+  );
+  const photo = matchingPhoto ?? photos[0];
+  return photo ? getMediaImageUrl(photo, "card") : listing.cover_image;
 }
 
 const emptyDashboard: AdminDashboardData = {
@@ -202,7 +227,7 @@ export default function AdminModerationDashboard() {
     if (listingIds.length > 0) {
       const { data: media, error: mediaError } = await supabase
         .from("profile_media")
-        .select("id,url,kind,listing_id,sort_order,thumbnail_url")
+        .select("id,url,kind,listing_id,sort_order,thumbnail_url,card_url,detail_url,playback_url,storage_provider,processing_status")
         .in("listing_id", listingIds)
         .order("sort_order", { ascending: true });
       if (mediaError) {
@@ -218,6 +243,11 @@ export default function AdminModerationDashboard() {
           kind: item.kind === "video" ? "video" : "photo",
           sort_order: item.sort_order,
           thumbnail_url: item.thumbnail_url,
+          card_url: item.card_url,
+          detail_url: item.detail_url,
+          playback_url: item.playback_url,
+          storage_provider: item.storage_provider,
+          processing_status: item.processing_status,
         });
         mediaByListing.set(item.listing_id, listingMedia);
       }
@@ -477,9 +507,9 @@ export default function AdminModerationDashboard() {
                   <Card key={listing.id} className="rounded-2xl p-5 shadow-sm">
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                       <div className="flex min-w-0 items-center gap-4">
-                        {listing.cover_image ? (
+                        {getReviewCoverUrl(listing) ? (
                           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-                            <Image src={listing.cover_image} alt="" fill unoptimized className="object-cover" />
+                            <Image src={getReviewCoverUrl(listing) ?? ""} alt="" fill unoptimized className="object-cover" />
                           </div>
                         ) : (
                           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-muted">
@@ -537,9 +567,9 @@ export default function AdminModerationDashboard() {
                           <span className="text-xs text-muted-foreground">{listing.media.length} items</span>
                         </div>
                         {listing.media.length === 0 ? (
-                          listing.cover_image ? (
+                          getReviewCoverUrl(listing) ? (
                             <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
-                              <Image src={listing.cover_image} alt={`${listing.title} cover photo`} fill unoptimized className="object-cover" />
+                              <Image src={getReviewCoverUrl(listing) ?? ""} alt={`${listing.title} cover photo`} fill unoptimized className="object-cover" />
                             </div>
                           ) : <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">No portfolio media submitted.</p>
                         ) : (
@@ -547,11 +577,14 @@ export default function AdminModerationDashboard() {
                             {listing.media.map((media) => (
                               <div key={media.id} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
                                 {media.kind === "video" ? (
-                                  <video src={media.url} poster={media.thumbnail_url ?? undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video for ${listing.title}`} />
+                                  <video src={getMediaVideoUrl(media)} poster={getMediaThumbnailUrl(media) ?? undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video for ${listing.title}`} />
                                 ) : (
-                                  <Image src={media.url} alt={`Profile photo for ${listing.title}`} fill unoptimized className="object-cover" />
+                                  <Image src={getMediaImageUrl(media, "detail")} alt={`Profile photo for ${listing.title}`} fill unoptimized className="object-cover" />
                                 )}
                                 <Badge variant="secondary" className="absolute left-2 top-2 capitalize">{media.kind}</Badge>
+                                {media.storage_provider === "cloudinary" && media.processing_status !== "ready" && (
+                                  <Badge variant="outline" className="absolute bottom-2 left-2 border-amber-400 bg-amber-100 text-amber-950">Processing</Badge>
+                                )}
                               </div>
                             ))}
                           </div>

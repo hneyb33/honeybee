@@ -21,6 +21,12 @@ import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { Listing } from "@/lib/supabase/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/map-listing";
+import {
+  getMediaImageUrl,
+  getMediaThumbnailUrl,
+  getMediaVideoUrl,
+  isPublicMediaReady,
+} from "@/lib/media-urls";
 import { PhotoMosaic } from "@/components/listings/PhotoMosaic";
 import { ServiceOfferings } from "@/components/listings/ServiceOfferings";
 import { ReviewSection } from "@/components/listings/ReviewSection";
@@ -85,7 +91,7 @@ export default function ProfileDetailPage() {
       const [mediaResult, offeringsResult, relatedResult] = await Promise.all([
         supabase
           .from("profile_media")
-          .select("url,kind,sort_order,thumbnail_url,source_path,processed_path,original_url")
+          .select("url,kind,sort_order,thumbnail_url,source_path,processed_path,original_url,storage_provider,processing_status,card_url,detail_url,playback_url")
           .eq("listing_id", data.id)
           .order("sort_order", { ascending: true }),
         supabase
@@ -114,13 +120,18 @@ export default function ProfileDetailPage() {
 
       const mappedListing = mapListingRow(
         data,
-        (mediaResult.data ?? []).filter((media) => media.kind === "photo").map((media) => media.url),
+        (mediaResult.data ?? [])
+          .filter((media) => media.kind === "photo" && isPublicMediaReady(media))
+          .map((media) => getMediaImageUrl(media, "detail")),
         offeringsResult.data ?? []
       );
       const mediaRows = mediaResult.data ?? [];
       const videos = mediaRows
-        .filter((media) => media.kind === "video")
-        .map((media) => ({ url: media.url, thumbnailUrl: media.thumbnail_url }));
+        .filter((media) => media.kind === "video" && isPublicMediaReady(media))
+        .map((media) => ({
+          url: getMediaVideoUrl(media),
+          thumbnailUrl: getMediaThumbnailUrl(media),
+        }));
 
       if (data.user_id) {
         const mediaFolder = `${data.user_id}/${data.id}`;
@@ -158,10 +169,48 @@ export default function ProfileDetailPage() {
         console.error("Could not load recommended profiles:", relatedResult.error.message);
       }
 
+      const relatedListings = relatedResult.data ?? [];
+      const relatedMediaByListing = new Map<string, Array<{
+        url: string;
+        card_url: string | null;
+        detail_url: string | null;
+        storage_provider: string | null;
+        processing_status: string | null;
+      }>>();
+      const relatedListingIds = relatedListings.map((row) => row.id);
+      if (relatedListingIds.length > 0) {
+        const { data: relatedMedia, error: relatedMediaError } = await supabase
+          .from("profile_media")
+          .select("listing_id,url,card_url,detail_url,storage_provider,processing_status,sort_order")
+          .in("listing_id", relatedListingIds)
+          .eq("kind", "photo")
+          .order("sort_order", { ascending: true });
+        if (relatedMediaError) {
+          console.error("Could not load recommended profile photos:", relatedMediaError.message);
+        } else {
+          for (const media of relatedMedia ?? []) {
+            if (!isPublicMediaReady(media)) continue;
+            const listingMedia = relatedMediaByListing.get(media.listing_id) ?? [];
+            listingMedia.push(media);
+            relatedMediaByListing.set(media.listing_id, listingMedia);
+          }
+        }
+      }
+
       if (!cancelled) {
         setListing(mappedListing);
         setProfileVideos(videos);
-        setRelatedListings((relatedResult.data ?? []).map((row) => mapListingRow(row)));
+        setRelatedListings(relatedListings.map((row) => {
+          const listingMedia = relatedMediaByListing.get(row.id) ?? [];
+          const cover = listingMedia.find((item) =>
+            [item.url, item.card_url, item.detail_url].includes(row.cover_image)
+          );
+          const cardImages = listingMedia.map((item) => getMediaImageUrl(item, "card"));
+          const coverImage = cover
+            ? getMediaImageUrl(cover, "card")
+            : cardImages[0];
+          return mapListingRow(row, cardImages, undefined, coverImage);
+        }));
         setLoading(false);
       }
     };
@@ -233,7 +282,7 @@ export default function ProfileDetailPage() {
           <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <MapPin className="h-4 w-4 text-airbnb-coral" />
-              {listing.neighborhood}, {listing.city}
+              {listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""}
             </span>
             {listing.nationality && <span>· {listing.nationality}</span>}
             <span>
@@ -421,7 +470,7 @@ export default function ProfileDetailPage() {
       <ServiceOfferings
         offerings={listing.kind === "service" ? listing.offerings : undefined}
         generalServices={listing.services_offered}
-        showPrices={listing.kind === "service"}
+        showPrices={false}
         heading={listing.kind === "escort" ? "Hot offers" : "What is offered"}
       />
 

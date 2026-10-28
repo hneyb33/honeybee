@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Search, MapPin, Navigation, Users, ChefHat } from "lucide-react";
-import { UGANDA_LOCATIONS, SERVICE_CATEGORIES, SERVICE_TYPES } from "@/lib/data/uganda-locations";
+import { EAST_AFRICA_LOCATIONS, SERVICE_CATEGORIES, SERVICE_TYPES } from "@/lib/data/uganda-locations";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
@@ -253,8 +253,8 @@ export function SearchCapsule({
 
       {/* Datalist for Suburb Autocompletion */}
       <datalist id="uganda-locations-list">
-        {UGANDA_LOCATIONS.map((loc) => (
-          <option key={`${loc.area}-${loc.city}`} value={`${loc.area}, ${loc.city}`} />
+        {EAST_AFRICA_LOCATIONS.map((loc) => (
+          <option key={`${loc.country}-${loc.area}-${loc.city}`} value={`${loc.area}, ${loc.city}`} />
         ))}
       </datalist>
     </div>

@@ -5,6 +5,11 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  getMediaImageUrl,
+  getMediaThumbnailUrl,
+  getMediaVideoUrl,
+} from "@/lib/media-urls";
 import { supabase } from "@/lib/supabase/client";
 
 type ListingSummary = {
@@ -375,16 +380,21 @@ export function AdminListingDialog({
               {!media.length ? <p className="text-sm text-muted-foreground">No portfolio media submitted.</p> : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {media.map((row, index) => {
-                    const url = typeof row.url === "string" ? row.url : "";
+                    const mediaSource = { ...row, url: typeof row.url === "string" ? row.url : "" };
                     const kind = row.kind === "video" ? "video" : "photo";
+                    const url = kind === "video"
+                      ? getMediaVideoUrl(mediaSource)
+                      : getMediaImageUrl(mediaSource, "detail");
+                    const isProcessing = row.storage_provider === "cloudinary" && row.processing_status !== "ready";
                     return (
                       <div key={String(row.id ?? index)} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
                         {kind === "video" ? (
-                          <video src={url} poster={typeof row.thumbnail_url === "string" ? row.thumbnail_url : undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
+                          <video src={url} poster={getMediaThumbnailUrl(mediaSource) ?? undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Profile video ${index + 1}`} />
                         ) : (
                           <Image src={url} alt={`Profile photo ${index + 1}`} fill unoptimized className="object-cover" />
                         )}
                         <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-1 text-[10px] font-semibold capitalize text-white">{kind}</span>
+                        {isProcessing && <span className="absolute bottom-2 left-2 rounded-full bg-amber-500/90 px-2 py-1 text-[10px] font-semibold text-black">Processing</span>}
                       </div>
                     );
                   })}

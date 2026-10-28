@@ -302,6 +302,7 @@ function SubscribeContent() {
             return (
               <Card
                 key={plan.id}
+                id={plan.id === "advertiser_premium" ? "advertising-card" : undefined}
                 className={`relative flex h-full flex-col overflow-hidden rounded-3xl border bg-neutral-900/80 text-white transition duration-200 hover:-translate-y-1 hover:shadow-xl ${style.border} ${
                   plan.popular ? "shadow-lg shadow-rose-950/30" : "border-neutral-800"
                 }`}

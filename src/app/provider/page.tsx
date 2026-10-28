@@ -1,40 +1,115 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { formatUGX } from "@/lib/utils";
-import {
-  Calendar,
-  Clock,
-  MapPin,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  DollarSign,
-  Star,
-  Sparkles,
-  Phone,
-  Navigation,
-  ArrowRight,
-  User,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Calendar, Clock, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase/client";
 
+type ProviderListing = {
+  id: string;
+  title: string;
+  slug: string;
+  verification_status: string;
+  rating: number | null;
+  review_count: number | null;
+};
+
+type ProviderBooking = {
+  id: string;
+  listing_id: string;
+  starts_at: string;
+  duration_hours: number | null;
+  experience_type: string | null;
+  status: string;
+};
+
+const activeStatuses = ["accepted", "travelling", "arrived", "in_progress"];
+const requestStatuses = ["requested"];
+
 export default function ProviderOperationsDashboard() {
+  const [name, setName] = useState("");
+  const [accountKind, setAccountKind] = useState("");
+  const [listings, setListings] = useState<ProviderListing[]>([]);
+  const [bookings, setBookings] = useState<ProviderBooking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [status, setStatus] = useState<"available" | "busy" | "offline">("available");
   const [presenceError, setPresenceError] = useState("");
 
   useEffect(() => {
-    if (!supabase) return;
-    const client = supabase;
+    let active = true;
+    const loadDashboard = async () => {
+      if (!supabase) {
+        setLoadError("Provider dashboard is unavailable because the database is not configured.");
+        setLoading(false);
+        return;
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData.user) {
+        if (active) {
+          setLoadError("Sign in to view your provider operations.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      const [profileResult, listingsResult] = await Promise.all([
+        supabase.from("profiles").select("name, account_kind").eq("id", authData.user.id).maybeSingle(),
+        supabase
+          .from("listings")
+          .select("id, title, slug, verification_status, rating, review_count")
+          .eq("user_id", authData.user.id),
+      ]);
+      if (profileResult.error) throw profileResult.error;
+      if (listingsResult.error) throw listingsResult.error;
+      if (!active) return;
+
+      setName(profileResult.data?.name ?? "");
+      setAccountKind(profileResult.data?.account_kind ?? "");
+      const ownedListings = listingsResult.data ?? [];
+      setListings(ownedListings);
+      if (ownedListings.length === 0) {
+        setBookings([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: bookingData, error: bookingError } = await supabase
+        .from("bookings")
+        .select("id, listing_id, starts_at, duration_hours, experience_type, status")
+        .in("listing_id", ownedListings.map((listing) => listing.id))
+        .in("status", [...requestStatuses, ...activeStatuses])
+        .order("starts_at", { ascending: true });
+      if (bookingError) throw bookingError;
+      if (active) setBookings(bookingData ?? []);
+    };
+
+    void loadDashboard()
+      .catch((error: unknown) => {
+        console.error("Could not load provider operations:", error);
+        if (active) setLoadError(error instanceof Error ? error.message : "Could not load provider data.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!listings.length || !supabase) return;
     let active = true;
     let signedIn = false;
 
     const updatePresence = async (online: boolean) => {
-      const { error } = await client.rpc("set_listing_presence", { p_online: online });
+      const { error } = await supabase.rpc("set_listing_presence", { p_online: online });
       if (error && active) {
         setPresenceError(error.message);
         console.error("Could not update provider online status:", error.message);
@@ -42,277 +117,196 @@ export default function ProviderOperationsDashboard() {
         setPresenceError("");
       }
     };
-
     const heartbeat = () => {
-      if (signedIn) {
-        void updatePresence(status !== "offline" && document.visibilityState === "visible");
-      }
+      if (signedIn) void updatePresence(status !== "offline" && document.visibilityState === "visible");
     };
     const clearPresence = () => {
       if (signedIn) void updatePresence(false);
     };
 
-    void client.auth.getUser().then(({ data, error }) => {
+    void supabase.auth.getUser().then(({ data, error }) => {
       if (error) {
         setPresenceError(error.message);
         console.error("Could not verify provider session:", error.message);
-        return;
+      } else if (data.user) {
+        signedIn = true;
+        heartbeat();
       }
-      if (!data.user) return;
-      signedIn = true;
-      heartbeat();
     });
+
     const interval = window.setInterval(heartbeat, 60_000);
     document.addEventListener("visibilitychange", heartbeat);
     window.addEventListener("pagehide", clearPresence);
-
     return () => {
       active = false;
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", heartbeat);
       window.removeEventListener("pagehide", clearPresence);
     };
-  }, [status]);
+  }, [listings.length, status]);
 
-  // Sample real-time incoming job queue
-  const [incomingJobs, setIncomingJobs] = useState([
-    {
-      id: "HB-20481",
-      customer: "Sarah M.",
-      service: "Family Dinner Prep (3-Course)",
-      location: "Kira, Wakiso",
-      distance: "2.7 km away",
-      appointment: "Today • 2:30 PM",
-      budget: 80000,
-      state: "requested",
-    },
-    {
-      id: "HB-20482",
-      customer: "Ronald T.",
-      service: "Weekend Barbecue Catering",
-      location: "Najjera, Kampala",
-      distance: "3.4 km away",
-      appointment: "Tomorrow • 1:00 PM",
-      budget: 150000,
-      state: "requested",
-    },
-  ]);
+  const listingById = useMemo(() => new Map(listings.map((listing) => [listing.id, listing])), [listings]);
+  const newRequests = bookings.filter((booking) => requestStatuses.includes(booking.status));
+  const activeBookings = bookings.filter((booking) => activeStatuses.includes(booking.status));
+  const reviewCount = listings.reduce((total, listing) => total + (listing.review_count ?? 0), 0);
+  const rating = reviewCount
+    ? listings.reduce((total, listing) => total + (listing.rating ?? 0) * (listing.review_count ?? 0), 0) / reviewCount
+    : null;
 
-  const handleJobAction = (id: string, action: "accepted" | "declined") => {
-    setIncomingJobs((prev) =>
-      prev.map((job) => (job.id === id ? { ...job, state: action } : job))
+  if (loading) {
+    return <div className="mx-auto max-w-7xl px-4 py-12 text-sm text-muted-foreground">Loading your provider operations…</div>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <Card className="space-y-4 rounded-3xl p-8">
+          <h1 className="text-2xl font-bold">Provider Operations</h1>
+          <p role="alert" className="text-sm text-destructive">{loadError}</p>
+          <Link href="/login"><Button>Sign in</Button></Link>
+        </Card>
+      </div>
     );
-  };
+  }
+
+  const registered = ["specialist", "model", "agency"].includes(accountKind);
+  if (!registered || listings.length === 0) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12">
+        <Card className="space-y-4 rounded-3xl p-8">
+          <Badge variant="outline">{registered ? "Finish registration" : "Become a provider"}</Badge>
+          <h1 className="text-2xl font-bold">
+            {registered ? "Complete your provider listing" : `Welcome${name ? `, ${name}` : ""}`}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {registered
+              ? "Your provider account does not have a listing yet. Continue onboarding to publish your services."
+              : "Register as a service provider or model to manage your listing and receive booking requests here."}
+          </p>
+          <Link href={registered ? "/provider/onboarding" : "/advertise"}>
+            <Button>{registered ? "Continue onboarding" : "Register to provide services"}</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-8">
-      {/* Top Status Card */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6">
+      <div className="flex flex-col items-start justify-between gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center">
         <div>
-          <span className="text-xs uppercase font-bold text-muted-foreground">
-            Provider Operations Hub
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-1">
-            Good morning, Samuel
+          <span className="text-xs font-bold uppercase text-muted-foreground">Provider Operations Hub</span>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
+            {name ? `Welcome, ${name}` : "Provider Operations"}
           </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Profile strength: <strong className="text-emerald-600">92% Complete</strong> · Certified ID Verified
+          <p className="mt-1 text-sm text-muted-foreground">
+            {listings.length} active listing{listings.length === 1 ? "" : "s"} connected to your account.
           </p>
         </div>
-
-        {/* Live Availability Toggle */}
         <div className="flex items-center gap-2 rounded-full border border-border bg-background p-1.5 shadow-sm">
-          <button
-            onClick={() => setStatus("available")}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              status === "available"
-                ? "bg-emerald-500 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-            Available
-          </button>
-          <button
-            onClick={() => setStatus("busy")}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              status === "busy"
-                ? "bg-amber-500 text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Busy
-          </button>
-          <button
-            onClick={() => setStatus("offline")}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              status === "offline"
-                ? "bg-neutral-800 text-white shadow-sm dark:bg-neutral-200 dark:text-neutral-900"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Offline
-          </button>
+          {(["available", "busy", "offline"] as const).map((value) => (
+            <button
+              key={value}
+              onClick={() => setStatus(value)}
+              aria-pressed={status === value}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize transition-all ${
+                status === value ? "bg-emerald-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {value}
+            </button>
+          ))}
         </div>
       </div>
+
       {presenceError && (
         <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-xs text-destructive">
           Could not sync your online status: {presenceError}. Apply the latest Supabase migration to enable presence.
         </p>
       )}
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="rounded-3xl p-5">
-          <span className="text-xs text-muted-foreground font-semibold">New Requests</span>
-          <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-foreground">
-            {incomingJobs.filter((j) => j.state === "requested").length}
-          </div>
-          <span className="text-[11px] text-emerald-600 font-medium">Ready for review</span>
+          <span className="text-xs font-semibold text-muted-foreground">New requests</span>
+          <div className="mt-2 text-3xl font-extrabold">{newRequests.length}</div>
+          <span className="text-[11px] text-muted-foreground">Awaiting your response</span>
         </Card>
-
         <Card className="rounded-3xl p-5">
-          <span className="text-xs text-muted-foreground font-semibold">Active Jobs</span>
-          <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-foreground">2</div>
-          <span className="text-[11px] text-muted-foreground">Scheduled this week</span>
+          <span className="text-xs font-semibold text-muted-foreground">Active bookings</span>
+          <div className="mt-2 text-3xl font-extrabold">{activeBookings.length}</div>
+          <span className="text-[11px] text-muted-foreground">Current and upcoming</span>
         </Card>
-
         <Card className="rounded-3xl p-5">
-          <span className="text-xs text-muted-foreground font-semibold">Client Rating</span>
-          <div className="mt-2 flex items-center gap-1.5 text-2xl sm:text-3xl font-extrabold text-foreground">
-            <Star className="h-6 w-6 fill-amber-400 text-amber-400" /> 4.95
+          <span className="text-xs font-semibold text-muted-foreground">Client rating</span>
+          <div className="mt-2 flex items-center gap-1.5 text-3xl font-extrabold">
+            <Star className="h-6 w-6 fill-amber-400 text-amber-400" /> {rating === null ? "New" : rating.toFixed(1)}
           </div>
-          <span className="text-[11px] text-muted-foreground">From 28 verified reviews</span>
-        </Card>
-
-        <Card className="rounded-3xl p-5">
-          <span className="text-xs text-muted-foreground font-semibold">Weekly Earnings</span>
-          <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-airbnb-coral">
-            {formatUGX(480000)}
-          </div>
-          <span className="text-[11px] text-emerald-600 font-medium">+18% vs last week</span>
+          <span className="text-[11px] text-muted-foreground">{reviewCount} verified reviews</span>
         </Card>
       </div>
 
-      {/* Main Operations Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Incoming Job Requests Queue */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <section className="space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
-              Incoming Job Requests
-            </h2>
-            <Badge variant="outline">Live Queue</Badge>
+            <h2 className="text-xl font-bold tracking-tight">Booking requests</h2>
+            <Badge variant="outline">From your listings</Badge>
           </div>
-
-          {incomingJobs.length === 0 ? (
-            <div className="rounded-3xl border border-border p-8 text-center text-muted-foreground text-sm">
-              No new incoming requests right now.
+          {newRequests.length === 0 ? (
+            <div className="rounded-3xl border border-border p-8 text-center text-sm text-muted-foreground">
+              No booking requests right now.
             </div>
           ) : (
             <div className="space-y-3">
-              {incomingJobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-4 hover:border-foreground/30 transition-colors"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
-                    <div>
-                      <span className="text-xs font-bold text-muted-foreground">{job.id}</span>
-                      <h3 className="text-base font-bold text-foreground">{job.service}</h3>
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <span className="text-lg font-extrabold text-airbnb-coral">
-                        {formatUGX(job.budget)}
-                      </span>
-                      <span className="text-xs text-muted-foreground block">Agreed Fee</span>
-                    </div>
+              {newRequests.map((booking) => (
+                <Card key={booking.id} className="space-y-3 rounded-3xl p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-bold">{listingById.get(booking.listing_id)?.title ?? "Your listing"}</h3>
+                    <Badge variant="outline">Requested</Badge>
                   </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <User className="h-4 w-4 text-foreground shrink-0" />
-                      <span>{job.customer}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4 text-airbnb-coral shrink-0" />
-                      <span>
-                        {job.location} ({job.distance})
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-foreground shrink-0" />
-                      <span>{job.appointment}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  {job.state === "requested" ? (
-                    <div className="flex items-center gap-3 pt-2">
-                      <Button
-                        onClick={() => handleJobAction(job.id, "accepted")}
-                        className="flex-1 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 h-10 text-xs"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1.5" /> Accept Job
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleJobAction(job.id, "declined")}
-                        className="flex-1 rounded-xl text-destructive hover:bg-destructive/10 h-10 text-xs"
-                      >
-                        <XCircle className="h-4 w-4 mr-1.5" /> Decline
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="pt-2 text-xs font-bold text-emerald-600 flex items-center gap-1">
-                      <CheckCircle className="h-4 w-4" /> Status: {job.state.toUpperCase()}
-                    </div>
-                  )}
-                </div>
+                  <p className="text-sm text-muted-foreground">{booking.experience_type || "Booking request"}</p>
+                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    {new Date(booking.starts_at).toLocaleString()}
+                    {booking.duration_hours ? ` · ${booking.duration_hours} hours` : ""}
+                  </p>
+                </Card>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Schedule & Quick Actions Sidebar */}
-        <div className="space-y-6">
-          <Card className="rounded-3xl p-6 space-y-4">
-            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-airbnb-coral" /> Today&apos;s Schedule
+        <aside className="space-y-6">
+          <Card className="space-y-4 rounded-3xl p-6">
+            <h3 className="flex items-center gap-2 font-bold">
+              <Calendar className="h-4 w-4 text-airbnb-coral" /> Upcoming bookings
             </h3>
-            <div className="space-y-3 text-xs">
-              <div className="rounded-2xl border border-border p-3.5 space-y-1">
-                <div className="font-bold text-foreground">10:00 AM – 1:00 PM</div>
-                <div className="text-muted-foreground">Intimate 3-Course Lunch • Kololo</div>
-                <div className="text-[11px] text-emerald-600 font-semibold">Client Confirmed</div>
+            {activeBookings.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Confirmed bookings will appear here.</p>
+            ) : activeBookings.slice(0, 5).map((booking) => (
+              <div key={booking.id} className="space-y-1 rounded-2xl border border-border p-3.5">
+                <div className="text-xs font-bold">{listingById.get(booking.listing_id)?.title ?? "Your listing"}</div>
+                <div className="text-xs text-muted-foreground">{new Date(booking.starts_at).toLocaleString()}</div>
+                <div className="text-[11px] font-semibold capitalize text-emerald-600">{booking.status.replaceAll("_", " ")}</div>
               </div>
-
-              <div className="rounded-2xl border border-border p-3.5 space-y-1">
-                <div className="font-bold text-foreground">15:00 PM – 17:30 PM</div>
-                <div className="text-muted-foreground">Menu Consultation &amp; Prep • Ntinda</div>
-                <div className="text-[11px] text-amber-600 font-semibold">Starts in 3 hours</div>
-              </div>
-            </div>
+            ))}
           </Card>
 
-          <Card className="rounded-3xl p-6 space-y-3">
-            <h3 className="font-bold text-base text-foreground">Quick Shortcuts</h3>
+          <Card className="space-y-3 rounded-3xl p-6">
+            <h3 className="font-bold">Quick Shortcuts</h3>
             <div className="space-y-2">
               <Link href="/provider/onboarding" className="block">
                 <Button variant="outline" className="w-full justify-between rounded-xl text-xs">
-                  <span>Edit Profile &amp; Services</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <span>Edit Profile &amp; Services</span><ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
               <Link href="/subscribe" className="block">
                 <Button variant="outline" className="w-full justify-between rounded-xl text-xs">
-                  <span>Manage Listing Subscription</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <span>Manage Listing Subscription</span><ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
             </div>
           </Card>
-        </div>
+        </aside>
       </div>
     </div>
   );

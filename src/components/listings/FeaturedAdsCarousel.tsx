@@ -1,14 +1,40 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Crown, MapPin, Sparkles } from "lucide-react";
 import { Listing } from "@/lib/supabase/types";
-import { formatUGX } from "@/lib/utils";
+import { CountryFlagBadge } from "@/components/listings/CountryFlagBadge";
 
 export function FeaturedAdsCarousel({ listings }: { listings: Listing[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [autoPaused, setAutoPaused] = useState(false);
+
+  useEffect(() => {
+    if (
+      listings.length < 2 ||
+      autoPaused ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) return;
+    const track = trackRef.current;
+    if (!track) return;
+
+    const interval = window.setInterval(() => {
+      if (document.hidden) return;
+      const card = track.firstElementChild;
+      if (!(card instanceof HTMLElement)) return;
+      const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+      const step = card.offsetWidth + gap;
+      if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 8) {
+        track.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        track.scrollBy({ left: step, behavior: "smooth" });
+      }
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [autoPaused, listings.length]);
 
   if (listings.length === 0) {
     return (
@@ -52,7 +78,18 @@ export function FeaturedAdsCarousel({ listings }: { listings: Listing[] }) {
         </div>
       </div>
 
-      <div ref={trackRef} className="featured-ads-mask flex h-[360px] snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950 p-3 no-scrollbar sm:h-[400px] sm:p-4">
+      <div
+        ref={trackRef}
+        onMouseEnter={() => setAutoPaused(true)}
+        onMouseLeave={() => setAutoPaused(false)}
+        onFocusCapture={() => setAutoPaused(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setAutoPaused(false);
+        }}
+        onTouchStart={() => setAutoPaused(true)}
+        onTouchEnd={() => setAutoPaused(false)}
+        className="featured-ads-mask flex h-[280px] snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden rounded-[1.5rem] border border-neutral-800 bg-neutral-950 p-2.5 no-scrollbar sm:h-[360px] sm:rounded-[2rem] sm:p-4"
+      >
         {listings.map((listing, index) => {
           const href = listing.slug.trim() ? `/profiles/${listing.slug}` : null;
           const content = (
@@ -66,28 +103,24 @@ export function FeaturedAdsCarousel({ listings }: { listings: Listing[] }) {
                 priority={index === 0}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-black/5" />
-              <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-[#e5b34c]/40 bg-black/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#ffe5a3] backdrop-blur">
+              <CountryFlagBadge country={listing.country} />
+              <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-[#e5b34c]/40 bg-black/70 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#ffe5a3] backdrop-blur sm:left-4 sm:top-4 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px]">
                 <Crown className="h-3 w-3" /> Admin featured
               </span>
-              <div className="absolute inset-x-5 bottom-5 text-white">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">
+              <div className="absolute inset-x-4 bottom-4 pr-24 text-white sm:inset-x-5 sm:bottom-5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/70 sm:text-[10px]">
                   {listing.kind === "service" ? "Service provider" : "Model"} · {listing.featured_tier ?? "Featured"}
                 </p>
-                <h3 className="mt-1 truncate font-display text-2xl font-semibold sm:text-3xl">{listing.title}</h3>
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-white/80">
-                  <MapPin className="h-4 w-4 shrink-0" /> {listing.neighborhood}, {listing.city}
+                <h3 className="mt-1 truncate font-display text-xl font-semibold sm:text-2xl">{listing.title}</h3>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-white/80 sm:mt-2 sm:gap-1.5 sm:text-sm">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" /> {listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""}
                 </p>
-                {listing.kind === "service" && (
-                  <p className="mt-3 text-sm font-bold text-white">
-                    {formatUGX(listing.hourly_rate)} <span className="font-normal text-white/70">/ hour</span>
-                  </p>
-                )}
-                {href && <span className="mt-4 inline-flex rounded-full bg-white px-4 py-2 text-xs font-bold text-neutral-950">View profile</span>}
+                {href && <span className="mt-3 inline-flex rounded-full bg-white px-3.5 py-1.5 text-[11px] font-bold text-neutral-950 sm:mt-4 sm:px-4 sm:py-2 sm:text-xs">View profile</span>}
               </div>
             </>
           );
 
-          const cardClass = `group relative block h-full w-[min(78vw,420px)] shrink-0 overflow-hidden rounded-[1.5rem] bg-neutral-800 ${href ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e5b34c]" : "cursor-default"}`;
+          const cardClass = `group relative block h-full w-[min(68vw,290px)] shrink-0 overflow-hidden rounded-[1.25rem] bg-neutral-800 sm:w-[min(76vw,380px)] sm:rounded-[1.5rem] ${href ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e5b34c]" : "cursor-default"}`;
           return href ? (
             <Link
               key={`${listing.id}-${index}`}

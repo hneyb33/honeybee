@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Grid } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface PhotoMosaicProps {
   images: string[];
@@ -39,7 +39,13 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
           className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden no-scrollbar"
         >
           {displayImages.map((image, index) => (
-            <div key={`${image}-${index}`} className="relative h-full w-full shrink-0 snap-center">
+            <button
+              key={`${image}-${index}`}
+              type="button"
+              onClick={() => handleOpenPhoto(image)}
+              aria-label={`View ${title} photo ${index + 1} full screen`}
+              className="relative h-full w-full shrink-0 snap-center appearance-none border-0 bg-transparent p-0 text-left"
+            >
               <Image
                 src={image}
                 alt={`${title} photo ${index + 1}`}
@@ -48,7 +54,7 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
                 className="object-cover"
                 priority={index === 0}
               />
-            </div>
+            </button>
           ))}
         </div>
         {displayImages.length > 1 && (
@@ -150,13 +156,18 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
 
       {/* Full-screen Photo Dialog */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95 border-0">
+        <DialogContent
+          className="h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none overflow-hidden border-0 bg-black/95 p-0 sm:h-[80vh] sm:w-full sm:max-w-4xl"
+          closeButtonClassName="right-3 top-3 z-10 text-white opacity-100 hover:bg-white/20 focus:ring-white dark:hover:bg-white/20"
+        >
+          <DialogTitle className="sr-only">{title} photo</DialogTitle>
           {selectedPhoto && (
-            <div className="relative h-[80vh] w-full">
+            <div className="relative h-full w-full">
               <Image
                 src={selectedPhoto}
                 alt={title}
                 fill
+                sizes="100vw"
                 className="object-contain"
               />
             </div>

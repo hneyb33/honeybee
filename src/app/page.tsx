@@ -13,30 +13,33 @@ import {
 } from "lucide-react";
 import { DiscoveryFilters, DiscoveryStatus } from "@/components/layout/DiscoveryFilters";
 import { ListingGrid } from "@/components/listings/ListingGrid";
-import { OnlineNowStrip } from "@/components/listings/OnlineNowStrip";
 import { FeaturedAdsCarousel } from "@/components/listings/FeaturedAdsCarousel";
 import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { calculateDistanceKm } from "@/lib/utils";
 import { Listing } from "@/lib/supabase/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/map-listing";
-import { UGANDA_LOCATIONS } from "@/lib/data/uganda-locations";
+import { getMediaImageUrl, isPublicMediaReady } from "@/lib/media-urls";
+import { EAST_AFRICAN_COUNTRIES, EAST_AFRICA_LOCATIONS } from "@/lib/data/uganda-locations";
 
-function makeLocationOptions(places: Array<{ area: string; city: string }> = []) {
+function makeLocationOptions(country: string, places: Array<{ area: string; city: string; country?: string }> = []) {
   return Array.from(new Set([
-    ...UGANDA_LOCATIONS.flatMap((place) => [place.city, `${place.area}, ${place.city}`]),
-    ...places.flatMap((place) => [place.city, `${place.area}, ${place.city}`]),
+    ...EAST_AFRICA_LOCATIONS
+      .filter((place) => place.country === country)
+      .flatMap((place) => [place.city, ...(place.area !== place.city ? [`${place.area}, ${place.city}`] : [])]),
+    ...places
+      .filter((place) => !place.country || place.country === country)
+      .flatMap((place) => [place.city, ...(place.area !== place.city ? [`${place.area}, ${place.city}`] : [])]),
   ].map((location) => location.trim()).filter(Boolean)));
 }
-
-const DEFAULT_LOCATION_OPTIONS = makeLocationOptions();
 
 export default function HomePage() {
   const [listings, setListings] = useState<Listing[]>(isSupabaseConfigured ? [] : MOCK_LISTINGS);
   const [listingsLoading, setListingsLoading] = useState(isSupabaseConfigured);
   const [listingsError, setListingsError] = useState("");
-  const [locationOptions, setLocationOptions] = useState(DEFAULT_LOCATION_OPTIONS);
+  const [locationOptions, setLocationOptions] = useState(makeLocationOptions("Uganda"));
   const [locationsError, setLocationsError] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("Uganda");
   const [discoveryStatus, setDiscoveryStatus] = useState<DiscoveryStatus>("all");
   const [searchLocation, setSearchLocation] = useState("");
   const [searchOrientation, setSearchOrientation] = useState("all");
@@ -52,7 +55,7 @@ export default function HomePage() {
     const loadLocations = async () => {
       const { data, error } = await client
         .from("places")
-        .select("area,city")
+        .select("area,city,country")
         .order("city", { ascending: true })
         .order("area", { ascending: true });
 
@@ -62,7 +65,7 @@ export default function HomePage() {
         return;
       }
 
-      setLocationOptions(makeLocationOptions(data ?? []));
+      setLocationOptions(makeLocationOptions(selectedCountry, data ?? []));
       setLocationsError("");
     };
 
@@ -83,12 +86,18 @@ export default function HomePage() {
       }
 
       const listingIds = (data ?? []).map((listing) => listing.id);
-      const mediaByListing = new Map<string, Array<{ url: string; sort_order: number }>>();
+      const mediaByListing = new Map<string, Array<{
+        url: string;
+        card_url: string | null;
+        detail_url: string | null;
+        storage_provider: string | null;
+        processing_status: string | null;
+      }>>();
 
       if (listingIds.length > 0) {
         const { data: media, error: mediaError } = await client
           .from("profile_media")
-          .select("listing_id,url,sort_order")
+          .select("listing_id,url,card_url,detail_url,storage_provider,processing_status,sort_order")
           .in("listing_id", listingIds)
           .eq("kind", "photo")
           .order("sort_order", { ascending: true });
@@ -102,20 +111,26 @@ export default function HomePage() {
         }
 
         for (const item of media ?? []) {
+          if (!isPublicMediaReady(item)) continue;
           const items = mediaByListing.get(item.listing_id) ?? [];
-          items.push({ url: item.url, sort_order: item.sort_order });
+          items.push(item);
           mediaByListing.set(item.listing_id, items);
         }
       }
 
       if (!cancelled) {
         setListings(
-          (data ?? []).map((listing) =>
-            mapListingRow(
-              listing,
-              mediaByListing.get(listing.id)?.map((item) => item.url) ?? []
-            )
-          )
+          (data ?? []).map((listing) => {
+            const listingMedia = mediaByListing.get(listing.id) ?? [];
+            const cover = listingMedia.find((item) =>
+              [item.url, item.card_url, item.detail_url].includes(listing.cover_image)
+            );
+            const cardImages = listingMedia.map((item) => getMediaImageUrl(item, "card"));
+            const coverImage = cover
+              ? getMediaImageUrl(cover, "card")
+              : cardImages[0];
+            return mapListingRow(listing, cardImages, undefined, coverImage);
+          })
         );
         setListingsLoading(false);
         setOnlineUpdatedAt(Date.now());
@@ -142,7 +157,7 @@ export default function HomePage() {
       window.clearInterval(refreshInterval);
       void client.removeChannel(channel);
     };
-  }, []);
+  }, [selectedCountry]);
 
   const resetFilters = () => {
     setDiscoveryStatus("all");
@@ -188,6 +203,7 @@ export default function HomePage() {
         return { ...listing, distance_km };
       })
       .filter((listing) => {
+        if ((listing.country ?? "Uganda") !== selectedCountry) return false;
         if (discoveryStatus === "online" && !onlineListings.some((online) => online.id === listing.id)) return false;
         if (
           discoveryStatus === "vip" &&
@@ -219,13 +235,18 @@ export default function HomePage() {
 
         if (searchLocation && searchLocation !== "Near me" && !userCoords) {
           const locationTerms = searchLocation
-            .split(",")
-            .map((term) => term.trim().toLowerCase())
+            .trim()
+            .toLowerCase()
+            .split(/[,\s]+/)
             .filter(Boolean);
-          if (!locationTerms.every((term) =>
-            listing.neighborhood.toLowerCase().includes(term) ||
-            listing.city.toLowerCase().includes(term)
-          )) return false;
+          const listingLocations = [
+            listing.neighborhood,
+            listing.city,
+            listing.country ?? "Uganda",
+          ].map((value) => value.trim().toLowerCase());
+          if (!locationTerms.every((term) => listingLocations.some((value) => value.includes(term)))) {
+            return false;
+          }
         }
 
         return true;
@@ -242,7 +263,7 @@ export default function HomePage() {
         if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
         return b.rating - a.rating;
       });
-  }, [listings, discoveryStatus, onlineListings, searchLocation, searchOrientation, searchService, userCoords]);
+  }, [listings, discoveryStatus, onlineListings, searchLocation, searchOrientation, searchService, userCoords, selectedCountry]);
 
   return (
     <div className="w-full">
@@ -257,7 +278,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <OnlineNowStrip listings={onlineListings} />
 
       <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-8 sm:pt-14">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -268,7 +288,26 @@ export default function HomePage() {
             Advertise with us <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="mt-5 flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
+        <label className="mt-5 block max-w-xs">
+          <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">Choose a country</span>
+          <select
+            value={selectedCountry}
+            onChange={(event) => {
+              const country = event.target.value;
+              setSelectedCountry(country);
+              setLocationOptions(makeLocationOptions(country));
+              setSearchLocation("");
+              setUserCoords(null);
+            }}
+            aria-label="Choose a country for discovery"
+            className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm font-semibold text-foreground"
+          >
+            {EAST_AFRICAN_COUNTRIES.map((country) => (
+              <option key={country.name} value={country.name}>{country.name}</option>
+            ))}
+          </select>
+        </label>
+        <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
           {locationOptions.map((location) => (
             <button
               key={location}
@@ -365,7 +404,7 @@ export default function HomePage() {
             </div>
             <div className="hidden items-center gap-1.5 text-xs font-medium text-muted-foreground sm:flex">
               <Compass className="h-4 w-4 text-[#e45b63]" />
-              Discover across Uganda
+              Discover across East Africa
             </div>
           </div>
 
@@ -400,7 +439,7 @@ export default function HomePage() {
                 </p>
                 <p className="mt-1 truncate text-sm font-bold">{featuredAds[0].title}</p>
                 <p className="mt-1 truncate text-xs text-white/75">
-                  {featuredAds[0].neighborhood}, {featuredAds[0].city}
+                  {featuredAds[0].neighborhood}, {featuredAds[0].city}, {featuredAds[0].country ?? "Uganda"}
                 </p>
               </div>
             </Link>
