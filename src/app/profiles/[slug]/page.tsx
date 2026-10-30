@@ -38,11 +38,12 @@ import { Button } from "@/components/ui/button";
 export default function ProfileDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  const [listing, setListing] = useState<Listing | undefined>(
-    () => MOCK_LISTINGS.find((item) => item.slug === slug)
-  );
-  const [relatedListings, setRelatedListings] = useState<Listing[]>(MOCK_LISTINGS);
+  const [listing, setListing] = useState<Listing | undefined>(undefined);
+  const [relatedListings, setRelatedListings] = useState<Listing[]>([]);
   const [profileVideos, setProfileVideos] = useState<Array<{ url: string; thumbnailUrl: string | null }>>([]);
+  // Seed from the offline catalogue immediately when Supabase is not wired up so
+  // local demos still render; a configured deployment shows a loading state
+  // instead of ever flashing placeholder profiles.
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [loadError, setLoadError] = useState("");
   const [copied, setCopied] = useState(false);

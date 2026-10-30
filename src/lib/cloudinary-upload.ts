@@ -1,6 +1,17 @@
 import { z } from "zod";
-
-type CloudinaryResourceType = "image" | "video";
+import {
+  CHUNKED_UPLOAD_MIN_BYTES,
+  UPLOAD_CHUNK_BYTES,
+  resourceTypeForKind,
+  type CloudinaryResourceType,
+  type MediaKind,
+} from "@/lib/media-policy";
+import {
+  MediaUploadError,
+  describeCloudinaryFailure,
+  extractCloudinaryMessage,
+  isAbortError,
+} from "@/lib/media-errors";
 
 const signatureSchema = z.object({
   cloudName: z.string().min(1),
@@ -17,7 +28,7 @@ const uploadResultSchema = z.object({
   asset_id: z.string().min(1).max(128),
 });
 
-const finalizedMediaSchema = z.object({
+export const finalizedMediaSchema = z.object({
   id: z.string().uuid(),
   listing_id: z.string().uuid(),
   url: z.string().url(),
@@ -27,50 +38,114 @@ const finalizedMediaSchema = z.object({
   processing_status: z.enum(["pending", "processing", "ready", "failed"]),
   cloudinary_public_id: z.string().nullable().optional(),
   cloudinary_asset_id: z.string().nullable().optional(),
+  card_url: z.string().url().nullable().optional(),
+  detail_url: z.string().url().nullable().optional(),
+  playback_url: z.string().url().nullable().optional(),
 });
 
 export type UploadedCloudinaryAsset = {
   publicId: string;
   assetId: string;
-  kind: CloudinaryResourceType;
+  kind: MediaKind;
+  resourceType: CloudinaryResourceType;
 };
 
 export type RegisteredCloudinaryMedia = z.infer<typeof finalizedMediaSchema>;
 
 type UploadSignature = z.infer<typeof signatureSchema>;
 
-const CHUNKED_UPLOAD_THRESHOLD = 100_000_000;
-const CHUNK_SIZE = 20 * 1024 * 1024;
+/** Cloudinary signatures are time-boxed, so each chunk gets a fresh one. */
+const AUTHORIZATION_LEASE_MS = 4 * 60 * 1000;
+const CHUNK_TIMEOUT_MS = 5 * 60 * 1000;
+const MAX_CHUNK_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 1200;
 const PROCESSING_POLL_INTERVAL_MS = 3000;
 const MAX_PROCESSING_POLL_INTERVAL_MS = 15000;
-const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
+/** How long to wait for video transcoding before letting the wizard continue. */
+const PROCESSING_GRACE_MS = 90 * 1000;
 
-async function responseError(response: Response): Promise<string> {
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 420 || status === 425 || status === 429 || status >= 500;
+}
+
+function signatureAgeMs(signature: UploadSignature): number {
+  return Date.now() - signature.timestamp * 1000;
+}
+
+async function requestUploadSignature(
+  listingId: string,
+  kind: MediaKind,
+  accessToken: string,
+  publicId?: string
+): Promise<UploadSignature> {
+  let response: Response;
   try {
-    const body: unknown = await response.json();
-    if (
-      body &&
-      typeof body === "object" &&
-      "error" in body &&
-      typeof body.error === "string"
-    ) {
-      return body.error;
-    }
-    if (
-      body &&
-      typeof body === "object" &&
-      "error" in body &&
-      body.error &&
-      typeof body.error === "object" &&
-      "message" in body.error &&
-      typeof body.error.message === "string"
-    ) {
-      return body.error.message;
-    }
+    response = await fetch("/api/media/signature", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ listingId, resourceType: resourceTypeForKind(kind), ...(publicId ? { publicId } : {}) }),
+    });
   } catch {
-    return `Cloudinary request failed (${response.status}).`;
+    throw new MediaUploadError(
+      "Could not reach Honeybee to authorise the upload. Check your connection and try again.",
+      { status: null }
+    );
   }
-  return `Cloudinary request failed (${response.status}).`;
+
+  const contentType = response.headers.get("content-type");
+  const text = await response.text();
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || !payload) {
+    const described = describeCloudinaryFailure({
+      status: response.status,
+      statusText: response.statusText,
+      contentType,
+      cloudinaryMessage: extractCloudinaryMessage(payload),
+      bodySnippet: text.slice(0, 180),
+    });
+    throw new MediaUploadError(
+      response.status === 503 && payload === null
+        ? described.message
+        : described.message,
+      { detail: described.detail, status: response.status }
+    );
+  }
+
+  const parsed = signatureSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new MediaUploadError("The upload authorization response is invalid.", {
+      detail: parsed.error.issues.map((issue) => issue.message).join(", "),
+      status: response.status,
+    });
+  }
+  return parsed.data;
 }
 
 function uploadChunk(
@@ -79,7 +154,8 @@ function uploadChunk(
   start: number,
   end: number,
   uploadId: string | null,
-  onProgress: (loaded: number) => void
+  signal: AbortSignal | undefined,
+  onLoaded: (loaded: number) => void
 ): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
@@ -95,156 +171,268 @@ function uploadChunk(
       "POST",
       `https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/${signature.resourceType}/upload`
     );
+    request.timeout = CHUNK_TIMEOUT_MS;
     if (uploadId) {
       request.setRequestHeader("X-Unique-Upload-Id", uploadId);
       request.setRequestHeader("Content-Range", `bytes ${start}-${end}/${file.size}`);
     }
     request.upload.onprogress = (event) => {
-      onProgress(start + (event.lengthComputable ? event.loaded : 0));
+      onLoaded(start + (event.lengthComputable ? event.loaded : 0));
     };
-    request.onerror = () => reject(new Error("Could not reach Cloudinary. Check your connection and try again."));
-    request.onabort = () => reject(new Error("The Cloudinary upload was cancelled."));
+    const finish = (error: Error | null, payload?: unknown) => {
+      signal?.removeEventListener("abort", onAborted);
+      if (error) reject(error);
+      else resolve(payload);
+    };
+    const onAborted = () => {
+      request.abort();
+      finish(new MediaUploadError("The upload was cancelled.", { status: null }));
+    };
+    signal?.addEventListener("abort", onAborted, { once: true });
+
+    request.onerror = () =>
+      finish(new MediaUploadError(
+        "Could not reach Cloudinary. Check your connection, VPN or firewall and try again.",
+        { status: null, retryable: true }
+      ));
+    request.ontimeout = () =>
+      finish(new MediaUploadError(
+        "Cloudinary stopped responding to the upload. Your connection may have dropped.",
+        { status: 408, retryable: true }
+      ));
     request.onload = () => {
-      let payload: unknown;
+      let contentType: string | null = null;
+      let cldError: string | null = null;
+      try {
+        contentType = request.getResponseHeader("content-type");
+        cldError = request.getResponseHeader("x-cld-error");
+      } catch {
+        // Cross-origin header access is limited; the body still tells us enough.
+      }
+
+      let payload: unknown = null;
       try {
         payload = JSON.parse(request.responseText);
       } catch {
-        reject(new Error("Cloudinary returned an invalid upload response."));
-        return;
+        payload = null;
       }
 
       if (request.status < 200 || request.status >= 300) {
-        const cloudinaryMessage =
-          payload &&
-          typeof payload === "object" &&
-          "error" in payload &&
-          payload.error &&
-          typeof payload.error === "object" &&
-          "message" in payload.error &&
-          typeof payload.error.message === "string"
-            ? payload.error.message
-            : `Cloudinary upload failed (${request.status}).`;
-        reject(new Error(cloudinaryMessage));
+        const described = describeCloudinaryFailure({
+          status: request.status,
+          statusText: request.statusText,
+          contentType,
+          cloudinaryMessage: extractCloudinaryMessage(payload),
+          cldErrorHeader: cldError,
+          bodySnippet: payload === null ? request.responseText.slice(0, 180) : null,
+        });
+        const error = new MediaUploadError(described.message, {
+          detail: described.detail,
+          status: request.status,
+          retryable: isRetryableStatus(request.status),
+        });
+        finish(error);
         return;
       }
-      resolve(payload);
+      if (payload === null) {
+        finish(new MediaUploadError(
+          "Cloudinary replied to the upload with an unreadable response.",
+          { detail: request.responseText.slice(0, 180), status: request.status }
+        ));
+        return;
+      }
+      finish(null, payload);
     };
     request.send(form);
   });
 }
 
+interface UploadOptions {
+  onProgress?: (percent: number, loadedBytes: number) => void;
+  signal?: AbortSignal;
+}
+
 export async function uploadMediaToCloudinary(
   file: File,
-  kind: CloudinaryResourceType,
+  kind: MediaKind,
   listingId: string,
   accessToken: string,
-  onProgress: (percent: number) => void
+  options: UploadOptions = {}
 ): Promise<UploadedCloudinaryAsset> {
-  const signatureResponse = await fetch("/api/media/signature", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ listingId, kind }),
-  });
-  if (!signatureResponse.ok) {
-    throw new Error(await responseError(signatureResponse));
-  }
+  const { onProgress, signal } = options;
+  let signature = await requestUploadSignature(listingId, kind, accessToken);
+  const chunked = file.size > CHUNKED_UPLOAD_MIN_BYTES;
+  const uploadId = chunked ? crypto.randomUUID() : null;
 
-  let signaturePayload: unknown;
-  try {
-    signaturePayload = await signatureResponse.json();
-  } catch {
-    throw new Error("The upload authorization response is invalid.");
-  }
-  const signatureResult = signatureSchema.safeParse(signaturePayload);
-  if (!signatureResult.success) {
-    throw new Error("The upload authorization response is invalid.");
-  }
-  const signature = signatureResult.data;
-  let result: unknown;
+  const report = (loaded: number) => {
+    onProgress?.(
+      Math.min(100, Math.round((loaded / Math.max(file.size, 1)) * 100)),
+      loaded
+    );
+  };
 
-  if (file.size > CHUNKED_UPLOAD_THRESHOLD) {
-    const uploadId = crypto.randomUUID();
+  const boundaries: Array<[number, number]> = [];
+  if (chunked) {
     let start = 0;
     while (start < file.size) {
-      const end = Math.min(start + CHUNK_SIZE, file.size) - 1;
-      result = await uploadChunk(file, signature, start, end, uploadId, (loaded) => {
-        onProgress(Math.min(100, Math.round((loaded / file.size) * 100)));
-      });
+      const end = Math.min(start + UPLOAD_CHUNK_BYTES, file.size) - 1;
+      boundaries.push([start, end]);
       start = end + 1;
     }
   } else {
-    result = await uploadChunk(file, signature, 0, file.size - 1, null, (loaded) => {
-      onProgress(Math.min(100, Math.round((loaded / file.size) * 100)));
-    });
+    boundaries.push([0, file.size - 1]);
+  }
+
+  let result: unknown = null;
+  for (let index = 0; index < boundaries.length; index += 1) {
+    const [start, end] = boundaries[index];
+    let attempt = 0;
+    while (true) {
+      if (signal?.aborted) throw new MediaUploadError("The upload was cancelled.", { status: null });
+      // Re-authorise for every chunk after the first, and whenever the current
+      // lease is close to expiring, so a slow uplink never voids the signature.
+      if (index > 0 || signatureAgeMs(signature) > AUTHORIZATION_LEASE_MS) {
+        signature = await requestUploadSignature(
+          listingId,
+          kind,
+          accessToken,
+          signature.publicId
+        );
+      }
+      try {
+        result = await uploadChunk(file, signature, start, end, uploadId, signal, report);
+        break;
+      } catch (error) {
+        if (isAbortError(error)) throw error;
+        attempt += 1;
+        const retryable = error instanceof MediaUploadError && error.retryable;
+        if (!retryable || attempt >= MAX_CHUNK_ATTEMPTS) {
+          throw error;
+        }
+        await delay(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), signal);
+      }
+    }
   }
 
   const uploadResult = uploadResultSchema.safeParse(result);
-  if (
-    !uploadResult.success ||
-    uploadResult.data.public_id !== signature.publicId
-  ) {
-    throw new Error("Cloudinary did not confirm the authorized upload.");
+  if (!uploadResult.success || uploadResult.data.public_id !== signature.publicId) {
+    throw new MediaUploadError("Cloudinary did not confirm the authorized upload.", {
+      detail: uploadResult.success ? "" : (uploadResult.error.issues[0]?.message ?? ""),
+    });
   }
 
+  onProgress?.(100, file.size);
   return {
     publicId: uploadResult.data.public_id,
     assetId: uploadResult.data.asset_id,
     kind,
+    resourceType: resourceTypeForKind(kind),
   };
 }
 
+export interface FinalizeOptions {
+  /** Streamed while a video is still transcoding so the UI can show progress. */
+  onProcessing?: (media: RegisteredCloudinaryMedia) => void;
+  signal?: AbortSignal;
+  /** Set for the legacy retry path where the browser holds no lease info. */
+  leaseMs?: number;
+}
+
+/**
+ * Registers an uploaded asset. Images are ready immediately because their
+ * renditions are generated on delivery. Videos wait for the asynchronous
+ * transcode, and if it is still running after the grace period the pending row
+ * is returned rather than failing the whole wizard - the next save, or a page
+ * revisit, re-checks it.
+ */
 export async function finalizeCloudinaryMedia(
   listingId: string,
   asset: UploadedCloudinaryAsset,
   accessToken: string,
-  onProcessing?: (media: RegisteredCloudinaryMedia) => void
+  onProcessing?: ((media: RegisteredCloudinaryMedia) => void) | FinalizeOptions,
+  finalizeOptions: FinalizeOptions = {}
 ): Promise<RegisteredCloudinaryMedia> {
-  const deadline = Date.now() + PROCESSING_TIMEOUT_MS;
+  const options: FinalizeOptions = typeof onProcessing === "function"
+    ? { ...finalizeOptions, onProcessing }
+    : { ...finalizeOptions, ...(onProcessing ?? {}) };
+  const deadline = Date.now() + (options.leaseMs ?? PROCESSING_GRACE_MS);
   let pollInterval = PROCESSING_POLL_INTERVAL_MS;
+
   while (true) {
-    const response = await fetch("/api/media/finalize", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        listingId,
-        kind: asset.kind,
-        publicId: asset.publicId,
-        assetId: asset.assetId,
-      }),
-    });
-    const payload: unknown = await response.json().catch(() => null);
-    if (response.status === 202) {
-      const pendingResult = z.object({ media: finalizedMediaSchema }).safeParse(payload);
-      if (!pendingResult.success) {
-        throw new Error("Cloudinary returned an invalid processing status.");
-      }
-      onProcessing?.(pendingResult.data.media);
-      if (Date.now() >= deadline) {
-        throw new Error("Cloudinary is still preparing the video. Save again in a few minutes to check its status.");
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
-      pollInterval = Math.min(
-        Math.round(pollInterval * 1.5),
-        MAX_PROCESSING_POLL_INTERVAL_MS
+    if (options.signal?.aborted) throw new MediaUploadError("Media registration was cancelled.", { status: null });
+    let response: Response;
+    try {
+      response = await fetch("/api/media/finalize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          listingId,
+          resourceType: asset.resourceType,
+          publicId: asset.publicId,
+          assetId: asset.assetId,
+        }),
+      });
+    } catch {
+      throw new MediaUploadError(
+        "Could not reach Honeybee to register the uploaded media. Check your connection.",
+        { status: null }
       );
-      continue;
-    }
-    if (!response.ok) {
-      throw new Error(await responseError(
-        new Response(JSON.stringify(payload), { status: response.status })
-      ));
     }
 
-    const finalizedResult = z.object({ media: finalizedMediaSchema }).safeParse(payload);
-    if (!finalizedResult.success) {
-      throw new Error("Cloudinary returned an invalid finalized media record.");
+    const contentType = response.headers.get("content-type");
+    const text = await response.text();
+    let payload: unknown = null;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = null;
     }
-    return finalizedResult.data.media;
+
+    if (response.status === 202) {
+      const pending = z.object({ media: finalizedMediaSchema }).safeParse(payload);
+      if (!pending.success) {
+        throw new MediaUploadError("Honeybee returned an invalid processing status.", {
+          detail: text.slice(0, 180),
+          status: response.status,
+        });
+      }
+      options.onProcessing?.(pending.data.media);
+      if (Date.now() >= deadline) {
+        // Not a failure: the video is queued, the profile can still be saved.
+        return pending.data.media;
+      }
+      await delay(pollInterval, options.signal);
+      pollInterval = Math.min(Math.round(pollInterval * 1.5), MAX_PROCESSING_POLL_INTERVAL_MS);
+      continue;
+    }
+
+    if (!response.ok) {
+      const described = describeCloudinaryFailure({
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        cloudinaryMessage: extractCloudinaryMessage(payload) ??
+          (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
+            ? payload.error
+            : null),
+        bodySnippet: payload === null ? text.slice(0, 180) : null,
+      });
+      throw new MediaUploadError(described.message, {
+        detail: described.detail,
+        status: response.status,
+      });
+    }
+
+    const finalized = z.object({ media: finalizedMediaSchema }).safeParse(payload);
+    if (!finalized.success) {
+      throw new MediaUploadError("Honeybee returned an incomplete media record.", {
+        detail: finalized.error.issues.map((issue) => issue.message).join(", ") || text.slice(0, 180),
+        status: response.status,
+      });
+    }
+    return finalized.data.media;
   }
 }

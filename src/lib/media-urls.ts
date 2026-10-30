@@ -1,3 +1,5 @@
+import { buildCloudinaryImageVariant } from "@/lib/cloudinary-url";
+
 export interface MediaUrlSource {
   url: unknown;
   storage_provider?: unknown;
@@ -6,12 +8,19 @@ export interface MediaUrlSource {
   detail_url?: unknown;
   playback_url?: unknown;
   thumbnail_url?: unknown;
+  original_url?: unknown;
 }
 
 function url(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/**
+ * Cloudinary rows store the rendition URLs, but a row written before the
+ * on-demand pipeline only has the original. Building the missing variant from
+ * the original keeps every historical row rendering at the right size instead
+ * of falling back to a multi-megabyte upload.
+ */
 export function getMediaImageUrl(
   media: MediaUrlSource,
   variant: "card" | "detail"
@@ -19,11 +28,11 @@ export function getMediaImageUrl(
   const original = url(media.url) ?? "";
   if (media.storage_provider !== "cloudinary") return original;
 
-  const cardUrl = url(media.card_url);
-  const detailUrl = url(media.detail_url);
-  return variant === "card"
-    ? cardUrl ?? detailUrl ?? original
-    : detailUrl ?? cardUrl ?? original;
+  const stored = variant === "card" ? url(media.card_url) : url(media.detail_url);
+  if (stored) return stored;
+
+  const fallback = url(media.original_url) ?? url(media.detail_url) ?? url(media.card_url) ?? original;
+  return fallback ? buildCloudinaryImageVariant(fallback, variant) : original;
 }
 
 export function getMediaVideoUrl(media: MediaUrlSource): string {

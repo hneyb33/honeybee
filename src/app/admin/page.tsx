@@ -36,6 +36,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { AdminManagement } from "@/components/admin/AdminManagement";
 import { AdminSitePagesSettings } from "@/components/admin/AdminSitePagesSettings";
 import { AdminBillingSettings } from "@/components/admin/AdminBillingSettings";
+import { AdminMediaDiagnostics } from "@/components/admin/AdminMediaDiagnostics";
 
 type QueueStatus = "pending" | "under_review";
 
@@ -436,6 +437,7 @@ export default function AdminModerationDashboard() {
                 <TabsList aria-label="Platform modules" className="flex h-auto w-full flex-col items-stretch justify-start gap-1 rounded-xl bg-transparent p-0">
                   <TabsTrigger value="ads" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><Megaphone className="mr-2 h-4 w-4" /> Advertising</TabsTrigger>
                   <TabsTrigger value="site-settings" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><FileText className="mr-2 h-4 w-4" /> Site settings</TabsTrigger>
+                  <TabsTrigger value="media-pipeline" className="w-full justify-start rounded-xl px-3 py-2.5 text-sm data-[state=active]:bg-[#5b82ff] data-[state=active]:text-white data-[state=active]:shadow-none"><ImageIcon className="mr-2 h-4 w-4" /> Media pipeline</TabsTrigger>
                 </TabsList>
             </aside>
 
@@ -498,6 +500,9 @@ export default function AdminModerationDashboard() {
                 <TabsContent value="site-settings" className="mt-0">
                   <AdminSitePagesSettings />
                 </TabsContent>
+            <TabsContent value="media-pipeline" className="mt-0">
+              <AdminMediaDiagnostics />
+            </TabsContent>
 
             <TabsContent value="verifications" className="space-y-3">
               {dashboard.listings.length === 0 ? (

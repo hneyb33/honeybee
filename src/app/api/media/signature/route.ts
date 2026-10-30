@@ -3,19 +3,29 @@ import { z } from "zod";
 import {
   getCloudinaryConfig,
   getCloudinaryUploadParams,
+  inspectCloudinaryEnvironment,
   signCloudinaryParams,
 } from "@/lib/cloudinary";
 import { getAuthenticatedRequestClient } from "@/lib/supabase/authenticated-request";
+import { getAdminSupabaseClient } from "@/lib/media-records";
+import {
+  MEDIA_UPLOADABLE_STATUSES,
+  policyForResourceType,
+  type CloudinaryResourceType,
+} from "@/lib/media-policy";
 
 const requestSchema = z.object({
   listingId: z.string().uuid(),
-  kind: z.enum(["image", "video"]),
+  resourceType: z.enum(["image", "video"]),
+  /**
+   * Supplied when re-authorising a chunk of an upload that already has a public
+   * id, so a long upload never runs on an expired signature.
+   */
+  publicId: z.string().min(1).max(300).optional(),
 });
 
-const MEDIA_LIMITS = {
-  image: { kind: "photo", count: 9 },
-  video: { kind: "video", count: 3 },
-} as const;
+/** Abandoned authorizations stop counting toward the limit after this window. */
+const OPEN_INTENT_TTL_MS = 2 * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -27,7 +37,10 @@ export async function POST(request: Request) {
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "A valid listing and media type are required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "A valid listing and media type are required." },
+      { status: 400 }
+    );
   }
 
   const auth = await getAuthenticatedRequestClient(request);
@@ -35,10 +48,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  const { listingId, resourceType } = parsed.data;
+  const policy = policyForResourceType(resourceType);
+  const expectedPrefix = `honeybee/${auth.userId}/${listingId}/`;
+
+  if (parsed.data.publicId && !parsed.data.publicId.startsWith(expectedPrefix)) {
+    return NextResponse.json(
+      { error: "That upload authorization does not belong to this profile." },
+      { status: 403 }
+    );
+  }
+
   const { data: listing, error: listingError } = await auth.client
     .from("listings")
     .select("id,verification_status")
-    .eq("id", parsed.data.listingId)
+    .eq("id", listingId)
     .eq("user_id", auth.userId)
     .maybeSingle();
 
@@ -46,33 +70,98 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not verify listing ownership." }, { status: 500 });
   }
   if (!listing) {
-    return NextResponse.json({ error: "Listing not found or not owned by this account." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Listing not found or not owned by this account." },
+      { status: 404 }
+    );
   }
-  if (!["draft", "pending", "rejected"].includes(listing.verification_status)) {
-    return NextResponse.json({ error: "Media can only be uploaded to a profile that is awaiting verification." }, { status: 409 });
-  }
-
-  const mediaLimit = MEDIA_LIMITS[parsed.data.kind];
-  const { count, error: countError } = await auth.client
-    .from("profile_media")
-    .select("id", { count: "exact", head: true })
-    .eq("listing_id", listing.id)
-    .eq("kind", mediaLimit.kind);
-  if (countError) {
-    return NextResponse.json({ error: "Could not check the listing's media limit." }, { status: 500 });
-  }
-  if ((count ?? 0) >= mediaLimit.count) {
-    return NextResponse.json({ error: `A profile can have up to ${mediaLimit.count} ${mediaLimit.kind === "photo" ? "photos" : "videos"}.` }, { status: 409 });
+  if (!(MEDIA_UPLOADABLE_STATUSES as readonly string[]).includes(listing.verification_status)) {
+    return NextResponse.json(
+      {
+        error: "This profile is suspended, so media cannot be changed. Contact support to restore it.",
+      },
+      { status: 409 }
+    );
   }
 
   const cloudinary = getCloudinaryConfig();
   if (!cloudinary) {
-    return NextResponse.json({ error: "Cloudinary uploads are not configured." }, { status: 503 });
+    // The previous generic message sent support conversations to the wrong
+    // place; name the variable that is actually missing.
+    const environment = inspectCloudinaryEnvironment();
+    const missing = (Object.keys(environment.present) as Array<keyof typeof environment.present>)
+      .filter((key) => !environment.present[key]);
+    return NextResponse.json(
+      {
+        error: missing.length
+          ? `Media uploads are not configured on this deployment. Missing: ${missing.join(", ")}.`
+          : "Media uploads are not configured on this deployment.",
+        warnings: environment.warnings,
+      },
+      { status: 503 }
+    );
+  }
+
+  const adminClient = getAdminSupabaseClient();
+  if (!adminClient) {
+    return NextResponse.json(
+      { error: "Media uploads are not configured. SUPABASE_SERVICE_ROLE_KEY is missing." },
+      { status: 503 }
+    );
+  }
+
+  const publicId = parsed.data.publicId ?? `${expectedPrefix}${crypto.randomUUID()}`;
+  const isReauthorization = Boolean(parsed.data.publicId);
+
+  if (!isReauthorization) {
+    const registeredFilter = adminClient
+      .from("profile_media")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId)
+      .eq("kind", policy.kind);
+    const { count: registered } = await registeredFilter;
+
+    const { data: openIntents, error: intentError } = await adminClient
+      .from("media_upload_intents")
+      .select("cloudinary_public_id")
+      .eq("listing_id", listingId)
+      .eq("resource_type", resourceType)
+      .is("completed_at", null)
+      .gt("requested_at", new Date(Date.now() - OPEN_INTENT_TTL_MS).toISOString());
+    if (intentError) {
+      // Deployment predates the intents migration: fall back to registered rows
+      // rather than blocking every upload.
+      console.warn("media_upload_intents unavailable:", intentError.message);
+    }
+    const pendingCount = (openIntents ?? []).length;
+
+    if ((registered ?? 0) + pendingCount >= policy.maxCount) {
+      return NextResponse.json(
+        {
+          error: `A profile can have up to ${policy.maxCount} ${policy.unitLabel}. Remove one and try again if nothing is pending.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    const { error: insertIntentError } = await adminClient.from("media_upload_intents").upsert(
+      {
+        listing_id: listingId,
+        user_id: auth.userId,
+        cloudinary_public_id: publicId,
+        resource_type: resourceType,
+        requested_at: new Date().toISOString(),
+        completed_at: null,
+      },
+      { onConflict: "cloudinary_public_id" }
+    );
+    if (insertIntentError) {
+      console.warn("Could not record the upload intent:", insertIntentError.message);
+    }
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const publicId = `honeybee/${auth.userId}/${listing.id}/${crypto.randomUUID()}`;
-  const params = getCloudinaryUploadParams(parsed.data.kind, timestamp, publicId);
+  const params = getCloudinaryUploadParams(resourceType, timestamp, publicId);
 
   return NextResponse.json({
     cloudName: cloudinary.cloudName,
@@ -80,7 +169,7 @@ export async function POST(request: Request) {
     timestamp,
     params,
     signature: signCloudinaryParams(params, cloudinary.apiSecret),
-    resourceType: parsed.data.kind,
+    resourceType,
     publicId,
   });
 }

@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { AgeGateModal } from "@/components/layout/AgeGateModal";
+import { AgeGate } from "@/components/layout/AgeGate";
 
 export const metadata: Metadata = {
   title: "Honeybee — Connect. Refresh. Chill.",
@@ -24,10 +24,11 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className="font-sans min-h-screen flex flex-col bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" forcedTheme="dark">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <AgeGateModal />
+          <AgeGate>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AgeGate>
         </ThemeProvider>
       </body>
     </html>
