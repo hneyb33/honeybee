@@ -38,7 +38,7 @@ export function getMediaImageUrl(
 export function getMediaVideoUrl(media: MediaUrlSource): string {
   const original = url(media.url) ?? "";
   return media.storage_provider === "cloudinary"
-    ? url(media.playback_url) ?? original
+    ? url(media.playback_url) ?? url(media.original_url) ?? original
     : original;
 }
 
@@ -46,6 +46,13 @@ export function getMediaThumbnailUrl(media: MediaUrlSource): string | null {
   return url(media.thumbnail_url);
 }
 
+/**
+ * Media is renderable as soon as it has a URL. Cloudinary photos are ready the
+ * moment finalize lands (renditions are generated on demand), and videos keep
+ * streaming their original upload form while the optimised renditions
+ * transcode in the background - `getMediaVideoUrl` falls back to that original.
+ * Only assets Cloudinary ultimately rejected (`failed`) stay hidden.
+ */
 export function isPublicMediaReady(media: MediaUrlSource): boolean {
-  return media.storage_provider !== "cloudinary" || media.processing_status === "ready";
+  return media.processing_status !== "failed";
 }

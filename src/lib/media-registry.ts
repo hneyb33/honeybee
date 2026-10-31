@@ -33,6 +33,9 @@ export async function resyncListingMedia(
     .select(PROFILE_MEDIA_COLUMNS)
     .eq("listing_id", listingId)
     .eq("kind", "photo")
+    // A photo is renderable the moment finalize stores it; only Cloudinary
+    // rejections must never reach the card/detail columns.
+    .neq("processing_status", "failed")
     .order("sort_order", { ascending: true });
 
   if (error || !data) {
@@ -127,7 +130,7 @@ export async function resyncAdMedia(
     .select(AD_MEDIA_COLUMNS)
     .eq("ad_id", adId)
     .eq("kind", "photo")
-    .eq("processing_status", "ready")
+    .neq("processing_status", "failed")
     .order("sort_order", { ascending: true });
 
   if (error || !data) {

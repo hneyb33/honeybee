@@ -75,7 +75,9 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
         .select("id,url,thumbnail_url,card_url,detail_url,playback_url,storage_provider,processing_status,listing_id")
         .eq("kind", kind)
         .in("listing_id", listingIds)
-        .or("storage_provider.eq.supabase,processing_status.eq.ready")
+        // Show everything that renders - including videos still transcoding,
+        // which play through their original URL - and hide only rejections.
+        .neq("processing_status", "failed")
         .order("created_at", { ascending: false })
         .limit(60);
 
