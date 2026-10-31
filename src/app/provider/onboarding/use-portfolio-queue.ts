@@ -16,6 +16,7 @@ import {
   describeMediaRejection,
   formatBytes,
   type MediaKind,
+  type MediaScope,
 } from "@/lib/media-policy";
 import type { PortfolioMedia } from "@/lib/media-records";
 import { isMediaReady } from "@/lib/media-records";
@@ -54,15 +55,17 @@ export interface QueueItem {
 }
 
 export interface PortfolioQueueOptions {
+  /** Whether uploads attach to a provider listing (default) or an ad. */
+  scope?: MediaScope;
   /** Called with a fresh Supabase access token; tokens expire mid-upload. */
   getAccessToken: () => Promise<string>;
-  /** Creates (once) and returns the draft listing id an upload needs. */
+  /** Creates (once) and returns the draft target id (listing or ad) an upload needs. */
   ensureListing: () => Promise<string | null>;
   /** Registers a finished media row in the wizard's portfolio state. */
   onRegistered: (media: RegisteredCloudinaryMedia) => void;
   /** Existing plus queued counts, used for pre-flight validation. */
   getCounts: () => Record<MediaKind, number>;
-  /** Current listing id, if the draft has been created yet (for status polling). */
+  /** Current target id, if the draft has been created yet (for status polling). */
   getListingId: () => string | null;
 }
 
@@ -109,16 +112,18 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
     async (item: QueueItem) => {
       const controller = new AbortController();
       controllers.current.set(item.id, controller);
-      const listingId = await optionsRef.current.ensureListing();
-      if (!listingId) {
+      const scope = optionsRef.current.scope ?? "listing";
+      const targetId = await optionsRef.current.ensureListing();
+      if (!targetId) {
         patch(item.id, {
           status: "failed",
-          error: "Your profile draft could not be created, so the upload did not start.",
+          error: "Your draft could not be created, so the upload did not start.",
           retryable: true,
         });
         controllers.current.delete(item.id);
         return;
       }
+      const target = { scope, id: targetId };
       const accessToken = await optionsRef.current.getAccessToken();
 
       // Keep a local handle: a compressed photo replaces the file the user chose.
@@ -140,7 +145,7 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
         const uploaded = await uploadMediaToCloudinary(
           file,
           item.kind,
-          listingId,
+          target,
           accessToken,
           {
             signal: controller.signal,
@@ -157,7 +162,7 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
         // Registration is where a refusal from Cloudinary or the finalize route
         // surfaces. The asset ids stay on the item so "Retry" skips the upload
         // instead of paying for the bytes twice.
-        const media = await finalizeCloudinaryMedia(listingId, uploaded, accessToken, {
+        const media = await finalizeCloudinaryMedia(target, uploaded, accessToken, {
           signal: controller.signal,
         });
         patch(item.id, { status: "processing" });
@@ -296,12 +301,25 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
     let stopped = false;
 
     const poll = async () => {
-      const listingId = optionsRef.current.getListingId();
-      if (listingId) {
+      const targetId = optionsRef.current.getListingId();
+      if (targetId) {
         try {
           const token = await optionsRef.current.getAccessToken();
-          const refreshed = await refreshPendingMedia(listingId, token);
-          refreshed.forEach((media) => optionsRef.current.onRegistered(media));
+          const refreshed = await refreshPendingMedia(
+            { scope: optionsRef.current.scope ?? "listing", id: targetId },
+            token
+          );
+          refreshed.forEach((media) => {
+            optionsRef.current.onRegistered(media);
+            // Once Cloudinary confirms the rendition, retire the matching queue
+            // row so the "Preparing" indicator disappears on its own.
+            if (media.processing_status === "ready" && media.cloudinary_public_id) {
+              const match = itemsRef.current.find(
+                (item) => item.publicId === media.cloudinary_public_id && item.status === "processing"
+              );
+              if (match) drop(match.id);
+            }
+          });
         } catch {
           // A failed poll is not worth interrupting the wizard for.
         }
@@ -314,6 +332,7 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
       stopped = true;
       if (timer) clearTimeout(timer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(

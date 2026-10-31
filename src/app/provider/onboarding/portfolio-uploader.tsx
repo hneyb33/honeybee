@@ -3,7 +3,6 @@
 import React, { useRef } from "react";
 import Image from "next/image";
 import {
-  CheckCircle2,
   Copy,
   ImagePlus,
   LoaderCircle,
@@ -51,6 +50,20 @@ export function PortfolioUploader({
   const videoCount =
     existingMedia.filter((item) => item.kind === "video").length + queue.pendingCount.video;
 
+  // Media still waiting on Cloudinary: registered rows not yet ready plus queue
+  // rows kept in "processing". Drives the friendly "Preparing" messaging.
+  const preparingMedia = existingMedia.filter(
+    (item) => item.storageProvider === "cloudinary" && !isMediaReady(item)
+  );
+  const preparingQueue = queue.items.filter((item) => item.status === "processing");
+  const preparingVideos =
+    preparingMedia.filter((item) => item.kind === "video").length +
+    preparingQueue.filter((item) => item.kind === "video").length;
+  const preparingPhotos =
+    preparingMedia.filter((item) => item.kind === "photo").length +
+    preparingQueue.filter((item) => item.kind === "photo").length;
+  const preparingCount = preparingVideos + preparingPhotos;
+
   return (
     <div className="space-y-3">
       <label
@@ -96,6 +109,27 @@ export function PortfolioUploader({
         </div>
       )}
 
+      {preparingCount > 0 && (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100"
+        >
+          <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+          <div className="text-xs leading-relaxed">
+            <p className="font-semibold">
+              Preparing your {preparingVideos > 0 ? "video" : "photo"}
+              {preparingVideos > 0 && preparingPhotos > 0 ? " and photo" : ""}
+              {preparingCount > 1 ? "s" : ""}{"\u2026"}
+            </p>
+            <p className="mt-0.5">
+              Cloudinary is optimising {preparingCount} item{preparingCount > 1 ? "s" : ""} so {preparingCount > 1 ? "they" : "it"} load
+              fast for clients. This usually finishes within a minute and updates here on its own {"\u2014"} you can
+              keep going.
+            </p>
+          </div>
+        </div>
+      )}
+
       {queue.items.length > 0 && (
         <ul className="space-y-2">
           {queue.items.map((item) => (
@@ -130,7 +164,12 @@ export function PortfolioUploader({
                 <Badge className="absolute left-1 top-1 text-[10px]">Cover</Badge>
               )}
               {item.storageProvider === "cloudinary" && !isMediaReady(item) && (
-                <Badge className="absolute bottom-1 left-1 text-[10px]">Processing</Badge>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/65 p-2 text-center text-white">
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
+                  <span className="text-[10px] font-semibold leading-tight">
+                    Preparing your {item.kind === "video" ? "video" : "photo"}
+                  </span>
+                </div>
               )}
               <button
                 type="button"
@@ -182,7 +221,7 @@ function QueueRow({ item, queue }: { item: QueueItem; queue: PortfolioQueue }) {
             <span className="flex min-w-0 items-center gap-1.5 font-medium">
               {busy && <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin text-airbnb-coral" />}
               {item.status === "failed" && <X className="h-3.5 w-3.5 shrink-0 text-destructive" />}
-              {(item.status === "processing") && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />}
+              {item.status === "processing" && <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin text-airbnb-coral" />}
               <span className="truncate">{item.file.name}</span>
             </span>
             <span className="shrink-0 text-muted-foreground">

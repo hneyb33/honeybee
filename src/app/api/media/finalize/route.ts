@@ -7,28 +7,36 @@ import {
   getCloudinaryDerivedAssets,
 } from "@/lib/cloudinary";
 import { getAuthenticatedRequestClient } from "@/lib/supabase/authenticated-request";
-import { getAdminSupabaseClient, PROFILE_MEDIA_COLUMNS } from "@/lib/media-records";
-import { markIntentComplete, resyncListingMedia } from "@/lib/media-registry";
+import { getAdminSupabaseClient, PROFILE_MEDIA_COLUMNS, AD_MEDIA_COLUMNS } from "@/lib/media-records";
+import { markIntentComplete, resyncAdMedia, resyncListingMedia } from "@/lib/media-registry";
 import { extractCloudinaryMessage, isHtmlResponse } from "@/lib/media-errors";
 import {
+  AD_UPLOADABLE_STATUSES,
   MEDIA_UPLOADABLE_STATUSES,
+  mediaUploadPrefix,
   mimeTypeForFormat,
   policyForResourceType,
   type CloudinaryResourceType,
+  type MediaTarget,
 } from "@/lib/media-policy";
 
-const requestSchema = z.object({
-  listingId: z.string().uuid(),
-  resourceType: z.enum(["image", "video"]),
-  publicId: z.string().min(1).max(300),
-  assetId: z.string().min(1).max(128),
-  /**
-   * `false` makes the route answer once with the current state instead of
-   * re-checking a transcoding video. The status endpoint uses it so a background
-   * refresh cannot pile up slow Admin API calls.
-   */
-  wait: z.boolean().optional(),
-});
+const requestSchema = z
+  .object({
+    listingId: z.string().uuid().optional(),
+    adId: z.string().uuid().optional(),
+    resourceType: z.enum(["image", "video"]),
+    publicId: z.string().min(1).max(300),
+    assetId: z.string().min(1).max(128),
+    /**
+     * `false` makes the route answer once with the current state instead of
+     * re-checking a transcoding video. The status endpoint uses it so a background
+     * refresh cannot pile up slow Admin API calls.
+     */
+    wait: z.boolean().optional(),
+  })
+  .refine((value) => Boolean(value.listingId) !== Boolean(value.adId), {
+    message: "Exactly one of listingId or adId is required.",
+  });
 
 const cloudinaryAssetSchema = z.object({
   asset_id: z.string(),
@@ -102,10 +110,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { listingId, resourceType, publicId, assetId } = parsed.data;
+  const { resourceType, publicId, assetId } = parsed.data;
+  const target: MediaTarget = parsed.data.adId
+    ? { scope: "ad", id: parsed.data.adId }
+    : { scope: "listing", id: parsed.data.listingId as string };
+  const isAd = target.scope === "ad";
+  const mediaTable = isAd ? "ad_media" : "profile_media";
+  const mediaColumns = isAd ? AD_MEDIA_COLUMNS : PROFILE_MEDIA_COLUMNS;
   const waitForDerived = parsed.data.wait !== false;
   const policy = policyForResourceType(resourceType);
-  const expectedPrefix = `honeybee/${auth.userId}/${listingId}/`;
+  const expectedPrefix = mediaUploadPrefix(auth.userId, target);
   if (!publicId.startsWith(expectedPrefix)) {
     return NextResponse.json(
       { error: "Uploaded media does not belong to this listing." },
@@ -113,26 +127,47 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: listing, error: listingError } = await auth.client
-    .from("listings")
-    .select("id,verification_status")
-    .eq("id", listingId)
-    .eq("user_id", auth.userId)
-    .maybeSingle();
-  if (listingError) {
-    return NextResponse.json({ error: "Could not verify listing ownership." }, { status: 500 });
-  }
-  if (!listing) {
-    return NextResponse.json(
-      { error: "Listing not found or not owned by this account." },
-      { status: 404 }
-    );
-  }
-  if (!(MEDIA_UPLOADABLE_STATUSES as readonly string[]).includes(listing.verification_status)) {
-    return NextResponse.json(
-      { error: "This profile is suspended, so media cannot be changed." },
-      { status: 409 }
-    );
+  if (isAd) {
+    const { data: ad, error: adError } = await auth.client
+      .from("ads")
+      .select("id,status")
+      .eq("id", target.id)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    if (adError) {
+      return NextResponse.json({ error: "Could not verify ad ownership." }, { status: 500 });
+    }
+    if (!ad) {
+      return NextResponse.json({ error: "Ad not found or not owned by this account." }, { status: 404 });
+    }
+    if (!(AD_UPLOADABLE_STATUSES as readonly string[]).includes(ad.status)) {
+      return NextResponse.json(
+        { error: "This ad is published, so its media cannot be changed." },
+        { status: 409 }
+      );
+    }
+  } else {
+    const { data: listing, error: listingError } = await auth.client
+      .from("listings")
+      .select("id,verification_status")
+      .eq("id", target.id)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    if (listingError) {
+      return NextResponse.json({ error: "Could not verify listing ownership." }, { status: 500 });
+    }
+    if (!listing) {
+      return NextResponse.json(
+        { error: "Listing not found or not owned by this account." },
+        { status: 404 }
+      );
+    }
+    if (!(MEDIA_UPLOADABLE_STATUSES as readonly string[]).includes(listing.verification_status)) {
+      return NextResponse.json(
+        { error: "This profile is suspended, so media cannot be changed." },
+        { status: 409 }
+      );
+    }
   }
 
   const adminClient = getAdminSupabaseClient();
@@ -156,6 +191,10 @@ export async function POST(request: Request) {
     `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudinary.cloudName)}/resources/${resourceType}/upload/${encodedPublicId}`
   );
   resourceUrl.searchParams.set("derived", "true");
+  // The single-resource detail endpoint omits `duration` (and codec/frame-rate)
+  // unless media_metadata is requested, so without this every video would look
+  // unreadable and get wrongly rejected below.
+  resourceUrl.searchParams.set("media_metadata", "true");
 
   let cloudinaryResponse: Response;
   try {
@@ -253,45 +292,42 @@ export async function POST(request: Request) {
     );
   }
 
-  if (resourceType === "video") {
-    if (asset.duration === undefined) {
-      return rejectAndRemoveAsset(
-        cloudinary,
-        resourceType,
-        publicId,
-        "Cloudinary could not read that video. Export it as an H.264 MP4 and try again.",
-        422
-      );
-    }
-    if (asset.duration > (policy.maxDurationSeconds ?? 0)) {
-      return rejectAndRemoveAsset(
-        cloudinary,
-        resourceType,
-        publicId,
-        `Videos must be ${(policy.maxDurationSeconds ?? 0) / 60} minutes or shorter.`,
-        422
-      );
-    }
+  if (resourceType === "video" && asset.duration !== undefined &&
+      asset.duration > (policy.maxDurationSeconds ?? 0)) {
+    return rejectAndRemoveAsset(
+      cloudinary,
+      resourceType,
+      publicId,
+      `Videos must be ${(policy.maxDurationSeconds ?? 0) / 60} minutes or shorter.`,
+      422
+    );
   }
 
+  // Cloudinary has not reported a duration yet (the media probe is still
+  // running). Never destroy the asset for that: fall through to the processing
+  // path so the status poll re-checks it instead of losing a valid upload.
+  const videoDurationUnknown = resourceType === "video" && asset.duration === undefined;
+
+  const ownerKey = isAd ? "ad_id" : "listing_id";
+
   const { count: registeredCount, error: countError } = await adminClient
-    .from("profile_media")
+    .from(mediaTable)
     .select("id", { count: "exact", head: true })
-    .eq("listing_id", listingId)
+    .eq(ownerKey, target.id)
     .eq("kind", policy.kind);
   if (countError) {
     return NextResponse.json({ error: "Could not determine the media order." }, { status: 500 });
   }
 
   const { data: existingMedia, error: existingMediaError } = await adminClient
-    .from("profile_media")
-    .select(PROFILE_MEDIA_COLUMNS)
+    .from(mediaTable)
+    .select(mediaColumns)
     .eq("cloudinary_public_id", publicId)
     .maybeSingle();
   if (existingMediaError) {
     return NextResponse.json({ error: "Could not verify the media record." }, { status: 500 });
   }
-  if (existingMedia && existingMedia.listing_id !== listingId) {
+  if (existingMedia && (existingMedia as Record<string, unknown>)[ownerKey] !== target.id) {
     return NextResponse.json(
       { error: "Uploaded media is already registered to another listing." },
       { status: 409 }
@@ -309,7 +345,7 @@ export async function POST(request: Request) {
 
   const sortOrder = existingMedia?.sort_order ?? registeredCount ?? 0;
   const mediaMetadata = {
-    listing_id: listingId,
+    [ownerKey]: target.id,
     kind: policy.kind,
     sort_order: sortOrder,
     original_url: asset.secure_url,
@@ -341,7 +377,7 @@ export async function POST(request: Request) {
       );
     }
     const { data: savedMedia, error: saveError } = await adminClient
-      .from("profile_media")
+      .from(mediaTable)
       .upsert(
         {
           ...mediaMetadata,
@@ -353,7 +389,7 @@ export async function POST(request: Request) {
         },
         { onConflict: "cloudinary_public_id" }
       )
-      .select(PROFILE_MEDIA_COLUMNS)
+      .select(mediaColumns)
       .single();
     if (saveError || !savedMedia) {
       return NextResponse.json(
@@ -361,8 +397,8 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-    await markIntentComplete(adminClient, publicId);
-    await resyncListingMedia(adminClient, listingId);
+    if (!isAd) await markIntentComplete(adminClient, publicId);
+    await (isAd ? resyncAdMedia(adminClient, target.id) : resyncListingMedia(adminClient, target.id));
     return NextResponse.json({ media: savedMedia }, { status: 201 });
   }
 
@@ -370,9 +406,9 @@ export async function POST(request: Request) {
   // MP4 and poster renditions are waited for. The client treats a 202 as
   // "still preparing" and re-checks on the next save instead of failing.
   const derived = getCloudinaryDerivedAssets(asset);
-  if (!derived) {
+  if (!derived || videoDurationUnknown) {
     const { data: pendingMedia, error: pendingError } = await adminClient
-      .from("profile_media")
+      .from(mediaTable)
       .upsert(
         {
           ...mediaMetadata,
@@ -385,7 +421,7 @@ export async function POST(request: Request) {
         },
         { onConflict: "cloudinary_public_id" }
       )
-      .select(PROFILE_MEDIA_COLUMNS)
+      .select(mediaColumns)
       .single();
     if (pendingError || !pendingMedia) {
       return NextResponse.json(
@@ -407,7 +443,7 @@ export async function POST(request: Request) {
   const thumbnailUrl = derived[1].secure_url;
 
   const { data: savedVideo, error: saveError } = await adminClient
-    .from("profile_media")
+    .from(mediaTable)
     .upsert(
       {
         ...mediaMetadata,
@@ -419,7 +455,7 @@ export async function POST(request: Request) {
       },
       { onConflict: "cloudinary_public_id" }
     )
-    .select(PROFILE_MEDIA_COLUMNS)
+    .select(mediaColumns)
     .single();
 
   if (saveError || !savedVideo) {
@@ -429,9 +465,9 @@ export async function POST(request: Request) {
     );
   }
 
-  await markIntentComplete(adminClient, publicId);
-  // A finished video is registered, so the listing columns are rebuilt from the
-  // media rows rather than appended to, keeping them free of stale URLs.
-  await resyncListingMedia(adminClient, listingId);
+  if (!isAd) await markIntentComplete(adminClient, publicId);
+  // A finished video is registered, so the listing/ad columns are rebuilt from
+  // the media rows rather than appended to, keeping them free of stale URLs.
+  await (isAd ? resyncAdMedia(adminClient, target.id) : resyncListingMedia(adminClient, target.id));
   return NextResponse.json({ media: savedVideo }, { status: 201 });
 }

@@ -94,7 +94,7 @@ export function TelegramDirectory() {
                     {tag}
                   </span>
                   <h2 className="mt-3 truncate text-lg font-semibold text-white">{listing.title}</h2>
-                  <p className="mt-1 truncate text-sm text-neutral-400">{listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""}</p>
+                  <p className="mt-1 truncate text-sm text-neutral-400">{listing.neighborhood}, {listing.city}</p>
                   <p className="mt-2 text-sm text-neutral-300">@{username}</p>
                 </div>
                 <div className="mt-auto flex flex-wrap gap-2">

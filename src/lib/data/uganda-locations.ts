@@ -142,6 +142,32 @@ export const UGANDA_LOCATIONS: LocationPoint[] = [
   ...EAST_AFRICA_LOCATIONS.filter((location) => location.country === "Uganda" && location.city !== "Kampala"),
 ];
 
+/**
+ * Resolves coordinates for a provider-typed location so "Near me" and
+ * distance sorting work even for free-text neighbourhoods. Prefers an exact
+ * neighbourhood+city match, then the neighbourhood alone, then the city.
+ */
+export function resolveLocationCoordinates(
+  country: string,
+  city: string,
+  neighborhood?: string
+): { latitude: number; longitude: number } | null {
+  const norm = (value: string) => value.trim().toLowerCase();
+  const scoped = EAST_AFRICA_LOCATIONS.filter((place) => norm(place.country) === norm(country));
+  const area = norm(neighborhood ?? "");
+  const cityName = norm(city);
+
+  if (area) {
+    const inCity = scoped.find((place) => norm(place.city) === cityName && norm(place.area) === area);
+    if (inCity) return { latitude: inCity.latitude, longitude: inCity.longitude };
+    const anywhere = scoped.find((place) => norm(place.area) === area);
+    if (anywhere) return { latitude: anywhere.latitude, longitude: anywhere.longitude };
+  }
+  const cityPoint = scoped.find((place) => norm(place.city) === cityName);
+  if (cityPoint) return { latitude: cityPoint.latitude, longitude: cityPoint.longitude };
+  return null;
+}
+
 export const SERVICE_CATEGORIES = [
   { value: "all", label: "All Categories" },
   { value: "female", label: "Women" },

@@ -13,21 +13,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { STEP_HINTS } from "./onboarding-config";
 import { Stepper, InlineAlert } from "./onboarding-ui";
-import { StepAbout, StepLocation, StepPortfolio, StepReview, StepServices } from "./steps";
+import { StepAbout, StepLocation, StepPortfolio, StepReview, StepServices, TypeChooser } from "./steps";
 import { useOnboarding } from "./use-onboarding";
 
 const STEP_TITLES = [
-  { model: "Set up your model profile", specialist: "Set up your service profile" },
-  { model: "Where clients can find you", specialist: "Where clients can find you" },
-  { model: "What experiences do you offer?", specialist: "What services do you provide?" },
-  { model: "Tell your story and add photos", specialist: "Tell your story and add photos" },
-  { model: "Review before submitting", specialist: "Review before submitting" },
+  { model: "Set up your model profile", specialist: "Set up your service profile", agency: "Set up a client profile" },
+  { model: "Where clients can find you", specialist: "Where clients can find you", agency: "Where the profile operates" },
+  { model: "What experiences do you offer?", specialist: "What services do you provide?", agency: "What does this profile offer?" },
+  { model: "Tell your story and add photos", specialist: "Tell your story and add photos", agency: "Add the profile story and photos" },
+  { model: "Review before submitting", specialist: "Review before submitting", agency: "Review before submitting" },
 ];
 
 export default function ProviderOnboardingPage() {
   const c = useOnboarding();
   const steps = c.steps;
-  const stepTitle = (c.isModel ? STEP_TITLES[c.currentStep].model : STEP_TITLES[c.currentStep].specialist);
+  const titleSet = STEP_TITLES[c.currentStep];
+  const stepTitle =
+    c.accountKind === "agency" ? titleSet.agency : c.accountKind === "specialist" ? titleSet.specialist : titleSet.model;
 
   if (c.loading) {
     return (
@@ -38,7 +40,7 @@ export default function ProviderOnboardingPage() {
     );
   }
 
-  if (!c.accountKind) {
+  if (c.phase === "noProfile") {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center">
         <p role="alert" className="text-sm text-destructive">
@@ -93,10 +95,14 @@ export default function ProviderOnboardingPage() {
     );
   }
 
+  if (c.phase === "chooseType") {
+    return <TypeChooser c={c} />;
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {c.isModel ? "Model onboarding" : "Service provider onboarding"}
+        {c.accountKind === "agency" ? "Agency onboarding" : c.isModel ? "Model onboarding" : "Service provider onboarding"}
       </p>
       <Stepper steps={steps} currentStep={c.currentStep} onJumpTo={c.goToStep} disabled={c.saving} />
 

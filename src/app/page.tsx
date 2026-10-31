@@ -16,11 +16,12 @@ import { ListingGrid } from "@/components/listings/ListingGrid";
 import { FeaturedAdsCarousel } from "@/components/listings/FeaturedAdsCarousel";
 import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { calculateDistanceKm } from "@/lib/utils";
-import { Listing } from "@/lib/supabase/types";
+import { Ad, Listing } from "@/lib/supabase/types";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { mapListingRow } from "@/lib/supabase/map-listing";
+import { loadActiveAds } from "@/lib/supabase/ads";
 import { getMediaImageUrl, isPublicMediaReady } from "@/lib/media-urls";
-import { EAST_AFRICAN_COUNTRIES, EAST_AFRICA_LOCATIONS } from "@/lib/data/uganda-locations";
+import { EAST_AFRICAN_COUNTRIES, EAST_AFRICA_LOCATIONS, SERVICE_TYPES } from "@/lib/data/uganda-locations";
 
 function makeLocationOptions(country: string, places: Array<{ area: string; city: string; country?: string }> = []) {
   return Array.from(new Set([
@@ -35,6 +36,7 @@ function makeLocationOptions(country: string, places: Array<{ area: string; city
 
 export default function HomePage() {
   const [listings, setListings] = useState<Listing[]>(isSupabaseConfigured ? [] : MOCK_LISTINGS);
+  const [ads, setAds] = useState<Ad[]>([]);
   const [listingsLoading, setListingsLoading] = useState(isSupabaseConfigured);
   const [listingsError, setListingsError] = useState("");
   const [locationOptions, setLocationOptions] = useState(makeLocationOptions("Uganda"));
@@ -137,12 +139,21 @@ export default function HomePage() {
       }
     };
 
+    const loadAds = async () => {
+      const featured = await loadActiveAds({ featuredOnly: true, client });
+      if (!cancelled) setAds(featured);
+    };
+
     void loadListings();
     void loadLocations();
+    void loadAds();
     const channel = client
       .channel("homepage-featured-listings")
       .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => {
         void loadListings();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "ads" }, () => {
+        void loadAds();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "places" }, () => {
         void loadLocations();
@@ -151,6 +162,7 @@ export default function HomePage() {
     const refreshInterval = window.setInterval(() => {
       void loadListings();
       void loadLocations();
+      void loadAds();
     }, 60_000);
     return () => {
       cancelled = true;
@@ -175,19 +187,7 @@ export default function HomePage() {
     ),
     [listings, onlineUpdatedAt]
   );
-  const featuredAds = useMemo(
-    () =>
-      isSupabaseConfigured
-        ? listings.filter(
-            (listing) =>
-              listing.is_featured &&
-              listing.featured_until !== null &&
-              listing.featured_until !== undefined &&
-              Date.parse(listing.featured_until) > Date.now()
-          )
-        : [],
-    [listings, onlineUpdatedAt]
-  );
+  const featuredAds = ads;
 
   const filteredListings = useMemo(() => {
     return listings
@@ -234,17 +234,29 @@ export default function HomePage() {
         }
 
         if (searchLocation && searchLocation !== "Near me" && !userCoords) {
+          // Keytag search: every term must match at least one facet of the
+          // profile (location, name, services, specialty or category) so pills,
+          // dropdown picks and free typing all behave the same way.
           const locationTerms = searchLocation
             .trim()
             .toLowerCase()
             .split(/[,\s]+/)
             .filter(Boolean);
-          const listingLocations = [
+          const haystack = [
             listing.neighborhood,
             listing.city,
             listing.country ?? "Uganda",
-          ].map((value) => value.trim().toLowerCase());
-          if (!locationTerms.every((term) => listingLocations.some((value) => value.includes(term)))) {
+            listing.title,
+            listing.summary_line,
+            listing.category,
+            listing.service_type ? (SERVICE_TYPES[listing.service_type] ?? listing.service_type) : "",
+            listing.kind === "service" ? "specialist service" : "model companion",
+            ...listing.services_offered,
+            ...listing.languages,
+          ]
+            .filter(Boolean)
+            .map((value) => String(value).trim().toLowerCase());
+          if (!locationTerms.every((term) => haystack.some((value) => value.includes(term)))) {
             return false;
           }
         }
@@ -273,7 +285,7 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-12 lg:py-20">
 
           <div className="relative mx-auto w-full max-w-[530px]">
-            <FeaturedAdsCarousel listings={featuredAds} />
+            <FeaturedAdsCarousel ads={featuredAds} />
           </div>
         </div>
       </section>
@@ -307,26 +319,6 @@ export default function HomePage() {
             ))}
           </select>
         </label>
-        <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
-          {locationOptions.map((location) => (
-            <button
-              key={location}
-              type="button"
-              onClick={() => {
-                setSearchLocation(location);
-                setUserCoords(null);
-              }}
-              aria-pressed={searchLocation.toLowerCase() === location.toLowerCase()}
-              className={`shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
-                searchLocation.toLowerCase() === location.toLowerCase()
-                  ? "border-[#d3444d] bg-[#d3444d] text-white"
-                  : "border-neutral-700 bg-neutral-900 text-neutral-200 hover:border-neutral-400"
-              }`}
-            >
-              {location}
-            </button>
-          ))}
-        </div>
         {locationsError && (
           <p role="alert" className="mt-2 text-xs text-amber-700 dark:text-amber-300">
             Could not refresh saved locations: {locationsError}
@@ -419,7 +411,7 @@ export default function HomePage() {
         <aside aria-label="Featured advertisements" className="hidden min-h-[1px] lg:sticky lg:top-24 lg:block">
           {featuredAds[0]?.slug.trim() ? (
             <Link
-              href={`/profiles/${featuredAds[0].slug}`}
+              href={`/ad/${featuredAds[0].slug}`}
               className="group relative block aspect-[3/4] overflow-hidden rounded-3xl border border-[#e5b34c]/30 bg-neutral-900 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e5b34c]"
             >
               <Image
@@ -435,11 +427,11 @@ export default function HomePage() {
               </span>
               <div className="absolute inset-x-3 bottom-4 text-white">
                 <p className="text-[9px] font-semibold uppercase tracking-wider text-white/70">
-                  {featuredAds[0].kind === "service" ? "Service provider" : "Model"}
+                  {featuredAds[0].ad_type === "agency" ? "Agency" : featuredAds[0].ad_type === "fast" ? "Fast ad" : "Independent"}
                 </p>
                 <p className="mt-1 truncate text-sm font-bold">{featuredAds[0].title}</p>
                 <p className="mt-1 truncate text-xs text-white/75">
-                  {featuredAds[0].neighborhood}, {featuredAds[0].city}, {featuredAds[0].country ?? "Uganda"}
+                  {[featuredAds[0].neighborhood, featuredAds[0].city].filter(Boolean).join(", ")}
                 </p>
               </div>
             </Link>

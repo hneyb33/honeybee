@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { EAST_AFRICAN_COUNTRIES, EAST_AFRICA_LOCATIONS } from "@/lib/data/uganda-locations";
+import {
+  EAST_AFRICAN_COUNTRIES,
+  EAST_AFRICA_LOCATIONS,
+  resolveLocationCoordinates,
+} from "@/lib/data/uganda-locations";
 import { supabase } from "@/lib/supabase/client";
 import { getMediaImageUrl, getMediaVideoUrl } from "@/lib/media-urls";
 import { abandonMedia, refreshPendingMedia } from "@/lib/media-lifecycle";
@@ -13,7 +17,7 @@ import {
   toPortfolioMedia,
   type PortfolioMedia,
 } from "@/lib/media-records";
-import { type MediaKind } from "@/lib/media-policy";
+import { listingTarget, type MediaKind } from "@/lib/media-policy";
 import {
   emptyForm,
   DAYS,
@@ -24,8 +28,8 @@ import {
   REQUIRES_VIDEO_FOR_SPECIALISTS,
   safeSlug,
   type AccountKind,
-  type AdvertiserType,
   type OnboardingForm,
+  type OnboardingTypeOption,
 } from "./onboarding-config";
 import { usePortfolioQueue } from "./use-portfolio-queue";
 
@@ -39,7 +43,9 @@ export function useOnboarding() {
   const router = useRouter();
   const [form, setForm] = useState<OnboardingForm>(emptyForm);
   const [accountKind, setAccountKind] = useState<AccountKind | null>(null);
-  const [advertiserType, setAdvertiserType] = useState<AdvertiserType | null>(null);
+  // The profile-kind choice is a dedicated screen shown before the stepped
+  // wizard. It stays closed for anyone who already has a saved draft.
+  const [typeChosen, setTypeChosen] = useState(false);
   const [listingId, setListingId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
@@ -56,14 +62,14 @@ export function useOnboarding() {
   const existingMediaRef = useRef<PortfolioMedia[]>([]);
   const formRef = useRef<OnboardingForm>(form);
   const accountKindRef = useRef<AccountKind | null>(null);
-  const advertiserTypeRef = useRef<AdvertiserType | null>(null);
 
   listingIdRef.current = listingId;
   slugRef.current = slug;
   existingMediaRef.current = existingMedia;
   formRef.current = form;
   accountKindRef.current = accountKind;
-  advertiserTypeRef.current = advertiserType;
+  const modelServiceOptionsRef = useRef<string[]>([]);
+  modelServiceOptionsRef.current = modelServiceOptions;
 
   const isModel = accountKind === "model" || accountKind === "agency";
 
@@ -153,7 +159,7 @@ export function useOnboarding() {
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("account_kind,name,phone,phone_country,country,advertiser_type")
+        .select("account_kind,name,phone,phone_country,country")
         .eq("id", authData.user.id)
         .maybeSingle();
       if (profileError) {
@@ -181,18 +187,6 @@ export function useOnboarding() {
           else setModelServiceOptions((serviceOptions ?? []).map((option) => option.name));
         }
       }
-
-      const requestedType = new URLSearchParams(window.location.search).get("type");
-      const nextAdvertiserType: AdvertiserType | null =
-        requestedType === "fast" || requestedType === "independent" || requestedType === "agency"
-          ? requestedType
-          : profile.advertiser_type === "fast" ||
-            profile.advertiser_type === "independent" ||
-            profile.advertiser_type === "agency"
-            ? profile.advertiser_type
-            : nextKind === "agency"
-              ? "agency"
-              : null;
 
       const nextForm: OnboardingForm = {
         ...emptyForm,
@@ -302,8 +296,10 @@ export function useOnboarding() {
 
       if (!cancelled) {
         setAccountKind(nextKind);
-        setAdvertiserType(nextAdvertiserType);
         setForm(nextForm);
+        // A provider returning to a saved draft skips the chooser; a brand-new
+        // one lands on it so the profile-kind choice is its own step.
+        setTypeChosen(Boolean(listing));
         setLoading(false);
       }
     };
@@ -333,6 +329,47 @@ export function useOnboarding() {
     },
     []
   );
+
+  /**
+   * Confirms the profile-kind choice and opens the tailored wizard for it. Only
+   * reachable from the chooser screen, which is hidden once a draft exists, so
+   * this never overwrites work already in progress.
+   */
+  const chooseType = useCallback(async (option: OnboardingTypeOption) => {
+    accountKindRef.current = option.kind;
+    setAccountKind(option.kind);
+    setForm((current) => ({
+      ...current,
+      serviceType: option.kind === "specialist" ? current.serviceType || emptyForm.serviceType : "",
+    }));
+    setCurrentStep(0);
+    setError("");
+    setTypeChosen(true);
+
+    if (!supabase) return;
+
+    // Escort flows list "hot offers"; restoreDraft only fetched them when the
+    // profile already was an escort, so load them now if switching into one.
+    if (option.kind !== "specialist" && modelServiceOptionsRef.current.length === 0) {
+      const { data: serviceOptions, error: serviceOptionsError } = await supabase
+        .from("escort_service_options")
+        .select("name")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (serviceOptionsError) setModelServicesError(serviceOptionsError.message);
+      else setModelServiceOptions((serviceOptions ?? []).map((item) => item.name));
+    }
+
+    // Keep the profile in sync so returning to onboarding opens the same flow.
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData.user) {
+      await supabase
+        .from("profiles")
+        .update({ account_kind: option.kind })
+        .eq("id", authData.user.id)
+        .then(() => undefined, () => undefined);
+    }
+  }, []);
 
   const readyCounts = useCallback((media: PortfolioMedia[]) => {
     const ready = media.filter(isMediaReady);
@@ -395,6 +432,9 @@ export function useOnboarding() {
       }));
       const photoUrls = media.filter((item) => item.kind === "photo").map((item) => item.url);
       const firstCard = media.find((item) => item.kind === "photo");
+      // Geocode the (possibly free-typed) location so "Near me" distance
+      // sorting and the places trigger carry real coordinates.
+      const coords = resolveLocationCoordinates(current.country, current.city, current.neighborhood);
       const payload = {
         user_id: (await supabase.auth.getUser()).data.user?.id,
         title: current.title.trim() || "Untitled Honeybee profile",
@@ -409,6 +449,8 @@ export function useOnboarding() {
         country: current.country,
         city: current.city,
         neighborhood: current.neighborhood,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
         hourly_rate: 0,
         monthly_price: 0,
         currency: "UGX",
@@ -426,7 +468,6 @@ export function useOnboarding() {
         cover_image: firstCard?.cardUrl ?? photoUrls[0] ?? null,
         images: photoUrls,
         travel_km: current.travelKm,
-        advertiser_type: isEscort ? advertiserTypeRef.current ?? "independent" : null,
         has_certificate: current.certified,
         experience_band: current.yearsExperience
           ? `${current.yearsExperience} ${Number(current.yearsExperience) === 1 ? "year" : "years"} experience`
@@ -435,7 +476,6 @@ export function useOnboarding() {
           yearsExperience: current.yearsExperience,
           certified: current.certified,
           orientation: current.orientation,
-          advertiserType: isEscort ? advertiserTypeRef.current ?? "independent" : null,
           ageConfirmed: current.ageConfirmed,
           onboardingStep: submit ? 4 : Math.min(currentStep + 1, 4),
         },
@@ -480,7 +520,7 @@ export function useOnboarding() {
     if (processing.length === 0) return { ok: true };
     try {
       const token = await getAccessToken();
-      const refreshed = await refreshPendingMedia(id, token);
+      const refreshed = await refreshPendingMedia(listingTarget(id), token);
       refreshed.forEach(handleRegistered);
     } catch (refreshError) {
       // A still-processing video is not a save error; the poller will catch it.
@@ -598,13 +638,26 @@ export function useOnboarding() {
     : SERVICE_OPTIONS[form.serviceType] ?? [];
   const steps = isModel ? MODEL_STEPS : SPECIALIST_STEPS;
 
+  const phase: "loading" | "noProfile" | "chooseType" | "wizard" | "submitted" =
+    loading
+      ? "loading"
+      : submitted
+        ? "submitted"
+        : !accountKind
+          ? "noProfile"
+          : !typeChosen
+            ? "chooseType"
+            : "wizard";
+
   return {
     form,
     update,
     toggleChoice,
     accountKind,
     isModel,
-    advertiserType,
+    phase,
+    typeChosen,
+    chooseType,
     currentStep,
     steps,
     goToStep,

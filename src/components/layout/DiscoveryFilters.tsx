@@ -31,12 +31,56 @@ const statuses: { id: DiscoveryStatus; label: string }[] = [
 ];
 
 const orientations = [
-  { value: "all", label: "All orientations" },
+  { value: "all", label: "All" },
   { value: "straight", label: "Straight" },
   { value: "bi-sexual", label: "Bi-sexual" },
   { value: "lesbian", label: "Lesbian" },
   { value: "gay", label: "Gay" },
 ];
+
+function Pill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3444d] ${
+        active
+          ? "border-[#d3444d] bg-[#d3444d] text-white shadow-sm"
+          : "border-border bg-card text-foreground hover:border-[#c63843]/60 hover:text-[#c63843]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PillSection({
+  label,
+  children,
+  scroll,
+}: {
+  label: string;
+  children: React.ReactNode;
+  scroll?: boolean;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <div className={`flex gap-1.5 ${scroll ? "overflow-x-auto py-0.5 no-scrollbar" : "flex-wrap"}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function DiscoveryFilters({
   locationListId,
@@ -77,61 +121,71 @@ export function DiscoveryFilters({
     );
   };
 
-  const selects = (
-    compact: boolean
-  ) => (
+  // Keep the pill row focused: show up to 12 suggestions (cities first, then
+  // neighbourhoods); everything else stays reachable via the search field.
+  const locationPills = locations.slice(0, 12);
+  const activeLocation = location === "Near me" ? "" : location;
+
+  const groups = (
     <>
-      <label className="block shrink-0">
-        {!compact && <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">Location</span>}
-        <span className={`flex items-center gap-2 ${compact ? "rounded-full border border-border bg-card px-3" : "rounded-xl border border-border bg-card px-3"}`}>
-          <MapPin className="h-4 w-4 shrink-0 text-[#a8343e]" />
-          <input
-            type="text"
-            list={locationListId}
-            value={location === "Near me" ? "" : location}
-            onChange={(event) => onLocationChange(event.target.value)}
-            placeholder="Location"
-            className={`min-w-24 border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground ${compact ? "h-10 w-32" : "h-10 w-full"}`}
-            aria-label="Filter by city or neighbourhood"
-          />
-        </span>
-      </label>
-
-      <label className="block shrink-0">
-        {!compact && <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">Orientation</span>}
-        <select
-          value={orientation}
-          onChange={(event) => onOrientationChange(event.target.value)}
-          aria-label="Filter by orientation"
-          className={`appearance-none border border-border bg-card text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#d3444d] ${compact ? "h-10 max-w-40 rounded-full px-3" : "h-10 w-full rounded-xl px-3"}`}
+      <PillSection label="Location" scroll>
+        <button
+          type="button"
+          onClick={findNearYou}
+          aria-pressed={location === "Near me"}
+          className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3444d] ${
+            location === "Near me"
+              ? "border-[#d3444d] bg-[#d3444d] text-white"
+              : "border-border bg-card text-foreground hover:border-[#c63843]/60 hover:text-[#c63843]"
+          }`}
         >
-          {orientations.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-        </select>
-      </label>
+          <Navigation className={`h-3.5 w-3.5 ${geoLoading ? "animate-pulse" : ""}`} />
+          {geoLoading ? "Locating" : "Near me"}
+        </button>
+        {locationPills.map((place) => (
+          <Pill
+            key={place}
+            active={activeLocation === place}
+            onClick={() => onLocationChange(activeLocation === place ? "" : place)}
+          >
+            <MapPin className="h-3 w-3" />
+            {place}
+          </Pill>
+        ))}
+      </PillSection>
 
-      <label className="block shrink-0">
-        {!compact && <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">Specialty</span>}
-        <select
-          value={serviceType}
-          onChange={(event) => onServiceTypeChange(event.target.value)}
-          aria-label="Filter by specialty"
-          className={`appearance-none border border-border bg-card text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#d3444d] ${compact ? "h-10 max-w-40 rounded-full px-3" : "h-10 w-full rounded-xl px-3"}`}
-        >
-          {Object.entries(SERVICE_TYPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-      </label>
+      <PillSection label="Orientation" scroll>
+        {orientations.map((item) => (
+          <Pill
+            key={item.value}
+            active={orientation === item.value}
+            onClick={() => onOrientationChange(item.value)}
+          >
+            {item.label}
+          </Pill>
+        ))}
+      </PillSection>
 
-      <label className="block shrink-0">
-        {!compact && <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">Discover</span>}
-        <select
-          value={status}
-          onChange={(event) => onStatusChange(event.target.value as DiscoveryStatus)}
-          aria-label="Filter online, featured, new or specialist profiles"
-          className={`appearance-none border border-border bg-card text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[#d3444d] ${compact ? "h-10 max-w-36 rounded-full px-3" : "h-10 w-full rounded-xl px-3"}`}
-        >
-          {statuses.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-        </select>
-      </label>
+      <PillSection label="Specialty" scroll>
+        {Object.entries(SERVICE_TYPES).map(([value, label]) => (
+          <Pill
+            key={value}
+            active={serviceType === value}
+            onClick={() => onServiceTypeChange(value)}
+          >
+            {label}
+          </Pill>
+        ))}
+      </PillSection>
+
+      <PillSection label="Discover" scroll>
+        {statuses.map((item) => (
+          <Pill key={item.id} active={status === item.id} onClick={() => onStatusChange(item.id)}>
+            {item.label}
+            {item.id === "online" && <span className={`h-1.5 w-1.5 rounded-full ${status === item.id ? "bg-white" : "bg-emerald-500"}`} />}
+          </Pill>
+        ))}
+      </PillSection>
     </>
   );
 
@@ -143,66 +197,37 @@ export function DiscoveryFilters({
         ))}
       </datalist>
 
-      <div className="flex gap-2 overflow-x-auto py-1 no-scrollbar md:hidden">
-        {selects(true)}
-        <button
-          type="button"
-          onClick={findNearYou}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-sm font-semibold text-foreground"
-        >
-          <Navigation className={`h-4 w-4 text-[#a8343e] ${geoLoading ? "animate-pulse" : ""}`} />
-          {geoLoading ? "Locating" : "Near me"}
-        </button>
+      <div className="space-y-3 rounded-2xl border border-border bg-card/60 p-3">
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-2 rounded-full border border-border bg-card px-3 ${location ? "ring-1 ring-[#d3444d]/40" : ""}`}>
+            <MapPin className="h-4 w-4 shrink-0 text-[#a8343e]" />
+            <input
+              type="text"
+              list={locationListId}
+              value={location === "Near me" ? "" : location}
+              onChange={(event) => onLocationChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.preventDefault();
+              }}
+              placeholder="Search Kampala, Kololo, chef, VIP…"
+              className="h-9 w-full min-w-28 border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              aria-label="Search by location or keyword"
+            />
+            {(location || orientation !== "all" || serviceType !== "all" || status !== "all") && (
+              <button
+                type="button"
+                onClick={onReset}
+                aria-label="Reset all filters"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-[#c63843]"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </span>
+        </div>
+        <div className="space-y-2.5">{groups}</div>
+        {geoError && <p role="alert" className="text-xs text-destructive">{geoError}</p>}
       </div>
-      {geoError && <p role="alert" className="mt-2 text-xs text-destructive md:hidden">{geoError}</p>}
-
-      <aside className="hidden w-full rounded-2xl border border-border bg-card p-4 shadow-sm md:block">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-foreground">Refine your search</h2>
-          <button
-            type="button"
-            onClick={onReset}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-[#c63843]"
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
-          </button>
-        </div>
-        <div className="space-y-4">
-          <div className="space-y-3">{selects(false)}</div>
-          <button
-            type="button"
-            onClick={findNearYou}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm font-semibold text-foreground transition hover:border-[#c63843] hover:text-[#c63843]"
-          >
-            <Navigation className={`h-4 w-4 ${geoLoading ? "animate-pulse" : ""}`} />
-            {geoLoading ? "Locating..." : "Use my location"}
-          </button>
-          {geoError && <p role="alert" className="text-xs text-destructive">{geoError}</p>}
-          <div className="border-t border-border pt-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">Browse by</p>
-            <div className="space-y-1">
-              {statuses.map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  onClick={() => onStatusChange(item.id)}
-                  aria-pressed={status === item.id}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${
-                    status === item.id
-                      ? "bg-[#d3444d] font-semibold text-white"
-                      : "text-foreground hover:bg-muted"
-                  }`}
-                >
-                  {item.label}
-                  {item.id === "online" && <span className="h-2 w-2 rounded-full bg-emerald-500" />}
-                  {item.id === "vip" && <span className="h-2 w-2 rounded-full bg-[#d3444d]" />}
-                  {item.id === "new" && <span className="h-2 w-2 rounded-full bg-white ring-1 ring-neutral-400" />}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </aside>
     </>
   );
 }

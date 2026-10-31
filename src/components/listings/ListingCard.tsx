@@ -203,7 +203,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             </h3>
             <p className="mt-1 flex items-center gap-1 truncate text-sm text-muted-foreground">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
-              {listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""}
+              {listing.neighborhood}, {listing.city}
             </p>
             <p className="mt-1 truncate text-xs text-muted-foreground">
               {listing.summary_line ||

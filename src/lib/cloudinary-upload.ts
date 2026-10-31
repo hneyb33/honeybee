@@ -5,6 +5,7 @@ import {
   resourceTypeForKind,
   type CloudinaryResourceType,
   type MediaKind,
+  type MediaTarget,
 } from "@/lib/media-policy";
 import {
   MediaUploadError,
@@ -30,7 +31,9 @@ const uploadResultSchema = z.object({
 
 export const finalizedMediaSchema = z.object({
   id: z.string().uuid(),
-  listing_id: z.string().uuid(),
+  // A finalized row belongs to either a listing or an ad; only one is present.
+  listing_id: z.string().uuid().nullable().optional(),
+  ad_id: z.string().uuid().nullable().optional(),
   url: z.string().url(),
   kind: z.enum(["photo", "video"]),
   sort_order: z.number().int(),
@@ -91,7 +94,7 @@ function signatureAgeMs(signature: UploadSignature): number {
 }
 
 async function requestUploadSignature(
-  listingId: string,
+  target: MediaTarget,
   kind: MediaKind,
   accessToken: string,
   publicId?: string
@@ -104,7 +107,11 @@ async function requestUploadSignature(
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ listingId, resourceType: resourceTypeForKind(kind), ...(publicId ? { publicId } : {}) }),
+      body: JSON.stringify({
+        ...(target.scope === "ad" ? { adId: target.id } : { listingId: target.id }),
+        resourceType: resourceTypeForKind(kind),
+        ...(publicId ? { publicId } : {}),
+      }),
     });
   } catch {
     throw new MediaUploadError(
@@ -255,12 +262,12 @@ interface UploadOptions {
 export async function uploadMediaToCloudinary(
   file: File,
   kind: MediaKind,
-  listingId: string,
+  target: MediaTarget,
   accessToken: string,
   options: UploadOptions = {}
 ): Promise<UploadedCloudinaryAsset> {
   const { onProgress, signal } = options;
-  let signature = await requestUploadSignature(listingId, kind, accessToken);
+  let signature = await requestUploadSignature(target, kind, accessToken);
   const chunked = file.size > CHUNKED_UPLOAD_MIN_BYTES;
   const uploadId = chunked ? crypto.randomUUID() : null;
 
@@ -293,7 +300,7 @@ export async function uploadMediaToCloudinary(
       // lease is close to expiring, so a slow uplink never voids the signature.
       if (index > 0 || signatureAgeMs(signature) > AUTHORIZATION_LEASE_MS) {
         signature = await requestUploadSignature(
-          listingId,
+          target,
           kind,
           accessToken,
           signature.publicId
@@ -346,7 +353,7 @@ export interface FinalizeOptions {
  * revisit, re-checks it.
  */
 export async function finalizeCloudinaryMedia(
-  listingId: string,
+  target: MediaTarget,
   asset: UploadedCloudinaryAsset,
   accessToken: string,
   onProcessing?: ((media: RegisteredCloudinaryMedia) => void) | FinalizeOptions,
@@ -369,7 +376,7 @@ export async function finalizeCloudinaryMedia(
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          listingId,
+          ...(target.scope === "ad" ? { adId: target.id } : { listingId: target.id }),
           resourceType: asset.resourceType,
           publicId: asset.publicId,
           assetId: asset.assetId,

@@ -28,6 +28,7 @@ import {
   isPublicMediaReady,
 } from "@/lib/media-urls";
 import { PhotoMosaic } from "@/components/listings/PhotoMosaic";
+import { CountryFlagIcon } from "@/components/listings/CountryFlagBadge";
 import { ServiceOfferings } from "@/components/listings/ServiceOfferings";
 import { ReviewSection } from "@/components/listings/ReviewSection";
 import { StickyBookingBar } from "@/components/booking/StickyBookingBar";
@@ -283,7 +284,8 @@ export default function ProfileDetailPage() {
           <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <MapPin className="h-4 w-4 text-airbnb-coral" />
-              {listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""}
+              {listing.neighborhood}, {listing.city}
+              <CountryFlagIcon country={listing.country} />
             </span>
             {listing.nationality && <span>· {listing.nationality}</span>}
             <span>

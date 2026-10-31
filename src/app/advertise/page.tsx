@@ -48,16 +48,16 @@ export default function AdvertisePage() {
             <h2 className="mt-3 text-xl font-bold text-foreground">{title}</h2>
             <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{description}</p>
             <Link
-              href={`/register?advertiser_type=${type}`}
+              href={`/post-ad?type=${type}`}
               className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#d3444d] px-5 text-sm font-bold text-white transition hover:bg-[#ad3039]"
             >
-              Continue <ArrowRight className="h-4 w-4" />
+              Post this ad <ArrowRight className="h-4 w-4" />
             </Link>
           </article>
         ))}
       </div>
       <p className="mt-7 text-center text-xs text-muted-foreground">
-        Already have an account? <Link href="/login?next=%2Fprovider%2Fonboarding" className="font-semibold text-[#d3444d] hover:underline">Sign in to continue</Link>
+        Already have an account? <Link href="/login?next=%2Fpost-ad" className="font-semibold text-[#d3444d] hover:underline">Sign in to post an ad</Link>
       </p>
       <p className="mt-5 text-center text-sm text-muted-foreground">
         Offering a home or wellness service?{" "}

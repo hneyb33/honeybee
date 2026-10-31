@@ -9,6 +9,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { formatUGX } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { AdminListingDialog } from "@/components/admin/AdminListingDialog";
+import { AdminAdDialog } from "@/components/admin/AdminAdDialog";
 
 type AdminUser = {
   id: string;
@@ -33,6 +34,29 @@ type ManagedListing = {
   featured_tier: "premium" | "vip" | null;
   featured_until: string | null;
   created_at: string;
+};
+
+type ManagedAd = {
+  id: string;
+  user_id: string | null;
+  ad_type: string;
+  title: string;
+  slug: string;
+  category: string | null;
+  city: string | null;
+  neighborhood: string | null;
+  description: string;
+  status: string;
+  moderation_notes: string | null;
+  is_featured: boolean;
+  featured_tier: "premium" | "vip" | null;
+  starts_at: string;
+  ends_at: string | null;
+  amount: number;
+  currency: string;
+  payment_status: string;
+  created_at: string;
+  profiles: { name: string; email: string | null } | { name: string; email: string | null }[] | null;
 };
 
 type ManagedPayment = {
@@ -95,12 +119,15 @@ export function AdminManagement({
   const [listings, setListings] = useState<ManagedListing[]>([]);
   const [payments, setPayments] = useState<ManagedPayment[]>([]);
   const [subscriptions, setSubscriptions] = useState<ManagedSubscription[]>([]);
+  const [ads, setAds] = useState<ManagedAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [listingDialogOpen, setListingDialogOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<ManagedListing | null>(null);
   const [createListingKind, setCreateListingKind] = useState<"escort" | "service">("escort");
+  const [adDialogOpen, setAdDialogOpen] = useState(false);
+  const [selectedAd, setSelectedAd] = useState<ManagedAd | null>(null);
 
   const load = useCallback(async () => {
     if (!supabase) {
@@ -109,7 +136,7 @@ export function AdminManagement({
       return;
     }
 
-    const [usersResult, listingsResult, paymentsResult, subscriptionsResult] = await Promise.all([
+    const [usersResult, listingsResult, paymentsResult, subscriptionsResult, adsResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("id,email,name,phone,account_kind,role,created_at")
@@ -130,9 +157,14 @@ export function AdminManagement({
         .select("id,user_id,plan,period,status,starts_at,ends_at,profiles(name,email)")
         .order("created_at", { ascending: false })
         .limit(100),
+      supabase
+        .from("ads")
+        .select("id,user_id,ad_type,title,slug,category,city,neighborhood,description,status,moderation_notes,is_featured,featured_tier,starts_at,ends_at,amount,currency,payment_status,created_at,profiles!ads_user_id_fkey(name,email)")
+        .order("created_at", { ascending: false })
+        .limit(200),
     ]);
 
-    const queryError = usersResult.error ?? listingsResult.error ?? paymentsResult.error ?? subscriptionsResult.error;
+    const queryError = usersResult.error ?? listingsResult.error ?? paymentsResult.error ?? subscriptionsResult.error ?? adsResult.error;
     if (queryError) {
       setError(queryError.message);
       setLoading(false);
@@ -143,6 +175,7 @@ export function AdminManagement({
     setListings((listingsResult.data ?? []) as ManagedListing[]);
     setPayments((paymentsResult.data ?? []) as ManagedPayment[]);
     setSubscriptions((subscriptionsResult.data ?? []) as ManagedSubscription[]);
+    setAds((adsResult.data ?? []) as ManagedAd[]);
     setError("");
     setLoading(false);
   }, []);
@@ -162,6 +195,7 @@ export function AdminManagement({
       .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, scheduleRefresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, scheduleRefresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions" }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ads" }, scheduleRefresh)
       .subscribe();
 
     return () => {
@@ -232,62 +266,82 @@ export function AdminManagement({
     );
   };
 
-  const setAd = async (listing: ManagedListing, featured: boolean) => {
+  const publishAdRow = async (ad: ManagedAd) => {
     if (!supabase) return;
-    if (featured && listing.verification_status !== "verified") {
+    await runAction(ad.id, () => supabase!.rpc("admin_publish_ad", { p_ad_id: ad.id }));
+  };
+
+  const rejectAdRow = async (ad: ManagedAd) => {
+    if (!supabase) return;
+    const notes = window.prompt("Reason for rejecting this ad (saved for the owner):");
+    if (notes === null) return;
+    await runAction(ad.id, () =>
+      supabase!.rpc("admin_reject_ad", { p_ad_id: ad.id, p_notes: notes.trim() || null })
+    );
+  };
+
+  const setAdPlacement = async (ad: ManagedAd, featured: boolean) => {
+    if (!supabase) return;
+    if (featured && ad.status !== "published") {
       setError("Publish the ad before featuring it.");
       return;
     }
     const tier = featured
-      ? window.prompt("Ad tier: premium or vip", listing.featured_tier ?? "premium")
+      ? window.prompt("Featured tier: premium or vip", ad.featured_tier ?? "premium")
       : null;
     if (featured && tier !== "premium" && tier !== "vip") {
-      if (tier !== null) setError("Choose premium or vip for the ad tier.");
+      if (tier !== null) setError("Choose premium or vip for the featured tier.");
       return;
     }
     const until = featured
-      ? window.prompt("Ad expiry date (YYYY-MM-DD)", listing.featured_until?.slice(0, 10) ?? "")
+      ? window.prompt("Placement end date (YYYY-MM-DD)", ad.ends_at?.slice(0, 10) ?? "")
       : null;
     if (featured && until === null) return;
     if (featured && (!until || Number.isNaN(Date.parse(`${until}T23:59:59Z`)))) {
-      setError("Enter a valid ad expiry date.");
+      setError("Enter a valid placement end date.");
       return;
     }
-    await runAction(listing.id, () =>
-      supabase!.rpc("admin_set_listing_ad", {
-        p_listing_id: listing.id,
+    await runAction(ad.id, () =>
+      supabase!.rpc("admin_set_ad_placement", {
+        p_ad_id: ad.id,
         p_featured: featured,
         p_tier: tier,
-        p_featured_until: featured ? `${until}T23:59:59Z` : null,
+        p_starts_at: null,
+        p_ends_at: featured ? `${until}T23:59:59Z` : null,
       })
     );
   };
 
-  const publishAd = async (listing: ManagedListing) => {
-    if (!supabase || listing.verification_status === "verified") return;
-    await runAction(listing.id, async () => {
-      const { error: updateError } = await supabase!
-        .from("listings")
-        .update({ verification_status: "verified", verification_notes: null })
-        .eq("id", listing.id);
-      return { error: updateError };
-    });
+  const settleAdPayment = async (ad: ManagedAd) => {
+    if (!supabase) return;
+    const options = ["unpaid", "submitted", "verified", "rejected"];
+    const choice = window.prompt(
+      `Settlement status (unpaid / submitted / verified / rejected). Current: ${ad.payment_status}`,
+      ad.payment_status
+    );
+    if (choice === null) return;
+    if (!options.includes(choice)) {
+      setError("Choose unpaid, submitted, verified or rejected.");
+      return;
+    }
+    // When marking verified, link the owner's oldest submitted payment if any.
+    const linkedPayment =
+      choice === "verified"
+        ? payments.find((payment) => payment.status === "submitted" && payment.user_id === ad.user_id)
+        : undefined;
+    await runAction(ad.id, () =>
+      supabase!.rpc("admin_settle_ad_payment", {
+        p_ad_id: ad.id,
+        p_payment_status: choice,
+        p_payment_id: linkedPayment?.id ?? null,
+      })
+    );
   };
 
-  const removeAd = async (listing: ManagedListing) => {
-    if (!supabase || !window.confirm(`Remove "${listing.title}" from the public directory? The profile and account will be retained and can be republished later.`)) return;
-    await runAction(listing.id, async () => {
-      const { error: updateError } = await supabase!
-        .from("listings")
-        .update({
-          verification_status: "suspended",
-          is_featured: false,
-          featured_tier: null,
-          featured_until: null,
-        })
-        .eq("id", listing.id);
-      return { error: updateError };
-    });
+  const deleteAd = async (ad: ManagedAd) => {
+    if (!supabase) return;
+    if (!window.confirm(`Permanently delete the ad "${ad.title}"? This cannot be undone.`)) return;
+    await runAction(ad.id, () => supabase!.rpc("admin_delete_ad", { p_ad_id: ad.id }));
   };
 
   const reviewPayment = async (payment: ManagedPayment, action: "verify" | "reject") => {
@@ -498,45 +552,60 @@ export function AdminManagement({
         </TabsContent>
 
         <TabsContent value="ads" className="space-y-2">
-          {listings.length === 0 ? (
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => { setSelectedAd(null); setAdDialogOpen(true); }}>
+              <Plus className="mr-1 h-4 w-4" />Add ad
+            </Button>
+          </div>
+          {ads.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              No submitted ads yet.
+              No ads yet. Providers post ads from /post-ad, or add one manually here.
             </p>
-          ) : listings.map((listing) => (
-            <Card key={listing.id} className="flex flex-col justify-between gap-4 rounded-2xl p-4 lg:flex-row lg:items-center">
+          ) : ads.map((ad) => (
+            <Card key={ad.id} className="flex flex-col justify-between gap-4 rounded-2xl p-4 lg:flex-row lg:items-center">
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold">{listing.title}</p>
-                  <Badge variant={listing.verification_status === "verified" ? "default" : "secondary"}>
-                    {listing.verification_status === "verified" ? "Published" : listing.verification_status.replaceAll("_", " ")}
-                  </Badge>
-                  {listing.is_featured && <Badge variant="outline">{(listing.featured_tier ?? "premium").toUpperCase()} featured</Badge>}
+                  <p className="font-semibold">{ad.title}</p>
+                  <Badge variant={ad.status === "published" ? "default" : "secondary"}>{ad.status}</Badge>
+                  <Badge variant="outline" className="capitalize">{ad.ad_type}</Badge>
+                  {ad.is_featured && <Badge variant="outline">{(ad.featured_tier ?? "premium").toUpperCase()} featured</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {listing.kind === "service" ? "Service provider" : "Model"} · {listing.neighborhood}, {listing.city}
-                  {listing.kind === "service" && ` · ${formatUGX(listing.hourly_rate)}`}
+                  {ad.neighborhood || ad.city ? `${[ad.neighborhood, ad.city].filter(Boolean).join(", ")} · ` : ""}
+                  {displayName(ad.profiles)} · {ad.payment_status} · {ad.amount ? `${ad.amount} ${ad.currency}` : "free"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Submitted {new Date(listing.created_at).toLocaleDateString()}
-                  {listing.is_featured && ` · Feature expires ${listing.featured_until ? new Date(listing.featured_until).toLocaleDateString() : "unknown"}`}
+                  Submitted {new Date(ad.created_at).toLocaleDateString()}
+                  {ad.is_featured && ` · Featured until ${ad.ends_at ? new Date(ad.ends_at).toLocaleDateString() : "open"}`}
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
-                {listing.verification_status !== "verified" && (
-                  <Button size="sm" disabled={busyId === listing.id} onClick={() => void publishAd(listing)}>
+                {ad.status !== "published" && (
+                  <Button size="sm" disabled={busyId === ad.id} onClick={() => void publishAdRow(ad)}>
                     <Check className="mr-1 h-4 w-4" />Publish
+                  </Button>
+                )}
+                {ad.status !== "rejected" && ad.status !== "published" && (
+                  <Button size="sm" variant="outline" disabled={busyId === ad.id} onClick={() => void rejectAdRow(ad)}>
+                    <X className="mr-1 h-4 w-4" />Reject
                   </Button>
                 )}
                 <Button
                   size="sm"
-                  variant={listing.is_featured ? "outline" : "secondary"}
-                  disabled={busyId === listing.id || listing.verification_status !== "verified"}
-                  onClick={() => void setAd(listing, !listing.is_featured)}
+                  variant={ad.is_featured ? "outline" : "secondary"}
+                  disabled={busyId === ad.id || ad.status !== "published"}
+                  onClick={() => void setAdPlacement(ad, !ad.is_featured)}
                 >
-                  <Shield className="mr-1 h-4 w-4" />{listing.is_featured ? "End feature" : "Mark featured"}
+                  <Shield className="mr-1 h-4 w-4" />{ad.is_featured ? "End feature" : "Feature"}
                 </Button>
-                <Button size="sm" variant="outline" disabled={busyId === listing.id} onClick={() => void removeAd(listing)}>
-                  <Trash2 className="mr-1 h-4 w-4 text-destructive" />Remove ad
+                <Button size="sm" variant="outline" disabled={busyId === ad.id} onClick={() => void settleAdPayment(ad)}>
+                  Settle
+                </Button>
+                <Button size="sm" variant="outline" disabled={busyId === ad.id} onClick={() => { setSelectedAd(ad); setAdDialogOpen(true); }}>
+                  <Eye className="mr-1 h-4 w-4" />View
+                </Button>
+                <Button size="sm" variant="outline" disabled={busyId === ad.id} onClick={() => void deleteAd(ad)} aria-label={`Delete ${ad.title}`}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
             </Card>
@@ -548,6 +617,12 @@ export function AdminManagement({
         listing={selectedListing}
         createKind={createListingKind}
         onOpenChange={setListingDialogOpen}
+        onSaved={() => void load()}
+      />
+      <AdminAdDialog
+        open={adDialogOpen}
+        ad={selectedAd}
+        onOpenChange={setAdDialogOpen}
         onSaved={() => void load()}
       />
     </section>

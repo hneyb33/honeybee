@@ -12,6 +12,29 @@
 export type MediaKind = "photo" | "video";
 export type CloudinaryResourceType = "image" | "video";
 
+/**
+ * The signed-upload pipeline serves two targets: a provider `listing` (the
+ * organic profile portfolio) and an `ad` (a paid placement). Everything that
+ * used to assume a listing now branches on this scope so the same Cloudinary
+ * machinery can be reused instead of forked.
+ */
+export type MediaScope = "listing" | "ad";
+
+/** Identifies what an upload is being attached to. */
+export interface MediaTarget {
+  scope: MediaScope;
+  /** Listing id when `scope === "listing"`, ad id when `scope === "ad"`. */
+  id: string;
+}
+
+export function listingTarget(listingId: string): MediaTarget {
+  return { scope: "listing", id: listingId };
+}
+
+export function adTarget(adId: string): MediaTarget {
+  return { scope: "ad", id: adId };
+}
+
 const MB = 1000 * 1000;
 
 export interface MediaPolicyEntry {
@@ -85,6 +108,42 @@ export const MEDIA_UPLOADABLE_STATUSES = [
   "rejected",
   "verified",
 ] as const;
+
+/**
+ * Ad states that accept portfolio media. A provider can never edit a published
+ * ad, so `published`/`expired` are intentionally excluded here (admins reach ad
+ * media through the service-role RPCs instead).
+ */
+export const AD_UPLOADABLE_STATUSES = ["draft", "pending", "rejected"] as const;
+
+/**
+ * The Cloudinary folder that scopes an upload to its owner + target. Ads add an
+ * `ad/` marker segment so a public_id is never ambiguous between the two tables.
+ */
+export function mediaUploadPrefix(userId: string, target: MediaTarget): string {
+  return target.scope === "ad"
+    ? `honeybee/${userId}/ad/${target.id}/`
+    : `honeybee/${userId}/${target.id}/`;
+}
+
+/**
+ * Recovers the owner + target from a public_id. Returns `null` when the id does
+ * not match the Honeybee scheme. Listing ids are 4 segments; ad ids carry the
+ * literal `ad` marker and are therefore 5 segments.
+ */
+export function parseMediaPublicId(
+  publicId: string
+): (MediaTarget & { userId: string }) | null {
+  const segments = publicId.split("/");
+  if (segments[0] !== "honeybee" || !segments[1]) return null;
+  if (segments.length === 5 && segments[2] === "ad") {
+    return { scope: "ad", id: segments[3], userId: segments[1] };
+  }
+  if (segments.length === 4) {
+    return { scope: "listing", id: segments[2], userId: segments[1] };
+  }
+  return null;
+}
 
 export function policyForKind(kind: MediaKind): MediaPolicyEntry {
   return MEDIA_POLICY[kind];

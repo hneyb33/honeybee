@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { finalizedMediaSchema, type RegisteredCloudinaryMedia } from "@/lib/cloudinary-upload";
 import { MediaUploadError } from "@/lib/media-errors";
+import { type MediaTarget } from "@/lib/media-policy";
 
 /**
  * Browser-side calls for the media lifecycle endpoints that sit around the
@@ -61,12 +62,12 @@ export async function abandonMedia(publicId: string, accessToken: string): Promi
 
 /** Re-checks every media row Cloudinary has not finished with. */
 export async function refreshPendingMedia(
-  listingId: string,
+  target: MediaTarget,
   accessToken: string
 ): Promise<RegisteredCloudinaryMedia[]> {
   const payload = await postJson(
     "/api/media/status",
-    { listingId },
+    target.scope === "ad" ? { adId: target.id } : { listingId: target.id },
     accessToken,
     "Media status could not be checked"
   );

@@ -106,6 +106,57 @@ export interface Listing {
   updated_at: string;
 }
 
+export type AdType = 'fast' | 'independent' | 'agency';
+export type AdCategory = 'announcement' | 'event' | 'business' | 'service' | 'companion';
+export type AdStatus = 'draft' | 'pending' | 'published' | 'rejected' | 'expired';
+export type AdPaymentStatus = 'unpaid' | 'submitted' | 'verified' | 'rejected';
+export type FeaturedTier = 'premium' | 'vip';
+
+export interface AdLink {
+  label: string;
+  url: string;
+}
+
+/**
+ * A self-contained advertising placement. Unlike a `Listing` (a provider's
+ * organic profile), an `Ad` carries its own content + placement metadata and is
+ * what populates the featured ad spaces. `images` is derived from `ad_media`
+ * rows (there is no inline column), so the mapper fills it in.
+ */
+export interface Ad {
+  id: string;
+  user_id?: string;
+  source_listing_id?: string;
+  ad_type: AdType;
+  title: string;
+  slug: string;
+  category?: AdCategory;
+  summary_line?: string;
+  description: string;
+  city?: string;
+  neighborhood?: string;
+  country?: string;
+  contact_whatsapp_code?: string;
+  contact_whatsapp_number?: string;
+  contact_telegram?: string;
+  links: AdLink[];
+  cover_image: string;
+  images: string[];
+  starts_at: string;
+  ends_at?: string | null;
+  is_featured: boolean;
+  featured_tier?: FeaturedTier | null;
+  status: AdStatus;
+  moderation_notes?: string | null;
+  amount: number;
+  currency: string;
+  payment_status: AdPaymentStatus;
+  created_at: string;
+  updated_at: string;
+  /** True when the ad is published and still within its placement window. */
+  is_active: boolean;
+}
+
 export interface Booking {
   id: string;
   client_id: string;

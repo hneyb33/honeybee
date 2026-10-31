@@ -50,7 +50,7 @@ export function StickyBookingBar({ listing }: StickyBookingBarProps) {
               <p className="truncate text-sm font-semibold text-foreground">Get in touch</p>
             )}
             <p className="truncate text-xs text-muted-foreground hidden sm:block">
-              {listing.neighborhood}, {listing.city}{listing.country ? `, ${listing.country}` : ""} ·{" "}
+              {listing.neighborhood}, {listing.city} ·{" "}
               {listing.kind === "service" ? "Specialist Service" : listing.category}
             </p>
           </div>

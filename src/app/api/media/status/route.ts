@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthenticatedRequestClient } from "@/lib/supabase/authenticated-request";
-import { getAdminSupabaseClient, PROFILE_MEDIA_COLUMNS, type ProfileMediaRow } from "@/lib/media-records";
+import {
+  AD_MEDIA_COLUMNS,
+  PROFILE_MEDIA_COLUMNS,
+  getAdminSupabaseClient,
+  type ProfileMediaRow,
+} from "@/lib/media-records";
 
 /**
  * Re-checks media that Cloudinary is still working on.
@@ -12,12 +17,17 @@ import { getAdminSupabaseClient, PROFILE_MEDIA_COLUMNS, type ProfileMediaRow } f
  *
  * It reuses the finalize route rather than repeating its verification logic: one
  * request per outstanding asset, forwarded with the caller's own bearer token so
- * ownership is re-proved by the existing checks.
+ * ownership is re-proved by the existing checks. It serves both profiles and ads.
  */
 
-const requestSchema = z.object({
-  listingId: z.string().uuid(),
-});
+const requestSchema = z
+  .object({
+    listingId: z.string().uuid().optional(),
+    adId: z.string().uuid().optional(),
+  })
+  .refine((value) => Boolean(value.listingId) !== Boolean(value.adId), {
+    message: "Exactly one of listingId or adId is required.",
+  });
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -29,7 +39,7 @@ export async function POST(request: Request) {
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "A valid listing is required." }, { status: 400 });
+    return NextResponse.json({ error: "A valid listing or ad is required." }, { status: 400 });
   }
 
   const auth = await getAuthenticatedRequestClient(request);
@@ -37,14 +47,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { data: listing } = await auth.client
-    .from("listings")
-    .select("id")
-    .eq("id", parsed.data.listingId)
-    .eq("user_id", auth.userId)
-    .maybeSingle();
-  if (!listing) {
-    return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  const isAd = Boolean(parsed.data.adId);
+  const targetId = (parsed.data.adId ?? parsed.data.listingId) as string;
+
+  // Ownership proof mirrors the table the media lives in.
+  const ownership = isAd
+    ? await auth.client
+        .from("ads")
+        .select("id")
+        .eq("id", targetId)
+        .eq("user_id", auth.userId)
+        .maybeSingle()
+    : await auth.client
+        .from("listings")
+        .select("id")
+        .eq("id", targetId)
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+  if (!ownership.data) {
+    return NextResponse.json({ error: isAd ? "Ad not found." : "Listing not found." }, { status: 404 });
   }
 
   const adminClient = getAdminSupabaseClient();
@@ -55,10 +76,14 @@ export async function POST(request: Request) {
     );
   }
 
+  const mediaTable = isAd ? "ad_media" : "profile_media";
+  const mediaColumns = isAd ? AD_MEDIA_COLUMNS : PROFILE_MEDIA_COLUMNS;
+  const ownerKey = isAd ? "ad_id" : "listing_id";
+
   const { data: rows, error: rowsError } = await adminClient
-    .from("profile_media")
-    .select(PROFILE_MEDIA_COLUMNS)
-    .eq("listing_id", parsed.data.listingId)
+    .from(mediaTable)
+    .select(mediaColumns)
+    .eq(ownerKey, targetId)
     .eq("storage_provider", "cloudinary")
     .neq("processing_status", "ready")
     .not("cloudinary_public_id", "is", null);
@@ -85,7 +110,7 @@ export async function POST(request: Request) {
           ...(authorization ? { Authorization: authorization } : {}),
         },
         body: JSON.stringify({
-          listingId: row.listing_id,
+          ...(isAd ? { adId: targetId } : { listingId: targetId }),
           resourceType: row.kind === "video" ? "video" : "image",
           publicId: row.cloudinary_public_id,
           assetId: row.cloudinary_asset_id,

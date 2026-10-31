@@ -1,6 +1,6 @@
 import { buildCloudinaryImageVariant } from "@/lib/cloudinary-url";
-import { PROFILE_MEDIA_COLUMNS } from "@/lib/media-records";
-import type { ProfileMediaRow } from "@/lib/media-records";
+import { AD_MEDIA_COLUMNS, PROFILE_MEDIA_COLUMNS } from "@/lib/media-records";
+import type { AdMediaRow, ProfileMediaRow } from "@/lib/media-records";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -105,4 +105,68 @@ export async function deleteMediaRow(
     return null;
   }
   return (data as ProfileMediaRow | null) ?? null;
+}
+
+/**
+ * Rewrites `ads.cover_image` from the registered `ad_media` rows, exactly the
+ * way `resyncListingMedia` keeps a profile's cover pointing at the small card
+ * rendition. Ads store their gallery in `ad_media` (no inline images column),
+ * so only the cover needs rebuilding here.
+ *
+ * A failure is never fatal: the media row is already stored and the next upload
+ * or save repairs the cover.
+ */
+export async function resyncAdMedia(
+  client: SupabaseClient | null,
+  adId: string
+): Promise<void> {
+  if (!admin(client)) return;
+
+  const { data, error } = await client
+    .from("ad_media")
+    .select(AD_MEDIA_COLUMNS)
+    .eq("ad_id", adId)
+    .eq("kind", "photo")
+    .eq("processing_status", "ready")
+    .order("sort_order", { ascending: true });
+
+  if (error || !data) {
+    console.warn("Could not read ad photos:", error?.message);
+    return;
+  }
+
+  const rows = data as AdMediaRow[];
+  const coverSource = rows[0];
+  const coverImage = coverSource
+    ? coverSource.storage_provider === "cloudinary"
+      ? coverSource.card_url ?? buildCloudinaryImageVariant(coverSource.url, "card")
+      : coverSource.url
+    : null;
+
+  const { error: updateError } = await client
+    .from("ads")
+    .update({ cover_image: coverImage })
+    .eq("id", adId);
+  if (updateError) {
+    console.warn("Could not sync ad cover image:", updateError.message);
+  }
+}
+
+/** Removes the `ad_media` row for an abandoned or deleted ad asset. */
+export async function deleteAdMediaRow(
+  client: SupabaseClient | null,
+  publicId: string
+): Promise<AdMediaRow | null> {
+  if (!admin(client)) return null;
+  const { data, error } = await client
+    .from("ad_media")
+    .delete()
+    .eq("cloudinary_public_id", publicId)
+    .select(AD_MEDIA_COLUMNS)
+    .maybeSingle();
+  if (error) {
+    console.warn("Could not delete the ad media row:", error.message);
+    return null;
+  }
+  return (data as AdMediaRow | null) ?? null;
 }

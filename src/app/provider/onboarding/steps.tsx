@@ -2,6 +2,9 @@
 
 import Image from "next/image";
 import {
+  CheckCircle2,
+  ChefHat,
+  LoaderCircle,
   MapPin,
   ShieldCheck,
   Sparkles,
@@ -14,6 +17,7 @@ import { EAST_AFRICAN_COUNTRIES } from "@/lib/data/uganda-locations";
 import {
   DAYS,
   LANGUAGES,
+  ONBOARDING_TYPES,
   SERVICE_TYPES,
   nationalities,
   orientations,
@@ -37,6 +41,70 @@ import type { OnboardingController } from "./use-onboarding";
  * the controller returned by `useOnboarding`, which owns all state and side
  * effects, so changing one step never touches another.
  */
+
+const TYPE_ICONS: Record<string, typeof UserRound> = {
+  model: UserRound,
+  specialist: ChefHat,
+};
+
+/**
+ * The profile-kind selection, kept on its own screen ahead of the form steps.
+ * Choosing an option decides which tailored wizard the provider then follows.
+ * The Fast / Independent / Agency advertising choices now live in Post Ad.
+ */
+export function TypeChooser({ c }: { c: OnboardingController }) {
+  const { accountKind, chooseType } = c;
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
+      <div className="text-center">
+        <Badge variant="secondary">Step 1 of setup</Badge>
+        <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
+          What kind of profile are you creating?
+        </h1>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          Pick the option that fits you best. Each one takes you through a setup tailored to it.
+        </p>
+      </div>
+
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        {ONBOARDING_TYPES.map((option) => {
+          const Icon = TYPE_ICONS[option.id] ?? UserRound;
+          const selected = accountKind === option.kind;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => void chooseType(option)}
+              aria-pressed={selected}
+              className={`group relative flex items-start gap-3 rounded-2xl border p-5 text-left transition-all ${
+                selected
+                  ? "border-airbnb-coral bg-rose-50 dark:bg-rose-950/30"
+                  : "border-border bg-card hover:border-airbnb-coral/60 hover:shadow-md"
+              }`}
+            >
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-airbnb-coral/10 text-airbnb-coral">
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold">{option.label}</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                  {option.blurb}
+                </span>
+              </span>
+              {selected && (
+                <CheckCircle2 className="absolute right-3 top-3 h-4 w-4 text-airbnb-coral" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        You can adjust these details later. Your profile stays private until an admin verifies it.
+      </p>
+    </div>
+  );
+}
 
 export function StepAbout({ c }: { c: OnboardingController }) {
   const { form, update, isModel } = c;
@@ -335,6 +403,10 @@ export function StepPortfolio({ c }: { c: OnboardingController }) {
 
 export function StepReview({ c }: { c: OnboardingController }) {
   const { form, isModel } = c;
+  const preparingCount =
+    c.existingMedia.filter(
+      (item) => item.storageProvider === "cloudinary" && item.processingStatus !== "ready"
+    ).length + c.queue.items.filter((item) => item.status === "processing").length;
   type Preview = { key: string; kind: "photo" | "video"; previewUrl: string };
   const previews: Preview[] = [
     ...c.existingMedia.map((item): Preview => ({
@@ -411,6 +483,15 @@ export function StepReview({ c }: { c: OnboardingController }) {
               )}
             </div>
           ))}
+        </div>
+      )}
+      {preparingCount > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+          <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+          <span>
+            Preparing your {preparingCount > 1 ? "media" : "video or photo"}{"\u2026"} Cloudinary is
+            finishing optimisation. It updates on its own, and you can still submit for review now.
+          </span>
         </div>
       )}
       {c.queue.hasActiveUploads && (

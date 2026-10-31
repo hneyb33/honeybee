@@ -104,7 +104,34 @@ export const emptyForm: OnboardingForm = {
 };
 
 export type AccountKind = "model" | "specialist" | "agency";
-export type AdvertiserType = "fast" | "independent" | "agency";
+
+/**
+ * The entry choices shown on their own screen before the wizard starts. Provider
+ * onboarding is purely about the profile kind now. The Fast / Independent /
+ * Agency advertising choices belong to the Post Ad flow (`/post-ad`), since an
+ * ad type is an attribute of an ad, not of a profile.
+ */
+export interface OnboardingTypeOption {
+  id: AccountKind;
+  kind: AccountKind;
+  label: string;
+  blurb: string;
+}
+
+export const ONBOARDING_TYPES: OnboardingTypeOption[] = [
+  {
+    id: "model",
+    kind: "model",
+    label: "Companion profile",
+    blurb: "Create a verified companion (model) profile for the directory.",
+  },
+  {
+    id: "specialist",
+    kind: "specialist",
+    label: "Service provider",
+    blurb: "Offer home services such as private chef, laundry, or massage.",
+  },
+];
 
 export function safeSlug(value: string) {
   const slug = value

@@ -26,6 +26,14 @@ export function getAdminSupabaseClient(): SupabaseClient | null {
 export const PROFILE_MEDIA_COLUMNS =
   "id,listing_id,url,kind,sort_order,thumbnail_url,processing_status,storage_provider,cloudinary_public_id,cloudinary_asset_id,card_url,detail_url,playback_url";
 
+/** Columns every consumer of `ad_media` needs - mirrors the profile shape. */
+export const AD_MEDIA_COLUMNS =
+  "id,ad_id,url,kind,sort_order,thumbnail_url,processing_status,storage_provider,cloudinary_public_id,cloudinary_asset_id,card_url,detail_url,playback_url";
+
+export interface AdMediaRow extends Omit<ProfileMediaRow, "listing_id"> {
+  ad_id: string;
+}
+
 export interface ProfileMediaRow {
   id: string;
   listing_id: string;
