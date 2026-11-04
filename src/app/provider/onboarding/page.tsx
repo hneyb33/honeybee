@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Turnstile, requestTurnstilePass } from "@/components/ui/Turnstile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { STEP_HINTS } from "./onboarding-config";
 import { Stepper, InlineAlert } from "./onboarding-ui";
@@ -26,6 +28,25 @@ const STEP_TITLES = [
 
 export default function ProviderOnboardingPage() {
   const c = useOnboarding();
+  // The final "Submit for review" step is a bot magnet (free ad slots), so it
+  // demands a fresh solved Turnstile check before the listing flips to pending.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileRetry, setTurnstileRetry] = useState(0);
+  const [turnstileError, setTurnstileError] = useState("");
+
+  const handleAdvance = async () => {
+    if (c.currentStep === 4) {
+      const passed = await requestTurnstilePass(turnstileToken, "onboarding");
+      if (!passed) {
+        setTurnstileError("Please complete the human check and try again.");
+        setTurnstileToken(null);
+        setTurnstileRetry((value) => value + 1);
+        return;
+      }
+    }
+    setTurnstileError("");
+    await c.nextStep();
+  };
   const steps = c.steps;
   const titleSet = STEP_TITLES[c.currentStep];
   const stepTitle =
@@ -125,6 +146,17 @@ export default function ProviderOnboardingPage() {
           {c.currentStep === 3 && <StepPortfolio c={c} />}
           {c.currentStep === 4 && <StepReview c={c} />}
 
+          {c.currentStep === 4 && (
+            <div className="space-y-2 pt-1">
+              <Turnstile
+                key={turnstileRetry}
+                action="onboarding"
+                onToken={setTurnstileToken}
+              />
+              {turnstileError && <InlineAlert>{turnstileError}</InlineAlert>}
+            </div>
+          )}
+
           <div className="flex flex-col-reverse justify-between gap-3 border-t border-border pt-5 sm:flex-row">
             <Button
               type="button"
@@ -138,7 +170,7 @@ export default function ProviderOnboardingPage() {
             <Button
               type="button"
               disabled={c.saving || c.queue.hasActiveUploads}
-              onClick={() => void c.nextStep()}
+              onClick={() => void handleAdvance()}
               className="rounded-xl bg-airbnb-coral font-bold text-white hover:bg-[#AD3039]"
             >
               {c.saving ? (

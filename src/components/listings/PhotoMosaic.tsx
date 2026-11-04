@@ -4,17 +4,25 @@ import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Grid } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { BlurHashFallback } from "@/components/media/BlurHashFallback";
 
 interface PhotoMosaicProps {
   images: string[];
   title: string;
+  /** BlurHash strings index-aligned with `images`; shown until each variant paints. */
+  blurhashes?: (string | null)[];
 }
 
-export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
+export function PhotoMosaic({ images, title, blurhashes }: PhotoMosaicProps) {
   const [activeMobileIndex, setActiveMobileIndex] = useState(0);
   const mobileTrackRef = useRef<HTMLDivElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  // Per-slot loaded flags so a slow variant only keeps its own placeholder up.
+  const [loadedSlots, setLoadedSlots] = useState<Record<string, boolean>>({});
+  const markLoaded = (slot: string) =>
+    setLoadedSlots((prev) => (prev[slot] ? prev : { ...prev, [slot]: true }));
+  const hashFor = (index: number) => blurhashes?.[index] ?? null;
 
   const displayImages = images.length > 0 ? images : ["/images/footer_bg.jpeg"];
 
@@ -53,7 +61,16 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
                 sizes="100vw"
                 className="object-cover"
                 priority={index === 0}
+                onLoad={() => markLoaded(`mob-${index}`)}
               />
+              {hashFor(index) && !loadedSlots[`mob-${index}`] && (
+                <BlurHashFallback
+                  hash={hashFor(index)}
+                  width={32}
+                  height={36}
+                  className="pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover blur-md"
+                />
+              )}
             </button>
           ))}
         </div>
@@ -114,7 +131,16 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             priority
+            onLoad={() => markLoaded("hero")}
           />
+          {hashFor(0) && !loadedSlots["hero"] && (
+            <BlurHashFallback
+              hash={hashFor(0)}
+              width={40}
+              height={40}
+              className="pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover blur-md"
+            />
+          )}
         </div>
 
         {/* Remaining 4 Photos */}
@@ -129,7 +155,16 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
               alt={`${title} gallery ${idx + 1}`}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"
+              onLoad={() => markLoaded(`cell-${idx}`)}
             />
+            {hashFor(idx + 1) && !loadedSlots[`cell-${idx}`] && (
+              <BlurHashFallback
+                hash={hashFor(idx + 1)}
+                width={32}
+                height={24}
+                className="pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover blur-md"
+              />
+            )}
           </div>
         ))}
 
@@ -169,7 +204,16 @@ export function PhotoMosaic({ images, title }: PhotoMosaicProps) {
                 fill
                 sizes="100vw"
                 className="object-contain"
+                onLoad={() => markLoaded(`full-${selectedPhoto}`)}
               />
+              {hashFor(images.indexOf(selectedPhoto)) && !loadedSlots[`full-${selectedPhoto}`] && (
+                <BlurHashFallback
+                  hash={hashFor(images.indexOf(selectedPhoto))}
+                  width={32}
+                  height={32}
+                  className="pointer-events-none absolute inset-0 z-[1] h-full w-full scale-110 object-cover blur-md"
+                />
+              )}
             </div>
           )}
         </DialogContent>

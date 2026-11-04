@@ -26,8 +26,10 @@ import {
   getMediaThumbnailUrl,
   getMediaVideoUrl,
   isPublicMediaReady,
+  type MediaUrlSource,
 } from "@/lib/media-urls";
 import { PhotoMosaic } from "@/components/listings/PhotoMosaic";
+import { MediaVideo } from "@/components/media/MediaVideo";
 import { CountryFlagIcon } from "@/components/listings/CountryFlagBadge";
 import { ServiceOfferings } from "@/components/listings/ServiceOfferings";
 import { ReviewSection } from "@/components/listings/ReviewSection";
@@ -41,7 +43,11 @@ export default function ProfileDetailPage() {
   const slug = params?.slug as string;
   const [listing, setListing] = useState<Listing | undefined>(undefined);
   const [relatedListings, setRelatedListings] = useState<Listing[]>([]);
-  const [profileVideos, setProfileVideos] = useState<Array<{ url: string; thumbnailUrl: string | null; source?: Record<string, unknown> }>>([]);
+  const [profileVideos, setProfileVideos] = useState<Array<{
+    url: string;
+    thumbnailUrl: string | null;
+    source?: (MediaUrlSource & { id?: unknown; stream_uid?: unknown }) | null;
+  }>>([]);
   // Seed from the offline catalogue immediately when Supabase is not wired up so
   // local demos still render; a configured deployment shows a loading state
   // instead of ever flashing placeholder profiles.
@@ -131,13 +137,17 @@ export default function ProfileDetailPage() {
         photoRows.map((media) => (typeof media.blurhash === "string" ? media.blurhash : null))
       );
       const mediaRows = mediaResult.data ?? [];
-      const videos = mediaRows
+      const videos: Array<{
+        url: string;
+        thumbnailUrl: string | null;
+        source: (MediaUrlSource & { id?: unknown; stream_uid?: unknown }) | null;
+      }> = mediaRows
         .filter((media) => media.kind === "video" && isPublicMediaReady(media))
         .map((media) => ({
           url: getMediaVideoUrl(media),
           thumbnailUrl: getMediaThumbnailUrl(media),
           // The row itself drives provider-aware playback (Stream tokens).
-          source: media as Record<string, unknown>,
+          source: media as MediaUrlSource & { id?: unknown; stream_uid?: unknown },
         }));
 
       if (data.user_id) {
@@ -167,7 +177,7 @@ export default function ProfileDetailPage() {
             const { data: publicUrl } = supabase.storage
               .from("honeybee-profile-media")
               .getPublicUrl(objectPath);
-            videos.push({ url: publicUrl.publicUrl, thumbnailUrl: null });
+            videos.push({ url: publicUrl.publicUrl, thumbnailUrl: null, source: null });
           }
         }
       }

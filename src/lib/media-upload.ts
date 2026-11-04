@@ -32,6 +32,7 @@ import { refreshPendingMedia } from "@/lib/media-lifecycle";
  */
 
 export type RegisteredMedia = RegisteredCloudinaryMedia;
+export type { FinalizeOptions };
 export { finalizedMediaSchema };
 
 export type UploadedMediaAsset =

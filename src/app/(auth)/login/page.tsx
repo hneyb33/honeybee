@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { Turnstile, requestTurnstilePass } from "@/components/ui/Turnstile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [nextPath, setNextPath] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // Turnstile tokens are single-use; failures remount the widget.
+  const [turnstileRetry, setTurnstileRetry] = useState(0);
 
   useEffect(() => {
     const requestedPath = new URLSearchParams(window.location.search).get("next") ?? "";
@@ -34,6 +38,17 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    // Credential stuffing starts at the login form: require a solved check
+    // before the Supabase request is even sent.
+    const humanPass = await requestTurnstilePass(turnstileToken, "login");
+    if (!humanPass) {
+      setLoading(false);
+      setError("Please complete the human check and try again.");
+      setTurnstileToken(null);
+      setTurnstileRetry((value) => value + 1);
+      return;
+    }
+
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -42,6 +57,8 @@ export default function LoginPage() {
     if (signInError) {
       setLoading(false);
       setError(signInError.message);
+      setTurnstileToken(null);
+      setTurnstileRetry((value) => value + 1);
       return;
     }
 
@@ -119,6 +136,12 @@ export default function LoginPage() {
               </p>
             )}
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
+            <Turnstile
+              key={turnstileRetry}
+              action="login"
+              onToken={setTurnstileToken}
+            />
 
             <Button
               type="submit"

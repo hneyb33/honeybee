@@ -20,8 +20,8 @@ export function ListingCard({ listing }: ListingCardProps) {
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteLoaded, setFavoriteLoaded] = useState(false);
   const [favoriteError, setFavoriteError] = useState("");
-  // BlurHash stays up until the real card variant has decoded, so switching
-  // photo indexes never flashes an empty frame.
+  // The BlurHash stays up until the real card variant has decoded, so photo
+  // switching never flashes an empty frame.
   const [loadedPhoto, setLoadedPhoto] = useState<string | null>(null);
   const currentPhoto = (listing.images && listing.images.length > 0
     ? listing.images

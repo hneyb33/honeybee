@@ -45,6 +45,9 @@ export async function POST(request: Request) {
   if (!adminClient) {
     return NextResponse.json({ error: "Playback authorization is unavailable." }, { status: 503 });
   }
+  // Narrowed copies so the hoisted `serveToken` below sees non-null types.
+  const client = adminClient;
+  const streamConfig = config;
 
   // Optional bearer auth: anonymous viewers may still get a token when the
   // owning content is publicly visible.
@@ -107,7 +110,7 @@ export async function POST(request: Request) {
     // Owner check + visibility gate, per scope.
     const ownerId = from === "ad_media" ? (row.ad_id as string) : (row.listing_id as string);
     if (from === "ad_media") {
-      const { data: ad } = await adminClient
+      const { data: ad } = await client
         .from("ads")
         .select("user_id,status")
         .eq("id", ownerId)
@@ -118,7 +121,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "This video is not publicly available." }, { status: 403 });
       }
     } else {
-      const { data: listing } = await adminClient
+      const { data: listing } = await client
         .from("listings")
         .select("user_id,verification_status")
         .eq("id", ownerId)
@@ -131,7 +134,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      const token = await createPlaybackToken(config, row.stream_uid, TOKEN_TTL_SECONDS);
+      const token = await createPlaybackToken(streamConfig, row.stream_uid, TOKEN_TTL_SECONDS);
       return NextResponse.json({
         playbackUrl: streamSignedManifestUrl(row.stream_uid, token),
         thumbnailUrl: `https://videodelivery.net/${encodeURIComponent(row.stream_uid)}/thumbnails/thumbnail.jpg`,

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { EAST_AFRICAN_COUNTRIES } from "@/lib/data/uganda-locations";
+import { Turnstile, requestTurnstilePass } from "@/components/ui/Turnstile";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,6 +26,9 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // Turnstile tokens are single-use; failures remount the widget.
+  const [turnstileRetry, setTurnstileRetry] = useState(0);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -59,6 +63,16 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+    // Human check first: the server rejects anything but a fresh solved token.
+    const humanPass = await requestTurnstilePass(turnstileToken, "register");
+    if (!humanPass) {
+      setLoading(false);
+      setError("Please complete the human check and try again.");
+      setTurnstileToken(null);
+      setTurnstileRetry((value) => value + 1);
+      return;
+    }
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -77,6 +91,9 @@ export default function RegisterPage() {
 
     if (signUpError) {
       setError(signUpError.message);
+      // A rejected attempt burned the token - require a fresh solve.
+      setTurnstileToken(null);
+      setTurnstileRetry((value) => value + 1);
       return;
     }
 
@@ -329,6 +346,12 @@ export default function RegisterPage() {
               </p>
             )}
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            <Turnstile
+              key={turnstileRetry}
+              action="register"
+              onToken={setTurnstileToken}
+              className="pt-1"
+            />
             {message && (
               <div role="status" className="space-y-2 text-sm text-emerald-700">
                 <p>{message}</p>

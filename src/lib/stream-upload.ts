@@ -144,34 +144,39 @@ function runTusUpload(
   signal?: AbortSignal
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const upload = new Upload({
-      file,
+    // The shipped UploadOptions typing omits `url` (a known tus-js-client
+    // .d.ts gap); the runtime option is `url`, so assert the constructor shape.
+    const upload = new Upload(file, {
+      // Stream's one-time upload URL is the tus creation endpoint itself.
       url: endpoint,
       chunkSize: TUS_CHUNK_BYTES,
       retryAttempts: 3,
-      onProgress(bytesSent, totalSize) {
-        onProgress(totalSize > 0 ? Math.round((bytesSent / totalSize) * 100) : 0);
+      onProgress(bytesSent: number, bytesTotal: number) {
+        onProgress(bytesTotal > 0 ? Math.round((bytesSent / bytesTotal) * 100) : 0);
       },
       onSuccess() {
         resolve();
       },
-      onError(error) {
+      onError(error: Error) {
         reject(error);
       },
-    });
+    } as unknown as ConstructorParameters<typeof Upload>[1]);
+
+    const terminate = () => {
+      // `abort(true)` terminates the partial upload server-side so the bytes
+      // never linger; the promise resolves once the DELETE round-trips.
+      upload
+        .abort(true)
+        .catch(() => undefined)
+        .finally(() => reject(new Error("aborted")));
+    };
 
     if (signal) {
       if (signal.aborted) {
-        upload.abort((err) => reject(err ?? new Error("aborted")));
+        terminate();
         return;
       }
-      signal.addEventListener(
-        "abort",
-        () => {
-          upload.abort(() => reject(new Error("aborted")));
-        },
-        { once: true }
-      );
+      signal.addEventListener("abort", terminate, { once: true });
     }
 
     upload.start();
