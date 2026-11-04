@@ -41,7 +41,7 @@ export default function ProfileDetailPage() {
   const slug = params?.slug as string;
   const [listing, setListing] = useState<Listing | undefined>(undefined);
   const [relatedListings, setRelatedListings] = useState<Listing[]>([]);
-  const [profileVideos, setProfileVideos] = useState<Array<{ url: string; thumbnailUrl: string | null }>>([]);
+  const [profileVideos, setProfileVideos] = useState<Array<{ url: string; thumbnailUrl: string | null; source?: Record<string, unknown> }>>([]);
   // Seed from the offline catalogue immediately when Supabase is not wired up so
   // local demos still render; a configured deployment shows a loading state
   // instead of ever flashing placeholder profiles.
@@ -93,7 +93,7 @@ export default function ProfileDetailPage() {
       const [mediaResult, offeringsResult, relatedResult] = await Promise.all([
         supabase
           .from("profile_media")
-          .select("url,kind,sort_order,thumbnail_url,source_path,processed_path,original_url,storage_provider,processing_status,card_url,detail_url,playback_url")
+          .select("id,url,kind,sort_order,thumbnail_url,source_path,processed_path,original_url,storage_provider,stream_uid,moderation_status,processing_status,card_url,detail_url,playback_url,blurhash")
           .eq("listing_id", data.id)
           .order("sort_order", { ascending: true }),
         supabase
@@ -120,12 +120,15 @@ export default function ProfileDetailPage() {
         return;
       }
 
+      const photoRows = (mediaResult.data ?? []).filter(
+        (media) => media.kind === "photo" && isPublicMediaReady(media)
+      );
       const mappedListing = mapListingRow(
         data,
-        (mediaResult.data ?? [])
-          .filter((media) => media.kind === "photo" && isPublicMediaReady(media))
-          .map((media) => getMediaImageUrl(media, "detail")),
-        offeringsResult.data ?? []
+        photoRows.map((media) => getMediaImageUrl(media, "detail")),
+        offeringsResult.data ?? [],
+        undefined,
+        photoRows.map((media) => (typeof media.blurhash === "string" ? media.blurhash : null))
       );
       const mediaRows = mediaResult.data ?? [];
       const videos = mediaRows
@@ -133,6 +136,8 @@ export default function ProfileDetailPage() {
         .map((media) => ({
           url: getMediaVideoUrl(media),
           thumbnailUrl: getMediaThumbnailUrl(media),
+          // The row itself drives provider-aware playback (Stream tokens).
+          source: media as Record<string, unknown>,
         }));
 
       if (data.user_id) {
@@ -178,12 +183,13 @@ export default function ProfileDetailPage() {
         detail_url: string | null;
         storage_provider: string | null;
         processing_status: string | null;
+        blurhash: string | null;
       }>>();
       const relatedListingIds = relatedListings.map((row) => row.id);
       if (relatedListingIds.length > 0) {
         const { data: relatedMedia, error: relatedMediaError } = await supabase
           .from("profile_media")
-          .select("listing_id,url,card_url,detail_url,storage_provider,processing_status,sort_order")
+          .select("listing_id,url,card_url,detail_url,storage_provider,processing_status,blurhash,sort_order")
           .in("listing_id", relatedListingIds)
           .eq("kind", "photo")
           .order("sort_order", { ascending: true });
@@ -211,7 +217,7 @@ export default function ProfileDetailPage() {
           const coverImage = cover
             ? getMediaImageUrl(cover, "card")
             : cardImages[0];
-          return mapListingRow(row, cardImages, undefined, coverImage);
+          return mapListingRow(row, cardImages, undefined, coverImage, listingMedia.map((item) => item.blurhash));
         }));
         setLoading(false);
       }
@@ -330,7 +336,7 @@ export default function ProfileDetailPage() {
       </div>
 
       <section aria-label="Profile photo gallery">
-        <PhotoMosaic images={listing.images} title={listing.title} />
+        <PhotoMosaic images={listing.images} title={listing.title} blurhashes={listing.blurhashes} />
       </section>
       <section className="mt-8 space-y-4" aria-labelledby="profile-videos-heading">
         <div className="flex items-end justify-between gap-3">
@@ -364,15 +370,23 @@ export default function ProfileDetailPage() {
                 key={video.url}
                 className="w-[78vw] max-w-[340px] shrink-0 snap-start overflow-hidden rounded-2xl border border-border bg-black sm:w-[45%] lg:w-[31%]"
               >
-                <video
-                  src={video.url}
-                  poster={video.thumbnailUrl ?? undefined}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="aspect-[3/4] w-full bg-black object-contain"
-                  aria-label={`${listing.title} profile video ${index + 1}`}
-                />
+                {video.source ? (
+                  <MediaVideo
+                    source={video.source}
+                    className="aspect-[3/4] w-full bg-black object-contain"
+                    ariaLabel={`${listing.title} profile video ${index + 1}`}
+                  />
+                ) : (
+                  <video
+                    src={video.url}
+                    poster={video.thumbnailUrl ?? undefined}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="aspect-[3/4] w-full bg-black object-contain"
+                    aria-label={`${listing.title} profile video ${index + 1}`}
+                  />
+                )}
                 <p className="bg-card px-3 py-2 text-xs font-medium text-muted-foreground">
                   Video {index + 1} of {profileVideos.length}
                 </p>

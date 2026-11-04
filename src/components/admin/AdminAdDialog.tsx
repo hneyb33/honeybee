@@ -15,9 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   getMediaImageUrl,
-  getMediaThumbnailUrl,
-  getMediaVideoUrl,
 } from "@/lib/media-urls";
+import { MediaVideo } from "@/components/media/MediaVideo";
 import { supabase } from "@/lib/supabase/client";
 
 type AdSummary = {
@@ -420,11 +419,11 @@ export function AdminAdDialog({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {media.map((row, index) => {
                     const mediaSource = { ...row, url: row.url };
-                    const url = row.kind === "video" ? getMediaVideoUrl(mediaSource) : getMediaImageUrl(mediaSource, "detail");
+                    const url = getMediaImageUrl(mediaSource, "detail");
                     return (
                       <div key={row.id ?? index} className="relative aspect-square overflow-hidden rounded-xl bg-black">
                         {row.kind === "video" ? (
-                          <video src={url} poster={getMediaThumbnailUrl(mediaSource) ?? undefined} controls playsInline preload="metadata" className="h-full w-full object-contain" aria-label={`Ad video ${index + 1}`} />
+                          <MediaVideo source={{ ...row }} className="h-full w-full object-contain" ariaLabel={`Ad video ${index + 1}`} />
                         ) : (
                           <Image src={url} alt={`Ad photo ${index + 1}`} fill unoptimized className="object-cover" />
                         )}

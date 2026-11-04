@@ -60,6 +60,46 @@ export async function abandonMedia(publicId: string, accessToken: string): Promi
   await postJson("/api/media/abandon", { publicId }, accessToken, "That media could not be removed");
 }
 
+/** Any one identity column that names an in-flight or registered asset. */
+export interface MediaAssetIdentity {
+  publicId?: string | null;
+  mediaKey?: string | null;
+  streamUid?: string | null;
+}
+
+/**
+ * Provider-aware removal: routes the abandon call with whichever identifier
+ * the upload produced (Cloudinary public id, R2 media key or Stream uid). A
+ * 404 is success; the caller only needs the slot freed.
+ */
+export async function abandonMediaAsset(
+  identity: MediaAssetIdentity,
+  target: MediaTarget | null,
+  accessToken: string
+): Promise<void> {
+  const { publicId, mediaKey, streamUid } = identity;
+  let body: Record<string, string>;
+  if (mediaKey) {
+    body = { mediaKey };
+  } else if (streamUid) {
+    if (!target) {
+      throw new MediaUploadError("Stream removals must name the owning listing or ad.", {
+        status: null,
+      });
+    }
+    body = { streamUid, ...targetBody(target) };
+  } else if (publicId) {
+    body = { publicId };
+  } else {
+    return; // Nothing uploaded yet - no server-side residue to remove.
+  }
+  await postJson("/api/media/abandon", body, accessToken, "That media could not be removed");
+}
+
+function targetBody(target: MediaTarget): Record<string, string> {
+  return target.scope === "ad" ? { adId: target.id } : { listingId: target.id };
+}
+
 /** Re-checks every media row Cloudinary has not finished with. */
 export async function refreshPendingMedia(
   target: MediaTarget,

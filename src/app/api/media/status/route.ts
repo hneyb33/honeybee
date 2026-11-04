@@ -9,15 +9,17 @@ import {
 } from "@/lib/media-records";
 
 /**
- * Re-checks media that Cloudinary is still working on.
+ * Re-checks media the storage providers are still working on.
  *
- * A video whose transcode outlives the wizard's grace period is stored as
- * `processing`/`pending`. Without this endpoint the provider would keep seeing a
- * "Processing" badge that never clears, because nothing re-asks Cloudinary.
+ * A video whose transcode outlives the wizard's grace period (or an R2 photo
+ * whose queue processing has not landed yet) is stored as
+ * `processing`/`pending`. Without this endpoint the provider would keep seeing
+ * a "Processing" badge that never clears, because nothing re-checks it.
  *
- * It reuses the finalize route rather than repeating its verification logic: one
- * request per outstanding asset, forwarded with the caller's own bearer token so
- * ownership is re-proved by the existing checks. It serves both profiles and ads.
+ * Cloudinary rows are forwarded to the finalize route (one request per
+ * outstanding asset, ownership re-proved by the existing checks). Cloudflare
+ * rows are returned straight from the database: the queue worker and the
+ * Stream webhook update them in place, so there is nothing to re-ask.
  */
 
 const requestSchema = z
@@ -80,6 +82,17 @@ export async function POST(request: Request) {
   const mediaColumns = isAd ? AD_MEDIA_COLUMNS : PROFILE_MEDIA_COLUMNS;
   const ownerKey = isAd ? "ad_id" : "listing_id";
 
+  // Cloudflare-managed rows: the pipeline writes their final state, so the
+  // database read is the refresh. Failed rows are included for the same reason
+  // the badge must clear - the client needs to see the failure.
+  const { data: cloudflareRows } = await adminClient
+    .from(mediaTable)
+    .select(mediaColumns)
+    .eq(ownerKey, targetId)
+    .in("storage_provider", ["r2", "stream"])
+    .neq("processing_status", "ready");
+  const refreshed: ProfileMediaRow[] = (cloudflareRows as ProfileMediaRow[] | null) ?? [];
+
   const { data: rows, error: rowsError } = await adminClient
     .from(mediaTable)
     .select(mediaColumns)
@@ -93,12 +106,11 @@ export async function POST(request: Request) {
 
   const pending = (rows as ProfileMediaRow[] | null) ?? [];
   if (pending.length === 0) {
-    return NextResponse.json({ media: [] as ProfileMediaRow[] });
+    return NextResponse.json({ media: refreshed });
   }
 
   const finalizeUrl = new URL("/api/media/finalize", request.url).toString();
   const authorization = request.headers.get("authorization") ?? null;
-  const refreshed: ProfileMediaRow[] = [];
 
   for (const row of pending) {
     if (!row.cloudinary_public_id || !row.cloudinary_asset_id) continue;

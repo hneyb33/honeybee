@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MediaVideo } from "@/components/media/MediaVideo";
 import { MEDIA_ACCEPT_ATTRIBUTE, MEDIA_POLICY } from "@/lib/media-policy";
 import type { PortfolioMedia } from "@/lib/media-records";
 import { isMediaReady } from "@/lib/media-records";
@@ -143,13 +144,18 @@ export function PortfolioUploader({
           {existingMedia.map((item, index) => (
             <div key={item.id ?? item.url} className="relative aspect-square overflow-hidden rounded-xl bg-black">
               {item.kind === "video" ? (
-                <video
-                  src={item.url}
-                  controls
-                  playsInline
-                  preload="metadata"
+                <MediaVideo
+                  source={{
+                    id: item.id,
+                    url: item.url,
+                    storage_provider: item.storageProvider,
+                    stream_uid: item.streamUid,
+                    playback_url: item.playbackUrl,
+                    thumbnail_url: item.thumbnailUrl,
+                    processing_status: item.processingStatus,
+                  }}
                   className="h-full w-full object-contain"
-                  aria-label={`Portfolio video ${index + 1}`}
+                  ariaLabel={`Portfolio video ${index + 1}`}
                 />
               ) : (
                 <Image

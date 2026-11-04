@@ -44,6 +44,14 @@ export const finalizedMediaSchema = z.object({
   card_url: z.string().url().nullable().optional(),
   detail_url: z.string().url().nullable().optional(),
   playback_url: z.string().url().nullable().optional(),
+  // Cloudflare-era columns; absent on every pre-migration row.
+  storage_provider: z.enum(["supabase", "cloudinary", "r2", "stream"]).nullable().optional(),
+  media_key: z.string().nullable().optional(),
+  variant_prefix: z.string().nullable().optional(),
+  stream_uid: z.string().nullable().optional(),
+  blurhash: z.string().nullable().optional(),
+  moderation_status: z.enum(["pending", "approved", "rejected"]).nullable().optional(),
+  duration_seconds: z.number().nullable().optional(),
 });
 
 export type UploadedCloudinaryAsset = {

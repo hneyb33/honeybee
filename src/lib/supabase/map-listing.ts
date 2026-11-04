@@ -12,7 +12,8 @@ export function mapListingRow(
   row: Record<string, unknown>,
   mediaImages?: string[],
   offerings?: ProfileOffering[],
-  mediaCoverImage?: string
+  mediaCoverImage?: string,
+  mediaBlurhashes?: (string | null)[]
 ): Listing {
   const images = mediaImages?.length ? mediaImages : strings(row.images);
   const details =
@@ -62,6 +63,7 @@ export function mapListingRow(
     telegram_code: text(row.telegram_code) || undefined,
     cover_image: mediaCoverImage || text(row.cover_image) || images[0] || "",
     images,
+    blurhashes: mediaBlurhashes?.length ? mediaBlurhashes : undefined,
     is_featured: featuredActive,
     featured_tier: featuredActive && (row.featured_tier === "vip" || row.featured_tier === "premium")
       ? row.featured_tier

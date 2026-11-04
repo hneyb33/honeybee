@@ -1,0 +1,51 @@
+// Media processor Worker - the consumer of the `hb-media-process` queue.
+//
+// Deploy separately from the app:  npx wrangler deploy -c workers/media-processor/wrangler.jsonc
+// Tail live logs:                  npx wrangler tail -c workers/media-processor/wrangler.jsonc
+//
+// Secrets (never committed), set with `wrangler secret put -c ...`:
+//   SUPABASE_SERVICE_ROLE_KEY
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "honeybee-media-processor",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2025-06-01",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "r2_buckets": [
+    // Reads the immutable original...
+    { "binding": "HB_ORIGINALS", "bucket_name": "hb-originals" },
+    // ...and writes the fixed public variants.
+    { "binding": "HB_MEDIA", "bucket_name": "hb-media" },
+  ],
+  // Native image pipeline: re-encoding through this binding inherently strips
+  // EXIF/GPS metadata, resizes and emits WebP. Billed as unique
+  // transformations; we only ever produce three fixed sizes per original.
+  "images": { "binding": "IMAGES" },
+  "queues": {
+    "consumers": [
+      {
+        "queue": "hb-media-process",
+        "max_batch_size": 1,
+        "max_batch_timeout": 30,
+        // Backoff before each retry; after the last attempt the message moves
+        // to the dead-letter queue and the row is marked failed.
+        "max_retries": 3,
+        "backoff_seconds": [10, 60, 300],
+        "dlq": "hb-media-process-dlq",
+      },
+    ],
+  },
+  "analytics_engine_datasets": [
+    { "binding": "ANALYTICS", "dataset": "honeybee_media" },
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://your-project.supabase.co",
+    // Must match the app's R2_ENV, R2_ORIGINALS_BUCKET and delivery domain.
+    "R2_ENV": "production",
+    "ORIGINALS_BUCKET": "hb-originals",
+    "MEDIA_DOMAIN": "media.honeysbees.com",
+  },
+}

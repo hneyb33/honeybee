@@ -51,11 +51,12 @@ export function PublicListingDirectory({ agenciesOnly = false }: { agenciesOnly?
         detail_url: string | null;
         storage_provider: string | null;
         processing_status: string | null;
+        blurhash: string | null;
       }>>();
       if (listingIds.length > 0) {
         const { data: media, error: mediaError } = await client
           .from("profile_media")
-          .select("listing_id,url,card_url,detail_url,storage_provider,processing_status,sort_order")
+          .select("listing_id,url,card_url,detail_url,storage_provider,processing_status,blurhash,sort_order")
           .in("listing_id", listingIds)
           .eq("kind", "photo")
           .order("sort_order", { ascending: true });
@@ -85,7 +86,13 @@ export function PublicListingDirectory({ agenciesOnly = false }: { agenciesOnly?
             const coverImage = cover
               ? getMediaImageUrl(cover, "card")
               : cardImages[0];
-            return mapListingRow(listing, cardImages, undefined, coverImage);
+            return mapListingRow(
+              listing,
+              cardImages,
+              undefined,
+              coverImage,
+              listingMedia.map((item) => item.blurhash)
+            );
           })
         );
         setError("");

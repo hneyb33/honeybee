@@ -83,6 +83,8 @@ export interface Listing {
   telegram_code?: string;
   cover_image: string;
   images: string[];
+  /** BlurHash strings index-aligned with `images` (present only when media rows were loaded). */
+  blurhashes?: (string | null)[];
   tag?: string;
   is_featured: boolean;
   featured_tier?: "premium" | "vip" | null;

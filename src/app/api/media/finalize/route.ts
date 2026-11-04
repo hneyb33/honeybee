@@ -6,17 +6,34 @@ import {
   getCloudinaryConfig,
   getCloudinaryDerivedAssets,
 } from "@/lib/cloudinary";
+import { getCloudflareR2Config } from "@/lib/cloudflare/config";
+import { headOriginal, publishProcessingEvent, readOriginalPrefix, deleteOriginal } from "@/lib/cloudflare/r2";
 import { getAuthenticatedRequestClient } from "@/lib/supabase/authenticated-request";
 import { getAdminSupabaseClient, PROFILE_MEDIA_COLUMNS, AD_MEDIA_COLUMNS } from "@/lib/media-records";
-import { markIntentComplete, resyncAdMedia, resyncListingMedia } from "@/lib/media-registry";
+import type { AdMediaRow, ProfileMediaRow } from "@/lib/media-records";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  deleteAdMediaRowByMediaKey,
+  deleteMediaRowByMediaKey,
+  findMediaRowByMediaKey,
+  markIntentComplete,
+  markIntentCompleteByMediaKey,
+  resyncAdMedia,
+  resyncListingMedia,
+} from "@/lib/media-registry";
 import { extractCloudinaryMessage, isHtmlResponse } from "@/lib/media-errors";
+import { isAllowedDetectedFormat, sniffImageFormat } from "@/lib/media-magic";
 import {
   AD_UPLOADABLE_STATUSES,
   MEDIA_UPLOADABLE_STATUSES,
   mediaUploadPrefix,
   mimeTypeForFormat,
+  parseMediaObjectKey,
   policyForResourceType,
+  variantObjectPrefix,
+  variantDeliveryUrl,
   type CloudinaryResourceType,
+  type MediaPolicyEntry,
   type MediaTarget,
 } from "@/lib/media-policy";
 
@@ -25,8 +42,10 @@ const requestSchema = z
     listingId: z.string().uuid().optional(),
     adId: z.string().uuid().optional(),
     resourceType: z.enum(["image", "video"]),
-    publicId: z.string().min(1).max(300),
-    assetId: z.string().min(1).max(128),
+    publicId: z.string().min(1).max(300).optional(),
+    assetId: z.string().min(1).max(128).optional(),
+    /** Immutable R2 key for the presigned-upload flow (photos only). */
+    mediaKey: z.string().min(1).max(300).optional(),
     /**
      * `false` makes the route answer once with the current state instead of
      * re-checking a transcoding video. The status endpoint uses it so a background
@@ -36,6 +55,12 @@ const requestSchema = z
   })
   .refine((value) => Boolean(value.listingId) !== Boolean(value.adId), {
     message: "Exactly one of listingId or adId is required.",
+  })
+  .refine((value) => Boolean(value.mediaKey) !== Boolean(value.publicId), {
+    message: "Exactly one of mediaKey or publicId is required.",
+  })
+  .refine((value) => !value.publicId || Boolean(value.assetId), {
+    message: "A Cloudinary upload must report its asset id.",
   });
 
 const cloudinaryAssetSchema = z.object({
@@ -110,7 +135,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { resourceType, publicId, assetId } = parsed.data;
+  const { resourceType, assetId } = parsed.data;
+  const publicId = parsed.data.publicId ?? "";
   const target: MediaTarget = parsed.data.adId
     ? { scope: "ad", id: parsed.data.adId }
     : { scope: "listing", id: parsed.data.listingId as string };
@@ -120,7 +146,7 @@ export async function POST(request: Request) {
   const waitForDerived = parsed.data.wait !== false;
   const policy = policyForResourceType(resourceType);
   const expectedPrefix = mediaUploadPrefix(auth.userId, target);
-  if (!publicId.startsWith(expectedPrefix)) {
+  if (publicId && !publicId.startsWith(expectedPrefix)) {
     return NextResponse.json(
       { error: "Uploaded media does not belong to this listing." },
       { status: 403 }
@@ -176,6 +202,25 @@ export async function POST(request: Request) {
       { error: "Media finalization is not configured. SUPABASE_SERVICE_ROLE_KEY is missing." },
       { status: 503 }
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // R2 branch: verify the presigned original, register a `processing` row and
+  // let the queue worker flip it to `ready` once variants exist. A second call
+  // (client polling / status refresh) returns the current row state, mirroring
+  // the 202-until-transcode video semantics of the Cloudinary flow.
+  // ---------------------------------------------------------------------------
+  if (parsed.data.mediaKey) {
+    return finalizeR2Media({
+      authUserId: auth.userId,
+      adminClient,
+      target,
+      isAd,
+      mediaTable,
+      mediaColumns,
+      policy,
+      mediaKey: parsed.data.mediaKey,
+    });
   }
 
   const cloudinary = getCloudinaryConfig();
@@ -270,7 +315,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!policy.cloudinaryFormats.includes(asset.format.toLowerCase())) {
+  if (!policy.allowedFormats.includes(asset.format.toLowerCase())) {
     return rejectAndRemoveAsset(
       cloudinary,
       resourceType,
@@ -470,4 +515,202 @@ export async function POST(request: Request) {
   // the media rows rather than appended to, keeping them free of stale URLs.
   await (isAd ? resyncAdMedia(adminClient, target.id) : resyncListingMedia(adminClient, target.id));
   return NextResponse.json({ media: savedVideo }, { status: 201 });
+}
+
+// ---------------------------------------------------------------------------
+// R2 finalize
+// ---------------------------------------------------------------------------
+
+interface R2FinalizeArgs {
+  authUserId: string;
+  adminClient: SupabaseClient;
+  target: MediaTarget;
+  isAd: boolean;
+  mediaTable: "profile_media" | "ad_media";
+  mediaColumns: string;
+  policy: MediaPolicyEntry;
+  mediaKey: string;
+}
+
+/**
+ * Verifies a presigned R2 original and registers (or re-reports) its row.
+ * The response codes match the Cloudinary video flow: 201 with the row once
+ * the worker has produced the variants, 202 with `pending` while the queue
+ * consumer is still working, so the existing client polling loop needs no
+ * provider-specific branch.
+ */
+async function finalizeR2Media(args: R2FinalizeArgs): Promise<NextResponse> {
+  const config = getCloudflareR2Config();
+  if (!config) {
+    return NextResponse.json(
+      { error: "Media storage is not configured. CF_ACCOUNT_ID, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY are required." },
+      { status: 503 }
+    );
+  }
+  if (args.policy.kind !== "photo") {
+    return NextResponse.json(
+      { error: "Videos upload through /api/media/stream-upload." },
+      { status: 400 }
+    );
+  }
+
+  const owner = parseMediaObjectKey(args.mediaKey);
+  if (
+    !owner ||
+    owner.userId !== args.authUserId ||
+    owner.scope !== args.target.scope ||
+    owner.id !== args.target.id ||
+    owner.env !== config.env
+  ) {
+    return NextResponse.json(
+      { error: "Uploaded media does not belong to this listing." },
+      { status: 403 }
+    );
+  }
+
+  const ownerKey = args.isAd ? "ad_id" : "listing_id";
+  const existing = await findMediaRowByMediaKey(args.adminClient, args.mediaTable, args.mediaKey);
+  if (existing && (existing as unknown as Record<string, unknown>)[ownerKey] !== args.target.id) {
+    return NextResponse.json(
+      { error: "Uploaded media is already registered to another listing." },
+      { status: 409 }
+    );
+  }
+  // The worker finished the variants - report the ready row and stop.
+  if (existing?.processing_status === "ready") {
+    return NextResponse.json({ media: existing }, { status: 201 });
+  }
+
+  const head = await headOriginal(args.mediaKey);
+  if (!head) {
+    return NextResponse.json(
+      {
+        error: "Honeybee has no record of that upload yet. If the upload was interrupted, remove the file and upload it again.",
+      },
+      { status: 404 }
+    );
+  }
+
+  if (head.sizeBytes === 0 || head.sizeBytes > args.policy.maxBytes) {
+    return rejectR2Original(args, existing,
+      head.sizeBytes === 0
+        ? "Empty files cannot be uploaded."
+        : `The uploaded file is larger than the ${Math.round(args.policy.maxBytes / 1_000_000)} MB limit for a ${args.policy.label}.`,
+      head.sizeBytes === 0 ? 422 : 413);
+  }
+
+  const prefixBytes = await readOriginalPrefix(args.mediaKey, 32);
+  if (!prefixBytes) {
+    return NextResponse.json(
+      { error: "Could not read the uploaded file. Try again in a moment." },
+      { status: 502 }
+    );
+  }
+  if (!isAllowedDetectedFormat("photo", args.policy.allowedFormats, prefixBytes)) {
+    return rejectR2Original(args, existing,
+      "That file format is not supported. Use JPEG, PNG or WebP photos.", 422);
+  }
+  const detectedFormat = sniffImageFormat(prefixBytes) ?? "jpg";
+
+  if (!existing) {
+    const { count: registeredCount, error: countError } = await args.adminClient
+      .from(args.mediaTable)
+      .select("id", { count: "exact", head: true })
+      .eq(ownerKey, args.target.id)
+      .eq("kind", args.policy.kind);
+    if (countError) {
+      return NextResponse.json({ error: "Could not determine the media order." }, { status: 500 });
+    }
+    if ((registeredCount ?? 0) >= args.policy.maxCount) {
+      return rejectR2Original(args, null,
+        `A profile can have up to ${args.policy.maxCount} ${args.policy.unitLabel}.`, 409);
+    }
+  }
+
+  const variantPrefix = variantObjectPrefix(config.env, owner.userId, owner.assetId);
+  // `url` points at the deterministic detail variant the worker is about to
+  // write. The row stays hidden (see `isPublicMediaReady`) until it flips to
+  // `ready`, so the URL is never rendered while it would still 404.
+  const detailUrl = variantDeliveryUrl(config.mediaDomain, variantPrefix, "detail");
+  let sortOrder = existing?.sort_order ?? 0;
+  if (!existing) {
+    const { count: currentCount } = await args.adminClient
+      .from(args.mediaTable)
+      .select("id", { count: "exact", head: true })
+      .eq(ownerKey, args.target.id)
+      .eq("kind", args.policy.kind);
+    sortOrder = currentCount ?? 0;
+  }
+
+  const { data: savedMedia, error: saveError } = await args.adminClient
+    .from(args.mediaTable)
+    .upsert(
+      {
+        [ownerKey]: args.target.id,
+        kind: args.policy.kind,
+        sort_order: sortOrder,
+        url: detailUrl,
+        card_url: existing?.card_url ?? null,
+        detail_url: existing?.detail_url ?? null,
+        playback_url: null,
+        thumbnail_url: existing?.thumbnail_url ?? null,
+        original_url: null,
+        original_filename: owner.filename,
+        storage_provider: "r2",
+        media_key: args.mediaKey,
+        variant_prefix: variantPrefix,
+        mime_type: mimeTypeForFormat("photo", detectedFormat),
+        bytes: head.sizeBytes,
+        duration_seconds: null,
+        processing_status: "processing",
+        moderation_status: "pending",
+      },
+      { onConflict: "media_key" }
+    )
+    .select(args.mediaColumns)
+    .single();
+  if (saveError || !savedMedia) {
+    return NextResponse.json(
+      { error: saveError?.message ?? "Could not register the uploaded media." },
+      { status: 500 }
+    );
+  }
+
+  if (!args.isAd) await markIntentCompleteByMediaKey(args.adminClient, args.mediaKey);
+
+  // In production the R2 event notification already queued this object; the
+  // direct send makes the pipeline work inside the local `wrangler dev`
+  // simulation too, and the consumer is idempotent.
+  await publishProcessingEvent({
+    bucket: config.originalsBucket,
+    key: args.mediaKey,
+    assetId: owner.assetId,
+  });
+
+  return NextResponse.json({ media: savedMedia, pending: true }, { status: 202 });
+}
+
+/** Deletes a rejected original (and its row) before it is ever delivered. */
+async function rejectR2Original(
+  args: R2FinalizeArgs,
+  existing: ProfileMediaRow | AdMediaRow | null,
+  message: string,
+  status: number
+): Promise<NextResponse> {
+  const removed = await deleteOriginal(args.mediaKey);
+  if (existing) {
+    await (args.isAd
+      ? deleteAdMediaRowByMediaKey(args.adminClient, args.mediaKey)
+      : deleteMediaRowByMediaKey(args.adminClient, args.mediaKey));
+    await (args.isAd
+      ? resyncAdMedia(args.adminClient, args.target.id)
+      : resyncListingMedia(args.adminClient, args.target.id));
+  }
+  if (!removed) {
+    return NextResponse.json(
+      { error: `${message} The storage service could not remove the file - contact support if it lingers.` },
+      { status }
+    );
+  }
+  return NextResponse.json({ error: message }, { status });
 }

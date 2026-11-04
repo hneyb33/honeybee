@@ -24,15 +24,18 @@ export function getAdminSupabaseClient(): SupabaseClient | null {
 
 /** Columns every consumer of `profile_media` needs, in one place. */
 export const PROFILE_MEDIA_COLUMNS =
-  "id,listing_id,url,kind,sort_order,thumbnail_url,processing_status,storage_provider,cloudinary_public_id,cloudinary_asset_id,card_url,detail_url,playback_url";
+  "id,listing_id,url,kind,sort_order,thumbnail_url,processing_status,storage_provider,cloudinary_public_id,cloudinary_asset_id,card_url,detail_url,playback_url,media_key,variant_prefix,stream_uid,blurhash,moderation_status";
 
 /** Columns every consumer of `ad_media` needs - mirrors the profile shape. */
 export const AD_MEDIA_COLUMNS =
-  "id,ad_id,url,kind,sort_order,thumbnail_url,processing_status,storage_provider,cloudinary_public_id,cloudinary_asset_id,card_url,detail_url,playback_url";
+  "id,ad_id,url,kind,sort_order,thumbnail_url,processing_status,storage_provider,cloudinary_public_id,cloudinary_asset_id,card_url,detail_url,playback_url,media_key,variant_prefix,stream_uid,blurhash,moderation_status";
 
 export interface AdMediaRow extends Omit<ProfileMediaRow, "listing_id"> {
   ad_id: string;
 }
+
+export type MediaStorageProvider = "supabase" | "cloudinary" | "r2" | "stream";
+export type MediaModerationStatus = "pending" | "approved" | "rejected";
 
 export interface ProfileMediaRow {
   id: string;
@@ -42,12 +45,20 @@ export interface ProfileMediaRow {
   sort_order: number;
   thumbnail_url: string | null;
   processing_status: "pending" | "processing" | "ready" | "failed";
-  storage_provider?: "supabase" | "cloudinary";
+  storage_provider?: MediaStorageProvider;
   cloudinary_public_id?: string | null;
   cloudinary_asset_id?: string | null;
   card_url?: string | null;
   detail_url?: string | null;
   playback_url?: string | null;
+  /** Immutable R2 key of the stored original (`storage_provider === "r2"`). */
+  media_key?: string | null;
+  /** R2 prefix the processed variants live under (`{env}/{userId}/{assetId}`). */
+  variant_prefix?: string | null;
+  /** Cloudflare Stream video UID (`storage_provider === "stream"`). */
+  stream_uid?: string | null;
+  blurhash?: string | null;
+  moderation_status?: MediaModerationStatus;
 }
 
 export type PortfolioMedia = {
@@ -62,6 +73,11 @@ export type PortfolioMedia = {
   cardUrl?: string | null;
   detailUrl?: string | null;
   playbackUrl?: string | null;
+  mediaKey?: string | null;
+  variantPrefix?: string | null;
+  streamUid?: string | null;
+  blurhash?: string | null;
+  moderationStatus?: MediaModerationStatus;
 };
 
 export function toPortfolioMedia(
@@ -77,6 +93,11 @@ export function toPortfolioMedia(
     card_url?: string | null;
     detail_url?: string | null;
     playback_url?: string | null;
+    media_key?: string | null;
+    variant_prefix?: string | null;
+    stream_uid?: string | null;
+    blurhash?: string | null;
+    moderation_status?: string | null;
   }
 ): PortfolioMedia {
   return {
@@ -91,19 +112,23 @@ export function toPortfolioMedia(
     cardUrl: row.card_url ?? null,
     detailUrl: row.detail_url ?? null,
     playbackUrl: row.playback_url ?? null,
+    mediaKey: row.media_key ?? null,
+    variantPrefix: row.variant_prefix ?? null,
+    streamUid: row.stream_uid ?? null,
+    blurhash: row.blurhash ?? null,
+    moderationStatus: (row.moderation_status ?? "pending") as MediaModerationStatus,
   };
 }
 
 /**
  * A row counts toward the portfolio limit once it is registered, and counts
- * toward submission only once Cloudinary has finished with it.
+ * toward submission only once the storage provider has finished with it:
+ * Cloudinary renditions for old rows, the queue worker / Stream webhook for
+ * `r2` and `stream` rows.
  */
 export function isMediaReady(media: PortfolioMedia): boolean {
-  return (
-    media.storageProvider !== "cloudinary" ||
-    !media.processingStatus ||
-    media.processingStatus === "ready"
-  );
+  if (!media.processingStatus || media.processingStatus === "ready") return true;
+  return media.storageProvider === "supabase";
 }
 
 export function mergePortfolioMedia(
@@ -112,7 +137,9 @@ export function mergePortfolioMedia(
 ): PortfolioMedia[] {
   const existingIndex = current.findIndex((item) =>
     (media.id && item.id === media.id) ||
-    (item.cloudinaryPublicId && item.cloudinaryPublicId === media.cloudinaryPublicId)
+    (item.cloudinaryPublicId && item.cloudinaryPublicId === media.cloudinaryPublicId) ||
+    (item.mediaKey && item.mediaKey === media.mediaKey) ||
+    (item.streamUid && item.streamUid === media.streamUid)
   );
   if (existingIndex < 0) return [...current, media];
   return current.map((item, index) => (index === existingIndex ? media : item));

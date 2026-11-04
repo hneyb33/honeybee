@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EAST_AFRICAN_COUNTRIES, EAST_AFRICA_LOCATIONS } from "@/lib/data/uganda-locations";
 import { supabase } from "@/lib/supabase/client";
 import { getMediaImageUrl, getMediaVideoUrl } from "@/lib/media-urls";
-import { type RegisteredCloudinaryMedia } from "@/lib/cloudinary-upload";
+import { type RegisteredMedia } from "@/lib/media-upload";
 import {
   mergePortfolioMedia,
   toPortfolioMedia,
@@ -79,7 +79,7 @@ export function useAd(initialType: AdType) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRegistered = useCallback((media: RegisteredCloudinaryMedia) => {
+  const handleRegistered = useCallback((media: RegisteredMedia) => {
     setExistingMedia((current) => mergePortfolioMedia(current, toPortfolioMedia(media)));
   }, []);
 

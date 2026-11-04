@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  finalizeCloudinaryMedia,
-  uploadMediaToCloudinary,
-  type RegisteredCloudinaryMedia,
-} from "@/lib/cloudinary-upload";
+  finalizeMedia,
+  uploadMedia,
+  type RegisteredMedia,
+} from "@/lib/media-upload";
 import { MediaUploadError, isAbortError } from "@/lib/media-errors";
-import { abandonMedia, refreshPendingMedia } from "@/lib/media-lifecycle";
+import { abandonMediaAsset, refreshPendingMedia } from "@/lib/media-lifecycle";
 import { compressImageForUpload } from "@/lib/media-compress";
 import { getVideoDuration } from "@/lib/media-inspect";
 import {
@@ -48,6 +48,8 @@ export interface QueueItem {
   progress: number;
   publicId?: string;
   assetId?: string;
+  mediaKey?: string;
+  streamUid?: string;
   error?: string;
   errorDetail?: string;
   retryable?: boolean;
@@ -62,7 +64,7 @@ export interface PortfolioQueueOptions {
   /** Creates (once) and returns the draft target id (listing or ad) an upload needs. */
   ensureListing: () => Promise<string | null>;
   /** Registers a finished media row in the wizard's portfolio state. */
-  onRegistered: (media: RegisteredCloudinaryMedia) => void;
+  onRegistered: (media: RegisteredMedia) => void;
   /** Existing plus queued counts, used for pre-flight validation. */
   getCounts: () => Record<MediaKind, number>;
   /** Current target id, if the draft has been created yet (for status polling). */
@@ -142,7 +144,7 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
         }
 
         patch(item.id, { status: "uploading", progress: 0 });
-        const uploaded = await uploadMediaToCloudinary(
+        const uploaded = await uploadMedia(
           file,
           item.kind,
           target,
@@ -155,14 +157,18 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
         patch(item.id, {
           status: "registering",
           progress: 100,
-          publicId: uploaded.publicId,
-          assetId: uploaded.assetId,
+          publicId: uploaded.provider === "cloudinary" ? uploaded.publicId : undefined,
+          assetId: uploaded.provider === "cloudinary" || uploaded.provider === "r2"
+            ? uploaded.assetId
+            : undefined,
+          mediaKey: uploaded.provider === "r2" ? uploaded.mediaKey : undefined,
+          streamUid: uploaded.provider === "stream" ? uploaded.streamUid : undefined,
         });
 
-        // Registration is where a refusal from Cloudinary or the finalize route
-        // surfaces. The asset ids stay on the item so "Retry" skips the upload
-        // instead of paying for the bytes twice.
-        const media = await finalizeCloudinaryMedia(target, uploaded, accessToken, {
+        // Registration is where a refusal from the provider or the finalize
+        // route surfaces. The asset ids stay on the item so "Retry" skips the
+        // upload instead of paying for the bytes twice.
+        const media = await finalizeMedia(target, uploaded, accessToken, {
           signal: controller.signal,
         });
         patch(item.id, { status: "processing" });
@@ -257,11 +263,19 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
     (id: string) => {
       controllers.current.get(id)?.abort();
       const item = itemsRef.current.find((candidate) => candidate.id === id);
-      // Bytes already at Cloudinary must be removed, or the slot stays taken.
-      if (item?.publicId) {
+      // Bytes already at the provider must be removed, or the slot stays taken.
+      if (item?.publicId || item?.mediaKey || item?.streamUid) {
+        const targetId = optionsRef.current.getListingId();
+        const scope = optionsRef.current.scope ?? "listing";
         void optionsRef.current
           .getAccessToken()
-          .then((token) => abandonMedia(item.publicId as string, token))
+          .then((token) =>
+            abandonMediaAsset(
+              { publicId: item.publicId, mediaKey: item.mediaKey, streamUid: item.streamUid },
+              targetId ? { scope, id: targetId } : null,
+              token
+            )
+          )
           .catch(() => undefined);
       }
       drop(id);
@@ -311,11 +325,15 @@ export function usePortfolioQueue(options: PortfolioQueueOptions) {
           );
           refreshed.forEach((media) => {
             optionsRef.current.onRegistered(media);
-            // Once Cloudinary confirms the rendition, retire the matching queue
-            // row so the "Preparing" indicator disappears on its own.
-            if (media.processing_status === "ready" && media.cloudinary_public_id) {
+            // Once the provider confirms the rendition, retire the matching
+            // queue row so the "Preparing" indicator disappears on its own.
+            if (media.processing_status === "ready") {
               const match = itemsRef.current.find(
-                (item) => item.publicId === media.cloudinary_public_id && item.status === "processing"
+                (item) =>
+                  item.status === "processing" &&
+                  ((media.cloudinary_public_id && item.publicId === media.cloudinary_public_id) ||
+                    (media.media_key && item.mediaKey === media.media_key) ||
+                    (media.stream_uid && item.streamUid === media.stream_uid))
               );
               if (match) drop(match.id);
             }

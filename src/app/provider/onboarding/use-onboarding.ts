@@ -9,8 +9,8 @@ import {
 } from "@/lib/data/uganda-locations";
 import { supabase } from "@/lib/supabase/client";
 import { getMediaImageUrl, getMediaVideoUrl } from "@/lib/media-urls";
-import { abandonMedia, refreshPendingMedia } from "@/lib/media-lifecycle";
-import { type RegisteredCloudinaryMedia } from "@/lib/cloudinary-upload";
+import { abandonMediaAsset, refreshPendingMedia } from "@/lib/media-lifecycle";
+import { type RegisteredMedia } from "@/lib/media-upload";
 import {
   isMediaReady,
   mergePortfolioMedia,
@@ -92,7 +92,7 @@ export function useOnboarding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRegistered = useCallback((media: RegisteredCloudinaryMedia) => {
+  const handleRegistered = useCallback((media: RegisteredMedia) => {
     setExistingMedia((current) => mergePortfolioMedia(current, toPortfolioMedia(media)));
   }, []);
 
@@ -582,15 +582,26 @@ export function useOnboarding() {
 
   const removeExistingMedia = useCallback(
     async (media: PortfolioMedia) => {
-      if (media.cloudinaryPublicId) {
+      // The provider that owns the bytes differs per row: Cloudinary-era rows
+      // carry a public id, new rows an immutable R2 key or a Stream uid.
+      if (media.cloudinaryPublicId || media.mediaKey || media.streamUid) {
         try {
           const token = await getAccessToken();
-          await abandonMedia(media.cloudinaryPublicId, token);
+          const targetId = listingIdRef.current;
+          await abandonMediaAsset(
+            {
+              publicId: media.cloudinaryPublicId,
+              mediaKey: media.mediaKey,
+              streamUid: media.streamUid,
+            },
+            targetId ? { scope: "listing", id: targetId } : null,
+            token
+          );
         } catch (abandonError) {
           setError(
             abandonError instanceof Error
               ? abandonError.message
-              : "That item could not be removed from Cloudinary."
+              : "That item could not be removed from storage."
           );
           return;
         }

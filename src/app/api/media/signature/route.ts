@@ -6,12 +6,17 @@ import {
   inspectCloudinaryEnvironment,
   signCloudinaryParams,
 } from "@/lib/cloudinary";
+import { getCloudflareR2Config } from "@/lib/cloudflare/config";
+import { presignOriginalUpload } from "@/lib/cloudflare/r2";
 import { getAuthenticatedRequestClient } from "@/lib/supabase/authenticated-request";
 import { getAdminSupabaseClient } from "@/lib/media-records";
 import {
   AD_UPLOADABLE_STATUSES,
   MEDIA_UPLOADABLE_STATUSES,
+  extensionForMimeType,
+  mediaObjectKey,
   mediaUploadPrefix,
+  parseMediaObjectKey,
   policyForResourceType,
   type CloudinaryResourceType,
   type MediaTarget,
@@ -27,6 +32,10 @@ const requestSchema = z
      * id, so a long upload never runs on an expired signature.
      */
     publicId: z.string().min(1).max(300).optional(),
+    /** R2 twin of `publicId` for re-presigning a retried photo PUT. */
+    mediaKey: z.string().min(1).max(300).optional(),
+    /** Client-declared MIME type; drives the presigned PUT Content-Type. */
+    contentType: z.string().min(4).max(80).optional(),
   })
   .refine((value) => Boolean(value.listingId) !== Boolean(value.adId), {
     message: "Exactly one of listingId or adId is required.",
@@ -68,6 +77,15 @@ export async function POST(request: Request) {
       { error: "That upload authorization does not belong to this profile." },
       { status: 403 }
     );
+  }
+  if (parsed.data.mediaKey) {
+    const owner = parseMediaObjectKey(parsed.data.mediaKey);
+    if (!owner || owner.userId !== auth.userId || owner.id !== target.id || owner.scope !== target.scope) {
+      return NextResponse.json(
+        { error: "That upload authorization does not belong to this profile." },
+        { status: 403 }
+      );
+    }
   }
 
   // Ownership + uploadable-state check differs per scope, but the outcome is the
@@ -121,6 +139,130 @@ export async function POST(request: Request) {
     }
   }
 
+  const adminClient = getAdminSupabaseClient();
+  if (!adminClient) {
+    return NextResponse.json(
+      { error: "Media uploads are not configured. SUPABASE_SERVICE_ROLE_KEY is missing." },
+      { status: 503 }
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cloudflare R2 branch (primary once the deployment carries R2 credentials).
+  // Photos get a presigned PUT into the private originals bucket; videos are
+  // handled by the Stream route and are refused here.
+  // ---------------------------------------------------------------------------
+  const r2Config = getCloudflareR2Config();
+  if (r2Config) {
+    if (resourceType === "video") {
+      return NextResponse.json(
+        {
+          error: "Videos now upload through Cloudflare Stream.",
+          streamRoute: "/api/media/stream-upload",
+        },
+        { status: 400 }
+      );
+    }
+
+    const declaredType = parsed.data.contentType ?? "image/jpeg";
+    const extension = extensionForMimeType(policy.kind, declaredType);
+    if (!policy.allowedFormats.includes(extension) && !policy.allowedFormats.includes(declaredType.split("/")[1] ?? "")) {
+      return NextResponse.json(
+        { error: "Use JPEG, PNG or WebP photos." },
+        { status: 422 }
+      );
+    }
+
+    const isReauthorization = Boolean(parsed.data.mediaKey);
+    const existing = parsed.data.mediaKey ? parseMediaObjectKey(parsed.data.mediaKey) : null;
+    const assetId = existing?.assetId ?? crypto.randomUUID();
+    const key = mediaObjectKey(r2Config.env, auth.userId, target, assetId, extension);
+
+    if (!isReauthorization) {
+      const registeredQuery =
+        target.scope === "ad"
+          ? adminClient
+              .from("ad_media")
+              .select("id", { count: "exact", head: true })
+              .eq("ad_id", target.id)
+              .eq("kind", policy.kind)
+          : adminClient
+              .from("profile_media")
+              .select("id", { count: "exact", head: true })
+              .eq("listing_id", target.id)
+              .eq("kind", policy.kind);
+      const { count: registered } = await registeredQuery;
+
+      let pendingCount = 0;
+      if (target.scope === "listing") {
+        const { data: openIntents, error: intentError } = await adminClient
+          .from("media_upload_intents")
+          .select("media_key")
+          .eq("listing_id", target.id)
+          .eq("resource_type", resourceType)
+          .not("media_key", "is", null)
+          .is("completed_at", null)
+          .gt("requested_at", new Date(Date.now() - OPEN_INTENT_TTL_MS).toISOString());
+        if (intentError) {
+          console.warn("media_upload_intents unavailable:", intentError.message);
+        }
+        pendingCount = (openIntents ?? []).length;
+      }
+
+      if ((registered ?? 0) + pendingCount >= policy.maxCount) {
+        return NextResponse.json(
+          {
+            error: `A profile can have up to ${policy.maxCount} ${policy.unitLabel}. Remove one and try again if nothing is pending.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      if (target.scope === "listing") {
+        const { error: insertIntentError } = await adminClient
+          .from("media_upload_intents")
+          .upsert(
+            {
+              listing_id: target.id,
+              user_id: auth.userId,
+              media_key: key,
+              resource_type: resourceType,
+              requested_at: new Date().toISOString(),
+              completed_at: null,
+            },
+            { onConflict: "media_key" }
+          );
+        if (insertIntentError) {
+          console.warn("Could not record the R2 upload intent:", insertIntentError.message);
+        }
+      }
+    }
+
+    try {
+      const presigned = await presignOriginalUpload(key, declaredType);
+      return NextResponse.json({
+        provider: "r2",
+        mediaKey: key,
+        assetId,
+        uploadUrl: presigned.uploadUrl,
+        method: presigned.method,
+        contentType: presigned.contentType,
+        expiresIn: presigned.expiresInSeconds,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Could not authorize the upload with storage. Try again in a moment.",
+          detail: error instanceof Error ? error.message : undefined,
+        },
+        { status: 502 }
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Legacy Cloudinary branch (Vercel dual-run until the cutover).
+  // ---------------------------------------------------------------------------
   const cloudinary = getCloudinaryConfig();
   if (!cloudinary) {
     // The previous generic message sent support conversations to the wrong
@@ -132,17 +274,9 @@ export async function POST(request: Request) {
       {
         error: missing.length
           ? `Media uploads are not configured on this deployment. Missing: ${missing.join(", ")}.`
-          : "Media uploads are not configured on this deployment.",
+          : "Media uploads are not configured on this deployment. Neither R2 nor Cloudinary credentials are present.",
         warnings: environment.warnings,
       },
-      { status: 503 }
-    );
-  }
-
-  const adminClient = getAdminSupabaseClient();
-  if (!adminClient) {
-    return NextResponse.json(
-      { error: "Media uploads are not configured. SUPABASE_SERVICE_ROLE_KEY is missing." },
       { status: 503 }
     );
   }

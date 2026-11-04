@@ -1,0 +1,48 @@
+// Cloudflare deployment for the Honeybee Next.js app (OpenNext on Workers).
+// Build with `npm run build:cf`, serve locally with `npm run dev:cf`,
+// deploy with `npm run deploy:cf` (after `npx wrangler login`).
+//
+// Secrets are set with `wrangler secret put <NAME>` - never committed here:
+//   SUPABASE_SERVICE_ROLE_KEY, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+//   CLOUDFLARE_STREAM_API_TOKEN, CLOUDFLARE_STREAM_WEBHOOK_SECRET,
+//   TURNSTILE_SECRET
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "honeybee-app",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets",
+  },
+  "r2_buckets": [
+    // Private forever - holds browser-uploaded originals, never attached to a
+    // public domain.
+    { "binding": "HB_ORIGINALS", "bucket_name": "hb-originals" },
+    // Variant bucket, served through media.honeysbees.com (dashboard step).
+    { "binding": "HB_MEDIA", "bucket_name": "hb-media" },
+  ],
+  "queues": {
+    // Finalize/diagnostics can re-drive a stuck asset by publishing manually.
+    "producers": [
+      { "binding": "MEDIA_PROCESS", "queue": "hb-media-process" },
+    ],
+  },
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://honeysbees.com",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "your-anon-key",
+    "CF_ACCOUNT_ID": "your-account-id",
+    "R2_ORIGINALS_BUCKET": "hb-originals",
+    "R2_MEDIA_BUCKET": "hb-media",
+    "R2_ENV": "production",
+    "NEXT_PUBLIC_MEDIA_DOMAIN": "media.honeysbees.com",
+    "CLOUDFLARE_STREAM_ACCOUNT_ID": "your-account-id",
+    "NEXT_PUBLIC_TURNSTILE_SITEKEY": "your-turnstile-sitekey",
+  },
+}

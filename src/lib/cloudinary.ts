@@ -118,7 +118,7 @@ export function getCloudinaryUploadParams(
 ) {
   const policy = policyForResourceType(resourceType);
   return {
-    allowed_formats: policy.cloudinaryFormats.join(","),
+    allowed_formats: policy.allowedFormats.join(","),
     public_id: publicId,
     timestamp,
     ...(CLOUDINARY_EAGER_TRANSFORMS[resourceType]

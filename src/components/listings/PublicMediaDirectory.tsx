@@ -6,10 +6,9 @@ import Link from "next/link";
 import { ArrowRight, Image as ImageIcon, Video } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase/client";
+import { MediaVideo } from "@/components/media/MediaVideo";
 import {
   getMediaImageUrl,
-  getMediaThumbnailUrl,
-  getMediaVideoUrl,
   isPublicMediaReady,
 } from "@/lib/media-urls";
 
@@ -21,6 +20,8 @@ type MediaItem = {
   detail_url: string | null;
   playback_url: string | null;
   storage_provider: string | null;
+  stream_uid: string | null;
+  moderation_status: string | null;
   processing_status: string | null;
   listing_id: string;
   title: string;
@@ -72,7 +73,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
 
       const { data: media, error: mediaError } = await client
         .from("profile_media")
-        .select("id,url,thumbnail_url,card_url,detail_url,playback_url,storage_provider,processing_status,listing_id")
+        .select("id,url,thumbnail_url,card_url,detail_url,playback_url,storage_provider,stream_uid,moderation_status,processing_status,listing_id")
         .eq("kind", kind)
         .in("listing_id", listingIds)
         // Show everything that renders - including videos still transcoding,
@@ -143,14 +144,10 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
           {items.map((item) => (
             <Card key={item.id} className="overflow-hidden rounded-2xl border-neutral-800 bg-[#101211]">
               {isVideo ? (
-                <video
-                  src={getMediaVideoUrl(item)}
-                  poster={getMediaThumbnailUrl(item) ?? undefined}
-                  controls
-                  playsInline
-                  preload="metadata"
+                <MediaVideo
+                  source={item}
                   className="aspect-[3/4] w-full bg-black object-cover"
-                  aria-label={`Video from ${item.title}`}
+                  ariaLabel={`Video from ${item.title}`}
                 />
               ) : (
                 <Link href={`/profiles/${item.slug}`} className="group block">

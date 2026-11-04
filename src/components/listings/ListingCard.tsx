@@ -8,6 +8,7 @@ import { Listing } from "@/lib/supabase/types";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase/client";
 import { CountryFlagBadge } from "@/components/listings/CountryFlagBadge";
+import { BlurHashFallback } from "@/components/media/BlurHashFallback";
 
 interface ListingCardProps {
   listing: Listing;
@@ -19,6 +20,13 @@ export function ListingCard({ listing }: ListingCardProps) {
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteLoaded, setFavoriteLoaded] = useState(false);
   const [favoriteError, setFavoriteError] = useState("");
+  // BlurHash stays up until the real card variant has decoded, so switching
+  // photo indexes never flashes an empty frame.
+  const [loadedPhoto, setLoadedPhoto] = useState<string | null>(null);
+  const currentPhoto = (listing.images && listing.images.length > 0
+    ? listing.images
+    : [listing.cover_image])[photoIndex];
+  const currentHash = listing.blurhashes?.[photoIndex] ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +108,6 @@ export function ListingCard({ listing }: ListingCardProps) {
   const photos = listing.images && listing.images.length > 0
     ? listing.images
     : [listing.cover_image];
-
   const handlePrev = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -121,12 +128,21 @@ export function ListingCard({ listing }: ListingCardProps) {
           aria-label={`View ${listing.title}'s profile`}
           className="absolute inset-0"
         >
+          {currentHash && loadedPhoto !== currentPhoto && (
+            <BlurHashFallback
+              hash={currentHash}
+              width={40}
+              height={47}
+              className="absolute inset-0 z-[1] h-full w-full scale-110 object-cover blur-sm"
+            />
+          )}
           <Image
             src={photos[photoIndex]}
             alt={listing.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            onLoad={() => setLoadedPhoto(photos[photoIndex])}
           />
           <span className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 to-transparent" />
         </Link>

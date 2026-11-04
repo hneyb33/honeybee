@@ -12,6 +12,15 @@
 export type MediaKind = "photo" | "video";
 export type CloudinaryResourceType = "image" | "video";
 
+/** Pre-generated R2 variants. Clients may never request arbitrary widths. */
+export type MediaImageVariant = "thumb" | "card" | "detail";
+export const MEDIA_IMAGE_VARIANT_SIZES: Record<MediaImageVariant, number> = {
+  thumb: 200,
+  card: 640,
+  detail: 1280,
+};
+export const MEDIA_IMAGE_VARIANTS = Object.keys(MEDIA_IMAGE_VARIANT_SIZES) as MediaImageVariant[];
+
 /**
  * The signed-upload pipeline serves two targets: a provider `listing` (the
  * organic profile portfolio) and an `ad` (a paid placement). Everything that
@@ -53,8 +62,8 @@ export interface MediaPolicyEntry {
   maxDurationSeconds?: number;
   /** MIME types the file picker accepts. */
   allowedMimeTypes: string[];
-  /** Cloudinary `allowed_formats` values. */
-  cloudinaryFormats: string[];
+  /** Formats accepted by the storage provider (Cloudinary `allowed_formats` values). */
+  allowedFormats: string[];
   label: string;
   unitLabel: string;
 }
@@ -69,7 +78,7 @@ export const MEDIA_POLICY: Record<MediaKind, MediaPolicyEntry> = {
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     // Cloudinary reports a JPEG upload as `jpg`; `jpeg` is listed as well so a
     // browser that names the file `.jpeg` is never rejected on format grounds.
-    cloudinaryFormats: ["jpg", "jpeg", "png", "webp"],
+    allowedFormats: ["jpg", "jpeg", "png", "webp"],
     label: "photo",
     unitLabel: "photos",
   },
@@ -82,7 +91,7 @@ export const MEDIA_POLICY: Record<MediaKind, MediaPolicyEntry> = {
     uploadBudgetBytes: 90 * MB,
     maxDurationSeconds: 120,
     allowedMimeTypes: ["video/mp4", "video/webm", "video/quicktime"],
-    cloudinaryFormats: ["mp4", "webm", "mov"],
+    allowedFormats: ["mp4", "webm", "mov"],
     label: "video",
     unitLabel: "videos",
   },
@@ -145,6 +154,66 @@ export function parseMediaPublicId(
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Cloudflare R2 key scheme
+//
+// Originals live in the private bucket under
+//   {env}/{userId}/{scope}/{targetId}/{assetId}/original.{ext}
+// (`scope` is `listing` or the literal `ad`, mirroring the public_id markers).
+// Processed variants are written to the public bucket under the shorter, still
+// immutable
+//   {env}/{userId}/{assetId}/{variant}.webp
+// Keys are never overwritten, so every delivery URL can be cached forever.
+// ---------------------------------------------------------------------------
+
+export interface MediaObjectKey extends MediaTarget {
+  userId: string;
+  env: string;
+  assetId: string;
+  filename: string;
+}
+
+export function mediaObjectPrefix(env: string, userId: string, target: MediaTarget): string {
+  return target.scope === "ad"
+    ? `${env}/${userId}/ad/${target.id}`
+    : `${env}/${userId}/listing/${target.id}`;
+}
+
+export function mediaObjectKey(
+  env: string,
+  userId: string,
+  target: MediaTarget,
+  assetId: string,
+  extension: string
+): string {
+  return `${mediaObjectPrefix(env, userId, target)}/${assetId}/original.${extension}`;
+}
+
+/** Recovers env/owner/target from an R2 object key, or `null` if malformed. */
+export function parseMediaObjectKey(key: string): MediaObjectKey | null {
+  const segments = key.split("/");
+  if (segments.length !== 6) return null;
+  const [env, userId, scopeMarker, targetId, assetId, filename] = segments;
+  if (!env || !userId || !assetId || !filename) return null;
+  if (scopeMarker === "listing") {
+    return { env, userId, scope: "listing", id: targetId, assetId, filename };
+  }
+  if (scopeMarker === "ad") {
+    return { env, userId, scope: "ad", id: targetId, assetId, filename };
+  }
+  return null;
+}
+
+/** Prefix of the processed variants for one asset in the public bucket. */
+export function variantObjectPrefix(env: string, userId: string, assetId: string): string {
+  return `${env}/${userId}/${assetId}`;
+}
+
+/** Delivery URL for one pre-generated variant on the custom media domain. */
+export function variantDeliveryUrl(domain: string, prefix: string, variant: MediaImageVariant): string {
+  return `https://${domain}/${prefix}/${variant}.webp`;
+}
+
 export function policyForKind(kind: MediaKind): MediaPolicyEntry {
   return MEDIA_POLICY[kind];
 }
@@ -168,6 +237,17 @@ export function mimeTypeForFormat(kind: MediaKind, format: string): string {
   }
   if (normalised === "mov" || normalised === "quicktime") return "video/quicktime";
   return `video/${normalised}`;
+}
+
+/** File extension used inside an R2 key for a MIME type. */
+export function extensionForMimeType(kind: MediaKind, mimeType: string): string {
+  const subtype = (mimeType.split("/")[1] ?? "").split(";")[0].trim();
+  if (kind === "photo") {
+    if (subtype === "jpeg" || subtype === "jpg") return "jpg";
+    return subtype || "jpg";
+  }
+  if (subtype === "quicktime") return "mov";
+  return subtype || "mp4";
 }
 
 export function formatBytes(bytes: number): string {

@@ -6,8 +6,20 @@ import {
   inspectCloudinaryEnvironment,
   signCloudinaryParams,
 } from "@/lib/cloudinary";
+import {
+  getCloudflareR2Config,
+  getCloudflareStreamConfig,
+  getCloudflareBindings,
+  inspectCloudflareEnvironment,
+} from "@/lib/cloudflare/config";
+import { probeR2Pipeline } from "@/lib/cloudflare/r2";
 import { extractCloudinaryMessage } from "@/lib/media-errors";
 import { getAuthenticatedRequestClient } from "@/lib/supabase/authenticated-request";
+import type { R2ProbeResult } from "@/lib/cloudflare/r2";
+
+function probeSucceeded(probe: R2ProbeResult | null): boolean {
+  return Boolean(probe && probe.presign.ok && probe.put.ok && probe.head.ok);
+}
 
 export const dynamic = "force-dynamic";
 
@@ -80,14 +92,62 @@ export async function GET(request: Request) {
     environment,
   };
 
+  // ---------------------------------------------------------------------------
+  // Cloudflare pipeline section - the primary path once R2 credentials exist.
+  // ---------------------------------------------------------------------------
+  const cloudflareEnvironment = inspectCloudflareEnvironment();
+  const r2Config = getCloudflareR2Config();
+  const streamConfig = getCloudflareStreamConfig();
+  const cloudflare: Record<string, unknown> = {
+    environment: cloudflareEnvironment,
+    configured: Boolean(r2Config),
+    streamConfigured: Boolean(streamConfig),
+    bindings: (() => {
+      const bindings = getCloudflareBindings();
+      return {
+        hbOriginals: Boolean(bindings?.HB_ORIGINALS),
+        hbMedia: Boolean(bindings?.HB_MEDIA),
+        mediaQueue: Boolean(bindings?.MEDIA_PROCESS),
+      };
+    })(),
+  };
+  if (r2Config) {
+    cloudflare.bucket = r2Config.originalsBucket;
+    cloudflare.mediaDomain = r2Config.mediaDomain;
+    cloudflare.keyEnv = r2Config.env;
+    const probe = await probeR2Pipeline();
+    cloudflare.probe = probe;
+    cloudflare.ok = probeSucceeded(probe);
+  }
+  if (streamConfig) {
+    // Listing one video is the cheapest read-only proof the API token works.
+    try {
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(streamConfig.accountId)}/stream?limit=1`,
+        { headers: { Authorization: `Bearer ${streamConfig.apiToken}` }, cache: "no-store" }
+      );
+      const payload = (await response.json().catch(() => null)) as { success?: boolean; errors?: unknown } | null;
+      cloudflare.streamPing = { ok: response.ok && payload?.success !== false, status: response.status };
+    } catch (error) {
+      cloudflare.streamPing = { ok: false, error: error instanceof Error ? error.message : "unreachable" };
+    }
+  }
+  report.cloudflare = cloudflare;
+
   if (!config) {
     return NextResponse.json(
       {
         ...report,
-        verdict: "Cloudinary credentials are not available to this deployment.",
-        recommendations: environment.warnings.length
-          ? environment.warnings
-          : ["Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET, then redeploy."],
+        verdict: r2Config
+          ? cloudflare.ok
+            ? "The Cloudflare R2 pipeline works end to end; Cloudinary is not configured on this deployment (expected after the cutover)."
+            : "R2 is configured but the probe upload failed - check the API token scope and CORS setup."
+          : "Neither Cloudinary nor Cloudflare credentials are available to this deployment.",
+        recommendations: r2Config
+          ? cloudflareEnvironment.warnings
+          : environment.warnings.length
+            ? environment.warnings
+            : ["Set the Cloudflare variables (see docs/cloudflare-setup.md) or the CLOUDINARY_* variables, then redeploy."],
       },
       { status: 200 }
     );
