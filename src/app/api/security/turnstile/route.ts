@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { verifyTurnstileToken } from "@/lib/turnstile";
+import {
+  getTurnstileSiteKey,
+  isTurnstileConfigured,
+  verifyTurnstileToken,
+} from "@/lib/turnstile";
 
 /**
  * Pre-flight human check for the public entry points (login, register,
@@ -18,6 +22,19 @@ const requestSchema = z.object({
   token: z.string().max(2048).nullish(),
   action: z.string().max(64).optional(),
 });
+
+/**
+ * Widget configuration for the browser. The sitekey is public, but it is read
+ * from the runtime environment instead of being inlined at build time, so the
+ * form can never render a checkbox for a different widget than the one this
+ * route verifies against - nor render nothing while verification stays on.
+ */
+export async function GET() {
+  return NextResponse.json(
+    { configured: isTurnstileConfigured(), sitekey: getTurnstileSiteKey() },
+    { headers: { "Cache-Control": "no-store" } }
+  );
+}
 
 export async function POST(request: Request) {
   let body: unknown;

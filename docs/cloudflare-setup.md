@@ -101,8 +101,15 @@ refresh binding types.
 - **WAF**: enable the managed ruleset on the zone.
 - **Rate limiting** rules: `/api/media/*` (signature/stream-upload/finalize),
   `/login`, `/register`, chat endpoints.
-- **Turnstile** widgets for login/register/onboarding: add site key to
-  `NEXT_PUBLIC_TURNSTILE_SITEKEY`, secret via `wrangler secret put TURNSTILE_SECRET`.
+- **Turnstile** widget for login/register/onboarding: the site key goes in the
+  `vars` block of `wrangler.jsonc` (`NEXT_PUBLIC_TURNSTILE_SITEKEY`) and the
+  secret via `wrangler secret put TURNSTILE_SECRET`. The browser reads the site
+  key from `GET /api/security/turnstile` at runtime, never from the build, so
+  the widget can never drift from the secret being verified against. The
+  widget's *Hostname blocklist/allowlist* must contain the live host
+  (`honeysbees.com`); `localhost` is deliberately left out and local `.env.local`
+  must **not** define `TURNSTILE_SECRET`, which keeps the check skipped in dev.
+  Verify with `npx wrangler turnstile widget list`.
 - **Cache rules** for `media.honeysbees.com`: respect origin cache-control
   (variants are written with `immutable`); Brotli/HTTP-3/Early Hints are on by
   default; enable **Tiered Cache** (advanced, regional).

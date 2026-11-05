@@ -43,6 +43,8 @@
     "R2_ENV": "production",
     "NEXT_PUBLIC_MEDIA_DOMAIN": "media.honeysbees.com",
     "CLOUDFLARE_STREAM_ACCOUNT_ID": "3ee3207222df398ed800b54f0d6fc4b5",
-    "NEXT_PUBLIC_TURNSTILE_SITEKEY": "0x4B0A845635074961952D",
+    // Served to the browser at runtime by GET /api/security/turnstile; must be
+    // the sitekey of the widget whose secret is in TURNSTILE_SECRET.
+    "NEXT_PUBLIC_TURNSTILE_SITEKEY": "0x4AAAAAAFyz_GtCOm0VSa9o",
   },
 }
