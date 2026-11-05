@@ -1,19 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   CheckCircle2,
   ChefHat,
+  Globe2,
   LoaderCircle,
   MapPin,
   ShieldCheck,
   Sparkles,
   UserRound,
   Utensils,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EAST_AFRICAN_COUNTRIES } from "@/lib/data/uganda-locations";
+import { LocationCascader } from "@/components/location/LocationCascader";
+import {
+  countryCodeForName,
+  searchLocations,
+  type LocationHit,
+  type ServiceCoverageTier,
+} from "@/lib/locations";
 import {
   DAYS,
   LANGUAGES,
@@ -196,59 +206,82 @@ export function StepLocation({ c }: { c: OnboardingController }) {
   const { form, update, cities, availableAreas } = c;
   const showNeighborhoodInput =
     form.neighborhood === "Other" || (!!form.neighborhood && !availableAreas.includes(form.neighborhood));
+
+  // Legacy static selects: rendered while the gazetteer loads and permanently
+  // for countries without seeded rows (e.g. Tanzania), so the step never breaks.
+  const legacyPickers = (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Country">
+        <SelectInput
+          value={form.country}
+          onChange={(value) => {
+            const country = EAST_AFRICAN_COUNTRIES.find((item) => item.name === value);
+            update("country", value);
+            update("city", country?.cities[0] ?? "");
+            update("neighborhood", "");
+            update("locationCode", "");
+            update("whatsappCode", country?.callingCode ?? "+256");
+          }}
+        >
+          {EAST_AFRICAN_COUNTRIES.map((country) => (
+            <option key={country.name}>{country.name}</option>
+          ))}
+        </SelectInput>
+      </Field>
+      <Field label="City / district">
+        <SelectInput
+          value={form.city}
+          onChange={(value) => {
+            update("city", value);
+            update("neighborhood", "");
+            update("locationCode", "");
+          }}
+        >
+          {cities.map((city) => (
+            <option key={city}>{city}</option>
+          ))}
+        </SelectInput>
+      </Field>
+      <Field label="Neighbourhood">
+        <SelectInput
+          value={availableAreas.includes(form.neighborhood) ? form.neighborhood : form.neighborhood ? "Other" : ""}
+          onChange={(value) => update("neighborhood", value)}
+        >
+          <option value="">Choose neighbourhood</option>
+          {availableAreas.map((area) => (
+            <option key={area}>{area}</option>
+          ))}
+          <option value="Other">Other</option>
+        </SelectInput>
+        {showNeighborhoodInput && (
+          <Input
+            className="mt-2"
+            value={form.neighborhood === "Other" ? "" : form.neighborhood}
+            placeholder="Enter your neighbourhood"
+            onChange={(event) => update("neighborhood", event.target.value)}
+          />
+        )}
+      </Field>
+    </div>
+  );
+
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Country">
-          <SelectInput
-            value={form.country}
-            onChange={(value) => {
-              const country = EAST_AFRICAN_COUNTRIES.find((item) => item.name === value);
-              update("country", value);
-              update("city", country?.cities[0] ?? "");
-              update("neighborhood", "");
-              update("whatsappCode", country?.callingCode ?? "+256");
-            }}
-          >
-            {EAST_AFRICAN_COUNTRIES.map((country) => (
-              <option key={country.name}>{country.name}</option>
-            ))}
-          </SelectInput>
-        </Field>
-        <Field label="City / district">
-          <SelectInput
-            value={form.city}
-            onChange={(value) => {
-              update("city", value);
-              update("neighborhood", "");
-            }}
-          >
-            {cities.map((city) => (
-              <option key={city}>{city}</option>
-            ))}
-          </SelectInput>
-        </Field>
-        <Field label="Neighbourhood">
-          <SelectInput
-            value={availableAreas.includes(form.neighborhood) ? form.neighborhood : form.neighborhood ? "Other" : ""}
-            onChange={(value) => update("neighborhood", value)}
-          >
-            <option value="">Choose neighbourhood</option>
-            {availableAreas.map((area) => (
-              <option key={area}>{area}</option>
-            ))}
-            <option value="Other">Other</option>
-          </SelectInput>
-          {showNeighborhoodInput && (
-            <Input
-              className="mt-2"
-              value={form.neighborhood === "Other" ? "" : form.neighborhood}
-              placeholder="Enter your neighbourhood"
-              onChange={(event) => update("neighborhood", event.target.value)}
-            />
-          )}
-        </Field>
-      </div>
+      <LocationCascader
+        initialCode={form.locationCode || null}
+        initialCountryCode={countryCodeForName(form.country)}
+        fallback={legacyPickers}
+        onChange={(pick) => {
+          if (!pick.country) return;
+          const legacyCountry = EAST_AFRICAN_COUNTRIES.find((item) => item.name === pick.country?.name);
+          update("country", pick.country.name);
+          if (legacyCountry) update("whatsappCode", legacyCountry.callingCode);
+          if (pick.city) update("city", pick.city.name);
+          update("neighborhood", pick.neighborhood?.name ?? "");
+          update("locationCode", (pick.trail[pick.trail.length - 1] ?? pick.country).code);
+        }}
+      />
+      <ServiceAreasEditor c={c} />
       <Field label="Maximum travel distance">
         <RadioGroup
           name="onboarding-travel"
@@ -282,6 +315,142 @@ export function StepLocation({ c }: { c: OnboardingController }) {
           />
         </Field>
       </div>
+    </div>
+  );
+}
+
+const COVERAGE_TIERS: Array<{ value: ServiceCoverageTier; label: string }> = [
+  { value: "primary", label: "Primary" },
+  { value: "secondary", label: "Secondary" },
+  { value: "remote", label: "Remote" },
+];
+
+/**
+ * Registration location and service coverage are intentionally separate: a
+ * provider can register in Kololo yet serve Nairobi (secondary) or all of
+ * Kenya (remote). Areas come from the shared gazetteer via `search_locations`,
+ * so the same pickers fill `provider_service_areas` with real location codes.
+ */
+function ServiceAreasEditor({ c }: { c: OnboardingController }) {
+  const { form, update } = c;
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<LocationHit[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      void searchLocations(trimmed, { countryCode: countryCodeForName(form.country) }).then((rows) => {
+        if (cancelled) return;
+        setHits(rows);
+        setSearching(false);
+      });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, form.country]);
+
+  const addArea = (hit: LocationHit) => {
+    if (form.serviceAreas.some((area) => area.code === hit.code) || form.serviceAreas.length >= 12) return;
+    update("serviceAreas", [
+      ...form.serviceAreas,
+      { code: hit.code, name: hit.name, display_path: hit.display_path, coverage: "secondary" },
+    ]);
+    setQuery("");
+    setHits([]);
+  };
+
+  const setTier = (code: string, coverage: ServiceCoverageTier) => {
+    update("serviceAreas", form.serviceAreas.map((area) => (area.code === code ? { ...area, coverage } : area)));
+  };
+
+  const removeArea = (code: string) => {
+    update("serviceAreas", form.serviceAreas.filter((area) => area.code !== code));
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-muted/30 p-4">
+      <div className="flex items-start gap-2">
+        <Globe2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <div>
+          <p className="text-sm font-bold text-foreground">Areas you serve (optional)</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            Work beyond your registration location. Add each area and mark it primary, secondary or remote.
+          </p>
+        </div>
+      </div>
+
+      <div className="relative mt-3">
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={`Search areas in ${form.country}…`}
+          aria-label="Search a service area"
+        />
+        {searching && (
+          <LoaderCircle className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+        )}
+        {hits.length > 0 && (
+          <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
+            {hits.map((hit) => (
+              <li key={hit.code}>
+                <button
+                  type="button"
+                  onClick={() => addArea(hit)}
+                  className="flex w-full flex-col px-3 py-2 text-left transition-colors hover:bg-accent"
+                >
+                  <span className="text-sm font-semibold text-foreground">{hit.name}</span>
+                  <span className="text-xs text-muted-foreground">{hit.display_path}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {form.serviceAreas.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {form.serviceAreas.map((area) => (
+            <li key={area.code} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-foreground">{area.name}</p>
+                {area.display_path && (
+                  <p className="truncate text-xs text-muted-foreground">{area.display_path}</p>
+                )}
+              </div>
+              <select
+                value={area.coverage}
+                onChange={(event) => setTier(area.code, event.target.value as ServiceCoverageTier)}
+                aria-label={`Coverage for ${area.name}`}
+                className="h-9 rounded-lg border border-border bg-card px-2 text-xs font-semibold text-foreground"
+              >
+                {COVERAGE_TIERS.map((tier) => (
+                  <option key={tier.value} value={tier.value}>
+                    {tier.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => removeArea(area.code)}
+                aria-label={`Remove ${area.name}`}
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

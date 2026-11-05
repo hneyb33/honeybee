@@ -1,4 +1,5 @@
 import { MEDIA_POLICY } from "@/lib/media-policy";
+import type { ProviderServiceArea } from "@/lib/locations";
 
 export const MODEL_STEPS = [
   "About you",
@@ -60,6 +61,10 @@ export interface OnboardingForm {
   country: string;
   city: string;
   neighborhood: string;
+  /** Deepest gazetteer code picked in the cascader (null-equivalent "" = legacy). */
+  locationCode: string;
+  /** Many-to-many coverage areas kept separate from the registration location. */
+  serviceAreas: ProviderServiceArea[];
   travelKm: string;
   whatsappNumber: string;
   whatsappCode: string;
@@ -86,6 +91,8 @@ export const emptyForm: OnboardingForm = {
   country: "Uganda",
   city: "Kampala",
   neighborhood: "",
+  locationCode: "",
+  serviceAreas: [],
   travelKm: "10",
   whatsappNumber: "",
   whatsappCode: "+256",

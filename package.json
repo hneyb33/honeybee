@@ -7,10 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:cf": "open-next build",
-    "dev:cf": "open-next build && wrangler dev",
-    "dev:cf:watch": "open-next build --watch",
-    "deploy:cf": "open-next build && wrangler deploy",
+    "build:cf": "opennextjs-cloudflare build",
+    "dev:cf": "opennextjs-cloudflare build && wrangler dev",
+    "dev:cf:watch": "opennextjs-cloudflare build --watch",
+    "deploy:cf": "opennextjs-cloudflare build && wrangler deploy",
     "tail:cf": "wrangler tail honeybee-app"
   },
   "dependencies": {

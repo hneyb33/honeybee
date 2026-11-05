@@ -8,6 +8,10 @@ interface ListingGridProps {
   onResetFilters?: () => void;
   loading?: boolean;
   error?: string;
+  /** Override the section wrapper (homepage passes a full-bleed variant). */
+  containerClassName?: string;
+  /** Override the responsive column ramp (homepage goes up to 6 on desktop). */
+  gridClassName?: string;
 }
 
 export function ListingGrid({
@@ -16,9 +20,11 @@ export function ListingGrid({
   onResetFilters,
   loading = false,
   error = "",
+  containerClassName = "mx-auto max-w-7xl px-5 pb-16 pt-4 sm:px-8",
+  gridClassName = "grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-9 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-6",
 }: ListingGridProps) {
   return (
-    <section className="mx-auto max-w-7xl px-5 pb-16 pt-4 sm:px-8">
+    <section className={containerClassName}>
       {/* Header bar */}
       <div className="mb-6 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold tracking-tight text-[#43574a] sm:text-base dark:text-neutral-200">
@@ -39,7 +45,7 @@ export function ListingGrid({
           Could not load verified profiles: {error}
         </div>
       ) : listings.length > 0 ? (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-9 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-6">
+        <div className={gridClassName}>
           {listings.map((listing) => (
             <ListingCard key={listing.id} listing={listing} />
           ))}

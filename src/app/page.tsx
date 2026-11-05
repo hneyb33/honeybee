@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   Compass,
   Handshake,
+  MapPin,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -22,6 +23,11 @@ import { mapListingRow } from "@/lib/supabase/map-listing";
 import { loadActiveAds } from "@/lib/supabase/ads";
 import { getMediaImageUrl, isPublicMediaReady } from "@/lib/media-urls";
 import { EAST_AFRICAN_COUNTRIES, EAST_AFRICA_LOCATIONS, SERVICE_TYPES } from "@/lib/data/uganda-locations";
+import {
+  countryCodeForName,
+  fetchCountryCities,
+  type GazetteerNode,
+} from "@/lib/locations";
 
 function makeLocationOptions(country: string, places: Array<{ area: string; city: string; country?: string }> = []) {
   return Array.from(new Set([
@@ -48,6 +54,24 @@ export default function HomePage() {
   const [searchService, setSearchService] = useState("all");
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [onlineUpdatedAt, setOnlineUpdatedAt] = useState(Date.now());
+  // Popular-city suggestions for the active country, straight from the shared
+  // gazetteer; empty before the migration lands, where the static list steps in.
+  const [citySuggestions, setCitySuggestions] = useState<GazetteerNode[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const code = countryCodeForName(selectedCountry);
+    if (!code) {
+      setCitySuggestions([]);
+      return;
+    }
+    void fetchCountryCities(code, 10).then((rows) => {
+      if (!cancelled) setCitySuggestions(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCountry]);
 
   useEffect(() => {
     const client = supabase;
@@ -289,11 +313,8 @@ export default function HomePage() {
       <section className="relative overflow-hidden border-b border-neutral-800 bg-[#090909]">
         <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full bg-[#d3444d]/20 blur-3xl" />
         <div className="absolute -bottom-44 left-[38%] h-80 w-80 rounded-full bg-white/[0.04] blur-3xl" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-12 lg:py-20">
-
-          <div className="relative mx-auto w-full max-w-[530px]">
-            <FeaturedAdsCarousel ads={featuredAds} />
-          </div>
+        <div className="relative mx-auto w-full px-0 py-8 sm:py-10">
+          <FeaturedAdsCarousel ads={featuredAds} />
         </div>
       </section>
 
@@ -333,7 +354,7 @@ export default function HomePage() {
         )}
       </section>
 
-      <div className="mx-auto max-w-7xl px-5 pt-6 sm:px-8 lg:hidden">
+      <div className="mx-auto w-full px-3 pt-6 sm:px-4 lg:hidden">
         <div>
           <DiscoveryFilters
             locationListId="uganda-locations-mobile"
@@ -358,9 +379,10 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-5 pt-6 sm:px-8 lg:grid-cols-[210px_minmax(0,1fr)_210px] lg:items-start lg:gap-6">
-        <aside className="hidden lg:sticky lg:top-24 lg:block">
+      <div className="mx-auto grid w-full gap-5 px-3 pt-6 sm:px-4 lg:grid-cols-[220px_minmax(0,1fr)_220px] lg:gap-3 lg:px-0 lg:items-start">
+        <aside className="no-scrollbar hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
           <DiscoveryFilters
+            layout="vertical"
             locationListId="uganda-locations-desktop"
             locations={locationOptions}
             location={searchLocation}
@@ -381,8 +403,37 @@ export default function HomePage() {
             onReset={resetFilters}
           />
         </aside>
-        <main className="min-w-0">
-          <div className="mb-2 flex items-end justify-between gap-4">
+        <main className="min-w-0 px-1 lg:px-2">
+          {(citySuggestions.length > 0 || locationOptions.length > 0) && (
+            <div className="mb-3 flex items-center gap-1.5 overflow-x-auto px-2 no-scrollbar lg:px-0" aria-label={`Popular places in ${selectedCountry}`}>
+              <span className="inline-flex h-8 shrink-0 items-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                Explore {selectedCountry}
+              </span>
+              {(citySuggestions.length > 0
+                ? citySuggestions.map((city) => city.name)
+                : locationOptions.filter((option) => !option.includes(",")).slice(0, 10)
+              ).map((place) => (
+                <button
+                  key={place}
+                  type="button"
+                  onClick={() => {
+                    setSearchLocation(place);
+                    setUserCoords(null);
+                  }}
+                  aria-pressed={searchLocation === place}
+                  className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition hover:border-[#c63843]/60 hover:text-[#c63843] ${
+                    searchLocation === place
+                      ? "border-[#d3444d] bg-[#d3444d] text-white"
+                      : "border-border bg-card text-foreground"
+                  }`}
+                >
+                  <MapPin className="h-3 w-3" />
+                  {place}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="mb-2 flex items-end justify-between gap-4 px-2 lg:px-0">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e45b63]">Thoughtfully selected</p>
               <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
@@ -413,6 +464,8 @@ export default function HomePage() {
             error={listingsError}
             title={userCoords ? "Sorted by distance from your location" : "Available now"}
             onResetFilters={resetFilters}
+            containerClassName="px-0 pb-16 pt-4"
+            gridClassName="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-9 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
           />
         </main>
         <aside aria-label="Featured advertisements" className="hidden min-h-[1px] lg:sticky lg:top-24 lg:block">
@@ -425,7 +478,7 @@ export default function HomePage() {
                 src={featuredAds[0].cover_image || featuredAds[0].images[0] || "/images/logo.jpeg"}
                 alt={featuredAds[0].title}
                 fill
-                sizes="210px"
+                sizes="220px"
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />

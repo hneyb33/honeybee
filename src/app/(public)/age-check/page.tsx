@@ -1,63 +1,46 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, ArrowRight } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { readAgeDecision } from "@/lib/age-verification";
 
+/**
+ * Legacy standalone verification route. The site-wide AgeGate in the root
+ * layout is now the single gate UI for every decision state, so this page
+ * only has work to do for visitors who are already verified (mostly direct
+ * URL hits and old links): send them home. Unverified and denied visitors
+ * never see this page's body at all - the root gate overlay covers it.
+ */
 export default function AgeCheckPage() {
   const router = useRouter();
+  const [verified, setVerified] = useState(false);
 
-  const handleConfirm = () => {
-    localStorage.setItem("honeybee_age_verified", "true");
-    router.push("/");
-  };
+  useEffect(() => {
+    if (readAgeDecision() === "verified") {
+      setVerified(true);
+      router.replace("/");
+    }
+  }, [router]);
 
-  const handleExit = () => {
-    window.location.href = "https://www.google.com";
-  };
+  if (!verified) return null;
 
   return (
-    <div className="mx-auto flex min-h-[75vh] max-w-lg items-center px-4 py-12">
-      <Card className="w-full rounded-3xl border-border shadow-2xl p-6 sm:p-8">
-        <CardHeader className="text-center p-0 pb-4">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-airbnb-coral dark:bg-rose-950/40">
-            <ShieldCheck className="h-8 w-8" />
-          </div>
-          <CardTitle className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            You must be 18 or older to continue
-          </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground mt-1">
-            This platform contains verified adult entertainment &amp; private companion listings.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="p-0 space-y-4">
-          <div className="rounded-2xl bg-neutral-50 p-4 text-xs text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 space-y-2 border border-border">
-            <h4 className="font-bold text-foreground">Rules &amp; Guidelines:</h4>
-            <p>1. You must be 18 years of age or older to enter or book.</p>
-            <p>2. Respectful, consensual interaction is mandatory across all channels.</p>
-            <p>3. Zero tolerance for illegal solicitation, fraud, or unverified hosts.</p>
-          </div>
-
-          <div className="pt-2 flex flex-col gap-2.5">
-            <Button
-              onClick={handleConfirm}
-              className="w-full h-12 rounded-xl bg-airbnb-coral text-white font-bold hover:bg-[#AD3039] shadow-md"
-            >
-              Yes, I am 18+ and Accept the Rules
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleExit}
-              className="w-full h-10 rounded-xl text-muted-foreground hover:text-foreground"
-            >
-              No, leave site
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="mx-auto flex min-h-[60vh] max-w-md items-center px-4 py-12">
+      <div className="w-full rounded-3xl border border-border bg-card p-6 text-center shadow-2xl sm:p-8">
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+          <CheckCircle2 className="h-8 w-8" />
+        </div>
+        <h1 className="text-xl font-bold tracking-tight">You are verified</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Taking you back in a moment&hellip;
+        </p>
+        <Button asChild className="mt-4 h-11 w-full rounded-xl bg-airbnb-coral font-semibold text-white hover:bg-[#AD3039]">
+          <Link href="/">Continue to Honeybee</Link>
+        </Button>
+      </div>
     </div>
   );
 }

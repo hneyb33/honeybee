@@ -1,0 +1,748 @@
+﻿LocationCode,Name,LocationType,ParentLocationCode,AdminLevel,Aliases,Notes
+KE,Kenya,COUNTRY,,0,Kenya,
+RW,Rwanda,COUNTRY,,0,Rwanda,
+BI,Burundi,COUNTRY,,0,Burundi,
+CD,Democratic Republic of the Congo,COUNTRY,,0,DR Congo|DRC|Congo-Kinshasa,
+SS,South Sudan,COUNTRY,,0,Republic of South Sudan,
+KE-COUNTY-01,Baringo,ADMIN1,KE,1,,
+KE-COUNTY-02,Bomet,ADMIN1,KE,1,,
+KE-COUNTY-03,Bungoma,ADMIN1,KE,1,,
+KE-COUNTY-04,Busia,ADMIN1,KE,1,,
+KE-COUNTY-05,Elgeyo-Marakwet,ADMIN1,KE,1,Elgeyo Marakwet,
+KE-COUNTY-06,Embu,ADMIN1,KE,1,,
+KE-COUNTY-07,Garissa,ADMIN1,KE,1,,
+KE-COUNTY-08,Homa Bay,ADMIN1,KE,1,,
+KE-COUNTY-09,Isiolo,ADMIN1,KE,1,,
+KE-COUNTY-10,Kajiado,ADMIN1,KE,1,,
+KE-COUNTY-11,Kakamega,ADMIN1,KE,1,,
+KE-COUNTY-12,Kericho,ADMIN1,KE,1,,
+KE-COUNTY-13,Kiambu,ADMIN1,KE,1,,
+KE-COUNTY-14,Kilifi,ADMIN1,KE,1,,
+KE-COUNTY-15,Kirinyaga,ADMIN1,KE,1,,
+KE-COUNTY-16,Kisii,ADMIN1,KE,1,,
+KE-COUNTY-17,Kisumu,ADMIN1,KE,1,,
+KE-COUNTY-18,Kitui,ADMIN1,KE,1,,
+KE-COUNTY-19,Kwale,ADMIN1,KE,1,,
+KE-COUNTY-20,Laikipia,ADMIN1,KE,1,,
+KE-COUNTY-21,Lamu,ADMIN1,KE,1,,
+KE-COUNTY-22,Machakos,ADMIN1,KE,1,,
+KE-COUNTY-23,Makueni,ADMIN1,KE,1,,
+KE-COUNTY-24,Mandera,ADMIN1,KE,1,,
+KE-COUNTY-25,Marsabit,ADMIN1,KE,1,,
+KE-COUNTY-26,Meru,ADMIN1,KE,1,,
+KE-COUNTY-27,Migori,ADMIN1,KE,1,,
+KE-COUNTY-28,Mombasa,ADMIN1,KE,1,,
+KE-COUNTY-29,Murang'a,ADMIN1,KE,1,,
+KE-COUNTY-30,Nairobi City,ADMIN1,KE,1,Nairobi,
+KE-COUNTY-31,Nakuru,ADMIN1,KE,1,,
+KE-COUNTY-32,Nandi,ADMIN1,KE,1,,
+KE-COUNTY-33,Narok,ADMIN1,KE,1,,
+KE-COUNTY-34,Nyamira,ADMIN1,KE,1,,
+KE-COUNTY-35,Nyandarua,ADMIN1,KE,1,,
+KE-COUNTY-36,Nyeri,ADMIN1,KE,1,,
+KE-COUNTY-37,Samburu,ADMIN1,KE,1,,
+KE-COUNTY-38,Siaya,ADMIN1,KE,1,,
+KE-COUNTY-39,Taita-Taveta,ADMIN1,KE,1,,
+KE-COUNTY-40,Tana River,ADMIN1,KE,1,,
+KE-COUNTY-41,Tharaka-Nithi,ADMIN1,KE,1,,
+KE-COUNTY-42,Trans Nzoia,ADMIN1,KE,1,,
+KE-COUNTY-43,Turkana,ADMIN1,KE,1,,
+KE-COUNTY-44,Uasin Gishu,ADMIN1,KE,1,,
+KE-COUNTY-45,Vihiga,ADMIN1,KE,1,,
+KE-COUNTY-46,Wajir,ADMIN1,KE,1,,
+KE-COUNTY-47,West Pokot,ADMIN1,KE,1,,
+KE-COUNTY-30-CITY-01,Nairobi,CITY,KE-COUNTY-30,3,,
+KE-COUNTY-30-CITY-02,Thika Road/Ruiru,CITY,KE-COUNTY-30,3,,
+KE-COUNTY-30-CITY-03,Ngong,CITY,KE-COUNTY-30,3,,
+KE-COUNTY-30-CITY-04,Karen,CITY,KE-COUNTY-30,3,,
+KE-COUNTY-30-CITY-05,Westlands,CITY,KE-COUNTY-30,3,,
+KE-COUNTY-28-CITY-01,Mombasa,CITY,KE-COUNTY-28,3,,
+KE-COUNTY-28-CITY-02,Likoni,CITY,KE-COUNTY-28,3,,
+KE-COUNTY-28-CITY-03,Changamwe,CITY,KE-COUNTY-28,3,,
+KE-COUNTY-28-CITY-04,Kisauni,CITY,KE-COUNTY-28,3,,
+KE-COUNTY-28-CITY-05,Nyali,CITY,KE-COUNTY-28,3,,
+KE-COUNTY-13-CITY-01,Kiambu,CITY,KE-COUNTY-13,3,,
+KE-COUNTY-13-CITY-02,Thika,CITY,KE-COUNTY-13,3,,
+KE-COUNTY-13-CITY-03,Ruiru,CITY,KE-COUNTY-13,3,,
+KE-COUNTY-13-CITY-04,Kikuyu,CITY,KE-COUNTY-13,3,,
+KE-COUNTY-13-CITY-05,Limuru,CITY,KE-COUNTY-13,3,,
+KE-COUNTY-13-CITY-06,Juja,CITY,KE-COUNTY-13,3,,
+KE-COUNTY-17-CITY-01,Kisumu,CITY,KE-COUNTY-17,3,,
+KE-COUNTY-17-CITY-02,Ahero,CITY,KE-COUNTY-17,3,,
+KE-COUNTY-17-CITY-03,Maseno,CITY,KE-COUNTY-17,3,,
+KE-COUNTY-31-CITY-01,Nakuru,CITY,KE-COUNTY-31,3,,
+KE-COUNTY-31-CITY-02,Naivasha,CITY,KE-COUNTY-31,3,,
+KE-COUNTY-31-CITY-03,Gilgil,CITY,KE-COUNTY-31,3,,
+KE-COUNTY-31-CITY-04,Molo,CITY,KE-COUNTY-31,3,,
+KE-COUNTY-44-CITY-01,Eldoret,CITY,KE-COUNTY-44,3,,
+KE-COUNTY-44-CITY-02,Turbo,CITY,KE-COUNTY-44,3,,
+KE-COUNTY-44-CITY-03,Burnt Forest,CITY,KE-COUNTY-44,3,,
+KE-COUNTY-22-CITY-01,Machakos,CITY,KE-COUNTY-22,3,,
+KE-COUNTY-22-CITY-02,Athi River,CITY,KE-COUNTY-22,3,,
+KE-COUNTY-22-CITY-03,Mlolongo,CITY,KE-COUNTY-22,3,,
+KE-COUNTY-22-CITY-04,Kangundo,CITY,KE-COUNTY-22,3,,
+KE-COUNTY-10-CITY-01,Kajiado,CITY,KE-COUNTY-10,3,,
+KE-COUNTY-10-CITY-02,Kitengela,CITY,KE-COUNTY-10,3,,
+KE-COUNTY-10-CITY-03,Ongata Rongai,CITY,KE-COUNTY-10,3,,
+KE-COUNTY-10-CITY-04,Ngong,CITY,KE-COUNTY-10,3,,
+KE-COUNTY-14-CITY-01,Kilifi,CITY,KE-COUNTY-14,3,,
+KE-COUNTY-14-CITY-02,Malindi,CITY,KE-COUNTY-14,3,,
+KE-COUNTY-14-CITY-03,Watamu,CITY,KE-COUNTY-14,3,,
+KE-COUNTY-14-CITY-04,Mtwapa,CITY,KE-COUNTY-14,3,,
+KE-COUNTY-36-CITY-01,Nyeri,CITY,KE-COUNTY-36,3,,
+KE-COUNTY-36-CITY-02,Karatina,CITY,KE-COUNTY-36,3,,
+KE-COUNTY-36-CITY-03,Othaya,CITY,KE-COUNTY-36,3,,
+KE-COUNTY-26-CITY-01,Meru,CITY,KE-COUNTY-26,3,,
+KE-COUNTY-26-CITY-02,Maua,CITY,KE-COUNTY-26,3,,
+KE-COUNTY-26-CITY-03,Nkubu,CITY,KE-COUNTY-26,3,,
+KE-COUNTY-11-CITY-01,Kakamega,CITY,KE-COUNTY-11,3,,
+KE-COUNTY-11-CITY-02,Mumias,CITY,KE-COUNTY-11,3,,
+KE-COUNTY-07-CITY-01,Garissa,CITY,KE-COUNTY-07,3,,
+KE-COUNTY-06-CITY-01,Embu,CITY,KE-COUNTY-06,3,,
+KE-COUNTY-06-CITY-02,Runyenjes,CITY,KE-COUNTY-06,3,,
+KE-COUNTY-12-CITY-01,Kericho,CITY,KE-COUNTY-12,3,,
+KE-COUNTY-12-CITY-02,Litein,CITY,KE-COUNTY-12,3,,
+KE-COUNTY-18-CITY-01,Kitui,CITY,KE-COUNTY-18,3,,
+KE-COUNTY-18-CITY-02,Mwingi,CITY,KE-COUNTY-18,3,,
+KE-COUNTY-19-CITY-01,Ukunda,CITY,KE-COUNTY-19,3,,
+KE-COUNTY-19-CITY-02,Diani,CITY,KE-COUNTY-19,3,,
+KE-COUNTY-19-CITY-03,Kwale,CITY,KE-COUNTY-19,3,,
+KE-COUNTY-20-CITY-01,Nanyuki,CITY,KE-COUNTY-20,3,,
+KE-COUNTY-20-CITY-02,Nyahururu,CITY,KE-COUNTY-20,3,,
+KE-COUNTY-33-CITY-01,Narok,CITY,KE-COUNTY-33,3,,
+KE-COUNTY-33-CITY-02,Kilgoris,CITY,KE-COUNTY-33,3,,
+KE-COUNTY-04-CITY-01,Busia,CITY,KE-COUNTY-04,3,,
+KE-COUNTY-04-CITY-02,Malaba,CITY,KE-COUNTY-04,3,,
+KE-COUNTY-03-CITY-01,Bungoma,CITY,KE-COUNTY-03,3,,
+KE-COUNTY-03-CITY-02,Webuye,CITY,KE-COUNTY-03,3,,
+KE-COUNTY-29-CITY-01,Murang'a,CITY,KE-COUNTY-29,3,,
+KE-COUNTY-29-CITY-02,Kenol,CITY,KE-COUNTY-29,3,,
+KE-COUNTY-38-CITY-01,Siaya,CITY,KE-COUNTY-38,3,,
+KE-COUNTY-38-CITY-02,Bondo,CITY,KE-COUNTY-38,3,,
+KE-COUNTY-35-CITY-01,Ol Kalou,CITY,KE-COUNTY-35,3,,
+KE-COUNTY-35-CITY-02,Engineer,CITY,KE-COUNTY-35,3,,
+KE-COUNTY-42-CITY-01,Kitale,CITY,KE-COUNTY-42,3,,
+KE-COUNTY-27-CITY-01,Migori,CITY,KE-COUNTY-27,3,,
+KE-COUNTY-27-CITY-02,Rongo,CITY,KE-COUNTY-27,3,,
+KE-COUNTY-08-CITY-01,Homa Bay,CITY,KE-COUNTY-08,3,,
+KE-COUNTY-08-CITY-02,Oyugis,CITY,KE-COUNTY-08,3,,
+KE-COUNTY-45-CITY-01,Mbale,CITY,KE-COUNTY-45,3,,
+KE-COUNTY-45-CITY-02,Luanda,CITY,KE-COUNTY-45,3,,
+KE-COUNTY-24-CITY-01,Mandera,CITY,KE-COUNTY-24,3,,
+KE-COUNTY-46-CITY-01,Wajir,CITY,KE-COUNTY-46,3,,
+KE-COUNTY-25-CITY-01,Marsabit,CITY,KE-COUNTY-25,3,,
+KE-COUNTY-09-CITY-01,Isiolo,CITY,KE-COUNTY-09,3,,
+KE-COUNTY-43-CITY-01,Lodwar,CITY,KE-COUNTY-43,3,,
+KE-COUNTY-43-CITY-02,Kakuma,CITY,KE-COUNTY-43,3,,
+KE-COUNTY-47-CITY-01,Kapenguria,CITY,KE-COUNTY-47,3,,
+KE-COUNTY-01-CITY-01,Kabarnet,CITY,KE-COUNTY-01,3,,
+KE-COUNTY-01-CITY-02,Eldama Ravine,CITY,KE-COUNTY-01,3,,
+KE-COUNTY-02-CITY-01,Bomet,CITY,KE-COUNTY-02,3,,
+KE-COUNTY-15-CITY-01,Kerugoya,CITY,KE-COUNTY-15,3,,
+KE-COUNTY-15-CITY-02,Kutus,CITY,KE-COUNTY-15,3,,
+KE-COUNTY-16-CITY-01,Kisii,CITY,KE-COUNTY-16,3,,
+KE-COUNTY-16-CITY-02,Ogembo,CITY,KE-COUNTY-16,3,,
+KE-COUNTY-34-CITY-01,Nyamira,CITY,KE-COUNTY-34,3,,
+KE-COUNTY-05-CITY-01,Iten,CITY,KE-COUNTY-05,3,,
+KE-COUNTY-39-CITY-01,Voi,CITY,KE-COUNTY-39,3,,
+KE-COUNTY-39-CITY-02,Taveta,CITY,KE-COUNTY-39,3,,
+KE-COUNTY-39-CITY-03,Wundanyi,CITY,KE-COUNTY-39,3,,
+KE-COUNTY-40-CITY-01,Hola,CITY,KE-COUNTY-40,3,,
+KE-COUNTY-41-CITY-01,Chuka,CITY,KE-COUNTY-41,3,,
+KE-COUNTY-41-CITY-02,Marimanti,CITY,KE-COUNTY-41,3,,
+KE-COUNTY-37-CITY-01,Maralal,CITY,KE-COUNTY-37,3,,
+KE-COUNTY-32-CITY-01,Kapsabet,CITY,KE-COUNTY-32,3,,
+KE-COUNTY-23-CITY-01,Wote,CITY,KE-COUNTY-23,3,,
+KE-COUNTY-21-CITY-01,Lamu,CITY,KE-COUNTY-21,3,,
+KE-NAIROBI-NBH-01,Westlands,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-02,Parklands,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-03,Kilimani,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-04,Kileleshwa,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-05,Lavington,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-06,Karen,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-07,Lang'ata,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-08,Runda,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-09,Muthaiga,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-10,Eastleigh,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-11,South B,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-12,South C,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-13,Embakasi,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-14,Kasarani,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-15,Roysambu,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-16,Ngara,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-17,CBD,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-18,Gigiri,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-19,Upper Hill,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-20,Hurlingham,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-21,Donholm,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-22,Buruburu,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-23,Umoja,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-NAIROBI-NBH-24,Kangemi,NEIGHBOURHOOD,KE-COUNTY-30-CITY-01,4,,
+KE-MSA-NBH-01,Nyali,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-02,Bamburi,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-03,Kizingo,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-04,Mtwapa,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-05,Shanzu,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-06,Likoni,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-07,Tudor,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-08,Kisauni,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-09,Changamwe,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-10,Old Town,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+KE-MSA-NBH-11,Mkomani,NEIGHBOURHOOD,KE-COUNTY-28-CITY-01,4,,
+RW-PROV-01,Kigali City,ADMIN1,RW,1,Kigali,
+RW-PROV-01-DIST-01,Nyarugenge,ADMIN2,RW-PROV-01,2,,
+RW-PROV-01-DIST-01-CITY-01,Kigali,CITY,RW-PROV-01-DIST-01,3,,
+RW-PROV-01-DIST-02,Gasabo,ADMIN2,RW-PROV-01,2,,
+RW-PROV-01-DIST-02-CITY-01,Kigali,CITY,RW-PROV-01-DIST-02,3,,
+RW-PROV-01-DIST-03,Kicukiro,ADMIN2,RW-PROV-01,2,,
+RW-PROV-01-DIST-03-CITY-01,Kigali,CITY,RW-PROV-01-DIST-03,3,,
+RW-PROV-02,Eastern Province,ADMIN1,RW,1,,
+RW-PROV-02-DIST-01,Nyagatare,ADMIN2,RW-PROV-02,2,,
+RW-PROV-02-DIST-01-CITY-01,Nyagatare,CITY,RW-PROV-02-DIST-01,3,,
+RW-PROV-02-DIST-02,Gatsibo,ADMIN2,RW-PROV-02,2,,
+RW-PROV-02-DIST-02-CITY-01,Gatsibo,CITY,RW-PROV-02-DIST-02,3,,
+RW-PROV-02-DIST-03,Kayonza,ADMIN2,RW-PROV-02,2,,
+RW-PROV-02-DIST-03-CITY-01,Kayonza,CITY,RW-PROV-02-DIST-03,3,,
+RW-PROV-02-DIST-04,Rwamagana,ADMIN2,RW-PROV-02,2,,
+RW-PROV-02-DIST-04-CITY-01,Rwamagana,CITY,RW-PROV-02-DIST-04,3,,
+RW-PROV-02-DIST-05,Bugesera,ADMIN2,RW-PROV-02,2,,
+RW-PROV-02-DIST-05-CITY-01,Bugesera,CITY,RW-PROV-02-DIST-05,3,,
+RW-PROV-02-DIST-06,Ngoma,ADMIN2,RW-PROV-02,2,,
+RW-PROV-02-DIST-06-CITY-01,Ngoma,CITY,RW-PROV-02-DIST-06,3,,
+RW-PROV-02-DIST-07,Kirehe,ADMIN2,RW-PROV-02,2,,
+RW-PROV-02-DIST-07-CITY-01,Kirehe,CITY,RW-PROV-02-DIST-07,3,,
+RW-PROV-03,Northern Province,ADMIN1,RW,1,,
+RW-PROV-03-DIST-01,Rulindo,ADMIN2,RW-PROV-03,2,,
+RW-PROV-03-DIST-01-CITY-01,Rulindo,CITY,RW-PROV-03-DIST-01,3,,
+RW-PROV-03-DIST-02,Gakenke,ADMIN2,RW-PROV-03,2,,
+RW-PROV-03-DIST-02-CITY-01,Gakenke,CITY,RW-PROV-03-DIST-02,3,,
+RW-PROV-03-DIST-03,Musanze,ADMIN2,RW-PROV-03,2,,
+RW-PROV-03-DIST-03-CITY-01,Musanze,CITY,RW-PROV-03-DIST-03,3,,
+RW-PROV-03-DIST-04,Burera,ADMIN2,RW-PROV-03,2,,
+RW-PROV-03-DIST-04-CITY-01,Burera,CITY,RW-PROV-03-DIST-04,3,,
+RW-PROV-03-DIST-05,Gicumbi,ADMIN2,RW-PROV-03,2,,
+RW-PROV-03-DIST-05-CITY-01,Gicumbi,CITY,RW-PROV-03-DIST-05,3,,
+RW-PROV-04,Southern Province,ADMIN1,RW,1,,
+RW-PROV-04-DIST-01,Kamonyi,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-01-CITY-01,Kamonyi,CITY,RW-PROV-04-DIST-01,3,,
+RW-PROV-04-DIST-02,Muhanga,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-02-CITY-01,Muhanga / Gitarama,CITY,RW-PROV-04-DIST-02,3,,
+RW-PROV-04-DIST-03,Ruhango,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-03-CITY-01,Ruhango,CITY,RW-PROV-04-DIST-03,3,,
+RW-PROV-04-DIST-04,Nyanza,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-04-CITY-01,Nyanza,CITY,RW-PROV-04-DIST-04,3,,
+RW-PROV-04-DIST-05,Huye,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-05-CITY-01,Huye / Butare,CITY,RW-PROV-04-DIST-05,3,,
+RW-PROV-04-DIST-06,Nyamagabe,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-06-CITY-01,Nyamagabe,CITY,RW-PROV-04-DIST-06,3,,
+RW-PROV-04-DIST-07,Gisagara,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-07-CITY-01,Gisagara,CITY,RW-PROV-04-DIST-07,3,,
+RW-PROV-04-DIST-08,Nyaruguru,ADMIN2,RW-PROV-04,2,,
+RW-PROV-04-DIST-08-CITY-01,Nyaruguru,CITY,RW-PROV-04-DIST-08,3,,
+RW-PROV-05,Western Province,ADMIN1,RW,1,,
+RW-PROV-05-DIST-01,Nyamasheke,ADMIN2,RW-PROV-05,2,,
+RW-PROV-05-DIST-01-CITY-01,Nyamasheke,CITY,RW-PROV-05-DIST-01,3,,
+RW-PROV-05-DIST-02,Rusizi,ADMIN2,RW-PROV-05,2,,
+RW-PROV-05-DIST-02-CITY-01,Rusizi / Cyangugu,CITY,RW-PROV-05-DIST-02,3,,
+RW-PROV-05-DIST-03,Karongi,ADMIN2,RW-PROV-05,2,,
+RW-PROV-05-DIST-03-CITY-01,Karongi / Kibuye,CITY,RW-PROV-05-DIST-03,3,,
+RW-PROV-05-DIST-04,Ngororero,ADMIN2,RW-PROV-05,2,,
+RW-PROV-05-DIST-04-CITY-01,Ngororero,CITY,RW-PROV-05-DIST-04,3,,
+RW-PROV-05-DIST-05,Rutsiro,ADMIN2,RW-PROV-05,2,,
+RW-PROV-05-DIST-05-CITY-01,Rutsiro,CITY,RW-PROV-05-DIST-05,3,,
+RW-PROV-05-DIST-06,Rubavu,ADMIN2,RW-PROV-05,2,,
+RW-PROV-05-DIST-06-CITY-01,Rubavu / Gisenyi,CITY,RW-PROV-05-DIST-06,3,,
+RW-PROV-05-DIST-07,Nyabihu,ADMIN2,RW-PROV-05,2,,
+RW-PROV-05-DIST-07-CITY-01,Nyabihu,CITY,RW-PROV-05-DIST-07,3,,
+RW-KGL-NBH-01,Kiyovu,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-02,Nyarutarama,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-03,Kimihurura,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-04,Remera,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-05,Kacyiru,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-06,Kimironko,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-07,Gisozi,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-08,Nyamirambo,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-09,Gikondo,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-10,Kicukiro Centre,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-11,Kanombe,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-12,Kibagabaga,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-13,Gacuriro,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-14,Kagarama,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+RW-KGL-NBH-15,Kibagabaga,NEIGHBOURHOOD,RW-PROV-01-DIST-01-CITY-01,4,,
+BI-PROV-01,Buhumuza,ADMIN1,BI,1,,
+BI-PROV-01-CITY-01,Cankuzo,CITY,BI-PROV-01,3,,
+BI-PROV-01-CITY-02,Muyinga,CITY,BI-PROV-01,3,,
+BI-PROV-01-CITY-03,Ruyigi,CITY,BI-PROV-01,3,,
+BI-PROV-02,Bujumbura,ADMIN1,BI,1,,
+BI-PROV-02-CITY-01,Bujumbura,CITY,BI-PROV-02,3,,
+BI-PROV-02-CITY-02,Bubanza,CITY,BI-PROV-02,3,,
+BI-PROV-02-CITY-03,Cibitoke,CITY,BI-PROV-02,3,,
+BI-PROV-02-CITY-04,Isare,CITY,BI-PROV-02,3,,
+BI-PROV-02-CITY-05,Mpanda,CITY,BI-PROV-02,3,,
+BI-PROV-03,Burunga,ADMIN1,BI,1,,
+BI-PROV-03-CITY-01,Makamba,CITY,BI-PROV-03,3,,
+BI-PROV-03-CITY-02,Bururi,CITY,BI-PROV-03,3,,
+BI-PROV-03-CITY-03,Rutana,CITY,BI-PROV-03,3,,
+BI-PROV-03-CITY-04,Rumonge,CITY,BI-PROV-03,3,,
+BI-PROV-04,Butanyerera,ADMIN1,BI,1,,
+BI-PROV-04-CITY-01,Ngozi,CITY,BI-PROV-04,3,,
+BI-PROV-04-CITY-02,Kayanza,CITY,BI-PROV-04,3,,
+BI-PROV-04-CITY-03,Kirundo,CITY,BI-PROV-04,3,,
+BI-PROV-05,Gitega,ADMIN1,BI,1,,
+BI-PROV-05-CITY-01,Gitega,CITY,BI-PROV-05,3,,
+BI-PROV-05-CITY-02,Karusi,CITY,BI-PROV-05,3,,
+BI-PROV-05-CITY-03,Mwaro,CITY,BI-PROV-05,3,,
+BI-PROV-05-CITY-04,Muramvya,CITY,BI-PROV-05,3,,
+BI-BJM-NBH-01,Rohero,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-02,Buyenzi,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-03,Bwiza,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-04,Ngagara,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-05,Kinama,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-06,Kamenge,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-07,Cibitoke,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-08,Musaga,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-09,Kanyosha,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-10,Gihosha,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-11,Nyakabiga,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-12,Mutanga,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+BI-BJM-NBH-13,Gatumba,NEIGHBOURHOOD,BI-PROV-02-CITY-01,4,,
+CD-PROV-01,Kinshasa,ADMIN1,CD,1,,
+CD-PROV-01-CITY-01,Kinshasa,CITY,CD-PROV-01,3,,
+CD-PROV-02,Kongo Central,ADMIN1,CD,1,,
+CD-PROV-02-CITY-01,Matadi,CITY,CD-PROV-02,3,,
+CD-PROV-03,Kwango,ADMIN1,CD,1,,
+CD-PROV-03-CITY-01,Kenge,CITY,CD-PROV-03,3,,
+CD-PROV-04,Kwilu,ADMIN1,CD,1,,
+CD-PROV-04-CITY-01,Bandundu,CITY,CD-PROV-04,3,,
+CD-PROV-05,Mai-Ndombe,ADMIN1,CD,1,,
+CD-PROV-05-CITY-01,Inongo,CITY,CD-PROV-05,3,,
+CD-PROV-06,Kasai,ADMIN1,CD,1,,
+CD-PROV-06-CITY-01,Tshikapa,CITY,CD-PROV-06,3,,
+CD-PROV-07,Kasai-Central,ADMIN1,CD,1,,
+CD-PROV-07-CITY-01,Kananga,CITY,CD-PROV-07,3,,
+CD-PROV-08,Kasai-Oriental,ADMIN1,CD,1,,
+CD-PROV-08-CITY-01,Mbuji-Mayi,CITY,CD-PROV-08,3,Mbuji Mayi,
+CD-PROV-09,Lomami,ADMIN1,CD,1,,
+CD-PROV-09-CITY-01,Kabinda,CITY,CD-PROV-09,3,,
+CD-PROV-10,Sankuru,ADMIN1,CD,1,,
+CD-PROV-10-CITY-01,Lusambo,CITY,CD-PROV-10,3,,
+CD-PROV-11,Bas-Uele,ADMIN1,CD,1,,
+CD-PROV-11-CITY-01,Buta,CITY,CD-PROV-11,3,,
+CD-PROV-12,Haut-Uele,ADMIN1,CD,1,,
+CD-PROV-12-CITY-01,Isiro,CITY,CD-PROV-12,3,,
+CD-PROV-13,Ituri,ADMIN1,CD,1,,
+CD-PROV-13-CITY-01,Bunia,CITY,CD-PROV-13,3,,
+CD-PROV-14,Maniema,ADMIN1,CD,1,,
+CD-PROV-14-CITY-01,Kindu,CITY,CD-PROV-14,3,,
+CD-PROV-15,Nord-Kivu,ADMIN1,CD,1,North Kivu,
+CD-PROV-15-CITY-01,Goma,CITY,CD-PROV-15,3,,
+CD-PROV-16,Sud-Kivu,ADMIN1,CD,1,South Kivu,
+CD-PROV-16-CITY-01,Bukavu,CITY,CD-PROV-16,3,,
+CD-PROV-17,Tshopo,ADMIN1,CD,1,,
+CD-PROV-17-CITY-01,Kisangani,CITY,CD-PROV-17,3,,
+CD-PROV-18,Équateur,ADMIN1,CD,1,Equateur,
+CD-PROV-18-CITY-01,Mbandaka,CITY,CD-PROV-18,3,,
+CD-PROV-19,Mongala,ADMIN1,CD,1,,
+CD-PROV-19-CITY-01,Lisala,CITY,CD-PROV-19,3,,
+CD-PROV-20,Nord-Ubangi,ADMIN1,CD,1,,
+CD-PROV-20-CITY-01,Gbadolite,CITY,CD-PROV-20,3,,
+CD-PROV-21,Sud-Ubangi,ADMIN1,CD,1,,
+CD-PROV-21-CITY-01,Gemena,CITY,CD-PROV-21,3,,
+CD-PROV-22,Tshuapa,ADMIN1,CD,1,,
+CD-PROV-22-CITY-01,Boende,CITY,CD-PROV-22,3,,
+CD-PROV-23,Haut-Katanga,ADMIN1,CD,1,,
+CD-PROV-23-CITY-01,Lubumbashi,CITY,CD-PROV-23,3,,
+CD-PROV-24,Haut-Lomami,ADMIN1,CD,1,,
+CD-PROV-24-CITY-01,Kamina,CITY,CD-PROV-24,3,,
+CD-PROV-25,Lualaba,ADMIN1,CD,1,,
+CD-PROV-25-CITY-01,Kolwezi,CITY,CD-PROV-25,3,,
+CD-PROV-26,Tanganyika,ADMIN1,CD,1,,
+CD-PROV-26-CITY-01,Kalemie,CITY,CD-PROV-26,3,,
+CD-PROV-01-CITY-02,Kikwit,CITY,CD-PROV-01,3,,
+CD-PROV-23-CITY-02,Likasi,CITY,CD-PROV-23,3,,
+CD-PROV-23-CITY-03,Kasumbalesa,CITY,CD-PROV-23,3,,
+CD-PROV-25-CITY-02,Dilolo,CITY,CD-PROV-25,3,,
+CD-PROV-15-CITY-02,Beni,CITY,CD-PROV-15,3,,
+CD-PROV-15-CITY-03,Butembo,CITY,CD-PROV-15,3,,
+CD-PROV-16-CITY-02,Uvira,CITY,CD-PROV-16,3,,
+CD-PROV-16-CITY-03,Baraka,CITY,CD-PROV-16,3,,
+CD-PROV-02-CITY-02,Boma,CITY,CD-PROV-02,3,,
+CD-PROV-17-CITY-02,Isangi,CITY,CD-PROV-17,3,,
+CD-PROV-04-CITY-02,Kikwit,CITY,CD-PROV-04,3,,
+CD-PROV-18-CITY-02,Bikoro,CITY,CD-PROV-18,3,,
+CD-PROV-05-CITY-02,Kutu,CITY,CD-PROV-05,3,,
+CD-KIN-COM-01,Gombe,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-02,Kintambo,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-03,Ngaliema,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-04,Limete,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-05,Lemba,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-06,Matete,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-07,Kalamu,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-08,Barumbu,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-09,Lingwala,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-10,Kinshasa,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-11,Bandalungwa,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-12,Ngiri-Ngiri,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-13,Kasa-Vubu,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-14,Makala,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-15,Bumbu,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-16,Selembao,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-17,Mont-Ngafula,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-18,Masina,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-19,Ndjili,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-20,Kimbanseke,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-21,Nsele,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+CD-KIN-COM-22,Maluku,NEIGHBOURHOOD,CD-PROV-01-CITY-01,4,,Commune of Kinshasa; classified as urban locality for onboarding
+SS-UNIT-01,Central Equatoria,STATE,SS,1,,
+SS-UNIT-01-CITY-01,Juba,CITY,SS-UNIT-01,3,,
+SS-UNIT-01-CITY-02,Yei,CITY,SS-UNIT-01,3,,
+SS-UNIT-01-CITY-03,Kajo-Keji,CITY,SS-UNIT-01,3,,
+SS-UNIT-01-CITY-04,Terekeka,CITY,SS-UNIT-01,3,,
+SS-UNIT-01-CITY-05,Torit,CITY,SS-UNIT-01,3,,
+SS-UNIT-02,Eastern Equatoria,STATE,SS,1,,
+SS-UNIT-02-CITY-01,Torit,CITY,SS-UNIT-02,3,,
+SS-UNIT-02-CITY-02,Kapoeta,CITY,SS-UNIT-02,3,,
+SS-UNIT-02-CITY-03,Magwi,CITY,SS-UNIT-02,3,,
+SS-UNIT-03,Western Equatoria,STATE,SS,1,,
+SS-UNIT-03-CITY-01,Yambio,CITY,SS-UNIT-03,3,,
+SS-UNIT-03-CITY-02,Maridi,CITY,SS-UNIT-03,3,,
+SS-UNIT-03-CITY-03,Tambura,CITY,SS-UNIT-03,3,,
+SS-UNIT-04,Jonglei,STATE,SS,1,,
+SS-UNIT-04-CITY-01,Bor,CITY,SS-UNIT-04,3,,
+SS-UNIT-04-CITY-02,Pibor,CITY,SS-UNIT-04,3,,
+SS-UNIT-04-CITY-03,Akobo,CITY,SS-UNIT-04,3,,
+SS-UNIT-04-CITY-04,Ayod,CITY,SS-UNIT-04,3,,
+SS-UNIT-05,Unity,STATE,SS,1,,
+SS-UNIT-05-CITY-01,Bentiu,CITY,SS-UNIT-05,3,,
+SS-UNIT-05-CITY-02,Rubkona,CITY,SS-UNIT-05,3,,
+SS-UNIT-05-CITY-03,Leer,CITY,SS-UNIT-05,3,,
+SS-UNIT-05-CITY-04,Mayom,CITY,SS-UNIT-05,3,,
+SS-UNIT-06,Upper Nile,STATE,SS,1,,
+SS-UNIT-06-CITY-01,Malakal,CITY,SS-UNIT-06,3,,
+SS-UNIT-06-CITY-02,Nasir,CITY,SS-UNIT-06,3,,
+SS-UNIT-06-CITY-03,Renk,CITY,SS-UNIT-06,3,,
+SS-UNIT-06-CITY-04,Melut,CITY,SS-UNIT-06,3,,
+SS-UNIT-07,Lakes,STATE,SS,1,,
+SS-UNIT-07-CITY-01,Rumbek,CITY,SS-UNIT-07,3,,
+SS-UNIT-07-CITY-02,Yirol,CITY,SS-UNIT-07,3,,
+SS-UNIT-07-CITY-03,Cueibet,CITY,SS-UNIT-07,3,,
+SS-UNIT-08,Warrap,STATE,SS,1,,
+SS-UNIT-08-CITY-01,Kuajok,CITY,SS-UNIT-08,3,,
+SS-UNIT-08-CITY-02,Gogrial,CITY,SS-UNIT-08,3,,
+SS-UNIT-08-CITY-03,Tonj,CITY,SS-UNIT-08,3,,
+SS-UNIT-09,Northern Bahr el Ghazal,STATE,SS,1,,
+SS-UNIT-09-CITY-01,Aweil,CITY,SS-UNIT-09,3,,
+SS-UNIT-09-CITY-02,Gok Machar,CITY,SS-UNIT-09,3,,
+SS-UNIT-10,Western Bahr el Ghazal,STATE,SS,1,,
+SS-UNIT-10-CITY-01,Wau,CITY,SS-UNIT-10,3,,
+SS-UNIT-10-CITY-02,Raja,CITY,SS-UNIT-10,3,,
+SS-UNIT-11,Abyei Administrative Area,ADMIN_AREA,SS,1,,
+SS-UNIT-11-CITY-01,Abyei,CITY,SS-UNIT-11,3,,
+SS-UNIT-12,Greater Pibor Administrative Area,ADMIN_AREA,SS,1,,
+SS-UNIT-12-CITY-01,Greater Pibor Administrative Area,CITY,SS-UNIT-12,3,,
+SS-UNIT-13,Ruweng Administrative Area,ADMIN_AREA,SS,1,,
+SS-UNIT-13-CITY-01,Panrieng,CITY,SS-UNIT-13,3,,
+SS-UNIT-13-CITY-02,Abiemnom,CITY,SS-UNIT-13,3,,
+SS-JUB-NBH-01,Juba Town,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-02,Munuki,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-03,Kator,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-04,Gudele,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-05,Jebel,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-06,Hai Malakal,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-07,Tongping,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-08,Custom,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-09,Atlabara,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-10,Sherikat,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-11,Gumbo,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+SS-JUB-NBH-12,Rock City,NEIGHBOURHOOD,SS-UNIT-01-CITY-01,4,,
+UG,Uganda,COUNTRY,,0,Republic of Uganda|UG,
+UG-REG-01,Central Region,ADMIN1,UG,1,Central,
+UG-REG-02,Eastern Region,ADMIN1,UG,1,Eastern,
+UG-REG-03,Northern Region,ADMIN1,UG,1,Northern,
+UG-REG-04,Western Region,ADMIN1,UG,1,Western,
+UG-DIST-001,Buikwe,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-002,Bukomansimbi,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-003,Butambala,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-004,Buvuma,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-005,Gomba,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-006,Kalangala,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-007,Kalungu,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-008,Kayunga,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-009,Kiboga,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-010,Kyankwanzi,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-011,Luwero,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-012,Lwengo,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-013,Lyantonde,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-014,Masaka,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-015,Mpigi,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-016,Mubende,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-017,Mukono,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-018,Nakaseke,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-019,Nakasongola,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-020,Sembabule,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-021,Wakiso,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-022,Mityana,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-023,Kassanda,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-024,Kyotera,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-025,Rakai,ADMIN2,UG-REG-01,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-026,Budaka,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-027,Bududa,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-028,Bugiri,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-029,Bugweri,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-030,Bukedea,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-031,Bukwo,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-032,Bulambuli,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-033,Busia,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-034,Butaleja,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-035,Butebo,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-036,Buyende,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-037,Iganga,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-038,Jinja,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-039,Kaliro,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-040,Kamuli,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-041,Kapchorwa,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-042,Kapelebyong,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-043,Katakwi,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-044,Kibuku,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-045,Kumi,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-046,Kween,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-047,Luuka,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-048,Manafwa,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-049,Mayuge,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-050,Mbale,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-051,Namayingo,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-052,Namisindwa,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-053,Namutumba,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-054,Ngora,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-055,Pallisa,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-056,Serere,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-057,Sironko,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-058,Soroti,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-059,Tororo,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-060,Amuria,ADMIN2,UG-REG-02,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-061,Abim,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-062,Adjumani,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-063,Agago,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-064,Alebtong,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-065,Amolatar,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-066,Amuru,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-067,Apac,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-068,Dokolo,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-069,Gulu,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-070,Kaberamaido,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-071,Kalaki,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-072,Kitgum,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-073,Kole,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-074,Kwania,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-075,Lamwo,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-076,Lira,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-077,Madi-Okollo,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-078,Maracha,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-079,Moyo,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-080,Nebbi,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-081,Nwoya,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-082,Obongi,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-083,Omoro,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-084,Otuke,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-085,Oyam,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-086,Pakwach,ADMIN2,UG-REG-03,2,Packwach,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-087,Pader,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-088,Terego,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-089,Yumbe,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-090,Zombo,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-091,Arua,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-092,Koboko,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-093,Karenga,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-094,Kaabong,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-095,Kotido,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-096,Nabilatuk,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-097,Nakapiripirit,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-098,Napak,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-099,Moroto,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-100,Amudat,ADMIN2,UG-REG-03,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-101,Buhweju,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-102,Buliisa,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-103,Bundibugyo,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-104,Bunyangabu,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-105,Bushenyi,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-106,Hoima,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-107,Ibanda,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-108,Isingiro,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-109,Kabale,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-110,Kabarole,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-111,Kagadi,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-112,Kakumiro,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-113,Kamwenge,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-114,Kanungu,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-115,Kasese,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-116,Kazo,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-117,Kibaale,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-118,Kikuube,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-119,Kiruhura,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-120,Kiryandongo,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-121,Kisoro,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-122,Kitagwenda,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-123,Kyegegwa,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-124,Kyenjojo,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-125,Masindi,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-126,Mbarara,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-127,Mitooma,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-128,Ntoroko,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-129,Ntungamo,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-130,Rubanda,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-131,Rubirizi,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-132,Rukiga,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-133,Rukungiri,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-134,Rwampara,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-DIST-135,Sheema,ADMIN2,UG-REG-04,2,,District-level local government; verify current statutory status before production boundary use.
+UG-CITY-001,Kampala,CITY,UG-REG-01,3,Kampala Capital City|KCCA|Kampala CBD,Capital city and city authority; Kampala CBD is not treated as a separate district.
+UG-CITY-002,Arua,CITY,UG-DIST-091,3,Arua City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-003,Fort Portal,CITY,UG-DIST-110,3,Fort Portal City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-004,Gulu,CITY,UG-DIST-069,3,Gulu City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-005,Hoima,CITY,UG-DIST-106,3,Hoima City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-006,Jinja,CITY,UG-DIST-038,3,Jinja City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-007,Lira,CITY,UG-DIST-076,3,Lira City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-008,Masaka,CITY,UG-DIST-014,3,Masaka City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-009,Mbale,CITY,UG-DIST-050,3,Mbale City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-010,Mbarara,CITY,UG-DIST-126,3,Mbarara City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-CITY-011,Soroti,CITY,UG-DIST-058,3,Soroti City,City authority; administrative boundaries may include divisions and surrounding urban areas.
+UG-TOWN-001,Entebbe,TOWN,UG-DIST-021,3,,
+UG-TOWN-002,Kira,TOWN,UG-DIST-021,3,,
+UG-TOWN-003,Nansana,TOWN,UG-DIST-021,3,,
+UG-TOWN-004,Kajjansi,TOWN,UG-DIST-021,3,,
+UG-TOWN-005,Kakiri,TOWN,UG-DIST-021,3,,
+UG-TOWN-006,Kasangati,TOWN,UG-DIST-021,3,,
+UG-TOWN-007,Matugga,TOWN,UG-DIST-021,3,,
+UG-TOWN-008,Buloba,TOWN,UG-DIST-021,3,,
+UG-TOWN-009,Njeru,TOWN,UG-DIST-017,3,,
+UG-TOWN-010,Seeta,TOWN,UG-DIST-017,3,,
+UG-TOWN-011,Katosi,TOWN,UG-DIST-017,3,,
+UG-TOWN-012,Lugazi,TOWN,UG-DIST-001,3,,
+UG-TOWN-013,Nkokonjeru,TOWN,UG-DIST-001,3,,
+UG-TOWN-014,Wobulenzi,TOWN,UG-DIST-011,3,,
+UG-TOWN-015,Bombo,TOWN,UG-DIST-011,3,,
+UG-TOWN-016,Buwama,TOWN,UG-DIST-015,3,,
+UG-TOWN-017,Nyendo,TOWN,UG-DIST-014,3,,
+UG-TOWN-018,Lukaya,TOWN,UG-DIST-014,3,,
+UG-TOWN-019,Kalisizo,TOWN,UG-DIST-025,3,,
+UG-TOWN-020,Kyotera,TOWN,UG-DIST-025,3,,
+UG-TOWN-021,Bbaale,TOWN,UG-DIST-008,3,,
+UG-TOWN-022,Kapeeka,TOWN,UG-DIST-018,3,,
+UG-TOWN-023,Kanoni,TOWN,UG-DIST-005,3,,
+UG-TOWN-024,Bugembe,TOWN,UG-DIST-038,3,,
+UG-TOWN-025,Kakira,TOWN,UG-DIST-038,3,,
+UG-TOWN-026,Wanyange,TOWN,UG-DIST-038,3,,
+UG-TOWN-027,Malaba,TOWN,UG-DIST-059,3,,
+UG-TOWN-028,Namatala,TOWN,UG-DIST-050,3,,
+UG-TOWN-029,Bubulo,TOWN,UG-DIST-048,3,,
+UG-TOWN-030,Businge,TOWN,UG-DIST-047,3,,
+UG-TOWN-031,Binyiny,TOWN,UG-DIST-046,3,,
+UG-TOWN-032,Muyembe,TOWN,UG-DIST-032,3,,
+UG-TOWN-033,Anaka,TOWN,UG-DIST-081,3,,
+UG-TOWN-034,Palabek,TOWN,UG-DIST-075,3,,
+UG-TOWN-035,Patongo,TOWN,UG-DIST-063,3,,
+UG-TOWN-036,Hima,TOWN,UG-DIST-115,3,,
+UG-TOWN-037,Ishaka,TOWN,UG-DIST-105,3,,
+UG-TOWN-038,Kiko,TOWN,UG-DIST-110,3,,
+UG-TOWN-039,Bweyale,TOWN,UG-DIST-120,3,,
+UG-TOWN-040,Rugaaga,TOWN,UG-DIST-108,3,,
+UG-TOWN-041,Rushere,TOWN,UG-DIST-119,3,,
+UG-TOWN-042,Kabwohe,TOWN,UG-DIST-135,3,,
+UG-TOWN-043,Muhanga,TOWN,UG-DIST-132,3,,
+UG-TOWN-044,Ndeija,TOWN,UG-DIST-134,3,,
+UG-TOWN-045,Karugutu,TOWN,UG-DIST-128,3,,
+UG-TOWN-046,Kibito,TOWN,UG-DIST-104,3,,
+UG-TOWN-047,Rwengwe,TOWN,UG-DIST-101,3,,
+UG-TOWN-048,Ntara,TOWN,UG-DIST-122,3,,
+UG-KLA-DIV-01,Central Division,DIVISION,UG-CITY-001,4,Central,Kampala Capital City urban division.
+UG-KLA-DIV-02,Kawempe Division,DIVISION,UG-CITY-001,4,Kawempe,Kampala Capital City urban division.
+UG-KLA-DIV-03,Makindye Division,DIVISION,UG-CITY-001,4,Makindye,Kampala Capital City urban division.
+UG-KLA-DIV-04,Nakawa Division,DIVISION,UG-CITY-001,4,Nakawa,Kampala Capital City urban division.
+UG-KLA-DIV-05,Rubaga Division,DIVISION,UG-CITY-001,4,Rubaga,Kampala Capital City urban division.
+UG-KLA-DIV-01-NBH-01,Nakasero,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-02,Kololo,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-03,Old Kampala,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-04,Kisenyi,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-05,Wandegeya,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-06,Makerere,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-07,Kamwokya,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-08,Industrial Area,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-01-NBH-09,Civic Centre,NEIGHBOURHOOD,UG-KLA-DIV-01,5,,
+UG-KLA-DIV-02-NBH-01,Kawempe,NEIGHBOURHOOD,UG-KLA-DIV-02,5,,
+UG-KLA-DIV-02-NBH-02,Bwaise,NEIGHBOURHOOD,UG-KLA-DIV-02,5,,
+UG-KLA-DIV-02-NBH-03,Kalerwe,NEIGHBOURHOOD,UG-KLA-DIV-02,5,,
+UG-KLA-DIV-02-NBH-04,Kanyanya,NEIGHBOURHOOD,UG-KLA-DIV-02,5,,
+UG-KLA-DIV-02-NBH-05,Kazo,NEIGHBOURHOOD,UG-KLA-DIV-02,5,,
+UG-KLA-DIV-02-NBH-06,Kyebando,NEIGHBOURHOOD,UG-KLA-DIV-02,5,,
+UG-KLA-DIV-02-NBH-07,Komamboga,NEIGHBOURHOOD,UG-KLA-DIV-02,5,,
+UG-KLA-DIV-03-NBH-01,Muyenga,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-02,Kansanga,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-03,Kabalagala,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-04,Nsambya,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-05,Kibuli,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-06,Lukuli,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-07,Bunga,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-08,Munyonyo,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-03-NBH-09,Ggaba,NEIGHBOURHOOD,UG-KLA-DIV-03,5,,
+UG-KLA-DIV-04-NBH-01,Ntinda,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-02,Naguru,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-03,Bugolobi,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-04,Luzira,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-05,Butabika,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-06,Mbuya,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-07,Nakawa,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-08,Kireka,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-09,Banda,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-10,Kyambogo,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-04-NBH-11,Namugongo,NEIGHBOURHOOD,UG-KLA-DIV-04,5,,
+UG-KLA-DIV-05-NBH-01,Rubaga,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-02,Mengo,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-03,Kasubi,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-04,Lubiri,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-05,Nateete,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-06,Busega,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-07,Ndeeba,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-08,Lungujja,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-09,Mutundwe,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-KLA-DIV-05-NBH-10,Najjanankumbi,NEIGHBOURHOOD,UG-KLA-DIV-05,5,,
+UG-JINJA-NBH-01,Mpumudde,NEIGHBOURHOOD,UG-CITY-006,4,,
+UG-JINJA-NBH-02,Walukuba,NEIGHBOURHOOD,UG-CITY-006,4,,
+UG-JINJA-NBH-03,Masese,NEIGHBOURHOOD,UG-CITY-006,4,,
+UG-JINJA-NBH-04,Bugembe,NEIGHBOURHOOD,UG-CITY-006,4,,
+UG-JINJA-NBH-05,Kimaka,NEIGHBOURHOOD,UG-CITY-006,4,,
+UG-MBARA-NBH-01,Kakoba,NEIGHBOURHOOD,UG-CITY-010,4,,
+UG-MBARA-NBH-02,Nyamitanga,NEIGHBOURHOOD,UG-CITY-010,4,,
+UG-MBARA-NBH-03,Kakiika,NEIGHBOURHOOD,UG-CITY-010,4,,
+UG-MBARA-NBH-04,Biharwe,NEIGHBOURHOOD,UG-CITY-010,4,,
+UG-MBARA-NBH-05,Ruti,NEIGHBOURHOOD,UG-CITY-010,4,,
+UG-GULU-NBH-01,Pece,NEIGHBOURHOOD,UG-CITY-004,4,,
+UG-GULU-NBH-02,Layibi,NEIGHBOURHOOD,UG-CITY-004,4,,
+UG-GULU-NBH-03,Bardege,NEIGHBOURHOOD,UG-CITY-004,4,,
+UG-GULU-NBH-04,Laroo,NEIGHBOURHOOD,UG-CITY-004,4,,
+UG-GULU-NBH-05,Unyama,NEIGHBOURHOOD,UG-CITY-004,4,,
+UG-MBALE-NBH-01,Industrial Area,NEIGHBOURHOOD,UG-CITY-009,4,,
+UG-MBALE-NBH-02,Namatala,NEIGHBOURHOOD,UG-CITY-009,4,,
+UG-MBALE-NBH-03,Nkonkojeru,NEIGHBOURHOOD,UG-CITY-009,4,,
+UG-MBALE-NBH-04,Malukhu,NEIGHBOURHOOD,UG-CITY-009,4,,
+UG-FORTP-NBH-01,Kahungabunyonyi,NEIGHBOURHOOD,UG-CITY-003,4,,
+UG-FORTP-NBH-02,Kijura,NEIGHBOURHOOD,UG-CITY-003,4,,
+UG-FORTP-NBH-03,Harubaho,NEIGHBOURHOOD,UG-CITY-003,4,,
+UG-FORTP-NBH-04,Boma,NEIGHBOURHOOD,UG-CITY-003,4,,
+UG-ARUA-NBH-01,Oli,NEIGHBOURHOOD,UG-CITY-002,4,,
+UG-ARUA-NBH-02,Pajulu,NEIGHBOURHOOD,UG-CITY-002,4,,
+UG-ARUA-NBH-03,River Oli,NEIGHBOURHOOD,UG-CITY-002,4,,
+UG-ARUA-NBH-04,Ediofe,NEIGHBOURHOOD,UG-CITY-002,4,,
+UG-HOIMA-NBH-01,Kiryatete,NEIGHBOURHOOD,UG-CITY-005,4,,
+UG-HOIMA-NBH-02,Bujumbura,NEIGHBOURHOOD,UG-CITY-005,4,,
+UG-HOIMA-NBH-03,Mparo,NEIGHBOURHOOD,UG-CITY-005,4,,
+UG-HOIMA-NBH-04,Kibingo,NEIGHBOURHOOD,UG-CITY-005,4,,
+UG-MASAK-NBH-01,Nyendo,NEIGHBOURHOOD,UG-CITY-008,4,,
+UG-MASAK-NBH-02,Kijjabwemi,NEIGHBOURHOOD,UG-CITY-008,4,,
+UG-MASAK-NBH-03,Katwe,NEIGHBOURHOOD,UG-CITY-008,4,,
+UG-LIRA-NBH-01,Adyel,NEIGHBOURHOOD,UG-CITY-007,4,,
+UG-LIRA-NBH-02,Railway,NEIGHBOURHOOD,UG-CITY-007,4,,
+UG-LIRA-NBH-03,Ojwina,NEIGHBOURHOOD,UG-CITY-007,4,,
+UG-LIRA-NBH-04,Central Division,NEIGHBOURHOOD,UG-CITY-007,4,,
+UG-SOROT-NBH-01,Pamba,NEIGHBOURHOOD,UG-CITY-011,4,,
+UG-SOROT-NBH-02,Moroto Road,NEIGHBOURHOOD,UG-CITY-011,4,,
+UG-SOROT-NBH-03,Eastern Division,NEIGHBOURHOOD,UG-CITY-011,4,,

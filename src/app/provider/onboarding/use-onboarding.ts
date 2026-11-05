@@ -8,6 +8,11 @@ import {
   resolveLocationCoordinates,
 } from "@/lib/data/uganda-locations";
 import { supabase } from "@/lib/supabase/client";
+import {
+  fetchProviderServiceAreas,
+  saveProviderServiceAreas,
+  type ProviderServiceArea,
+} from "@/lib/locations";
 import { getMediaImageUrl, getMediaVideoUrl } from "@/lib/media-urls";
 import { abandonMediaAsset, refreshPendingMedia } from "@/lib/media-lifecycle";
 import { type RegisteredMedia } from "@/lib/media-upload";
@@ -32,6 +37,11 @@ import {
   type OnboardingTypeOption,
 } from "./onboarding-config";
 import { usePortfolioQueue } from "./use-portfolio-queue";
+
+/** Stable fingerprint of a coverage set, used to skip redundant RPC writes. */
+function areasSignature(areas: ProviderServiceArea[]): string {
+  return JSON.stringify(areas.map((area) => [area.code, area.coverage]));
+}
 
 /**
  * All the state and side effects of the provider wizard, lifted out of the
@@ -62,6 +72,9 @@ export function useOnboarding() {
   const existingMediaRef = useRef<PortfolioMedia[]>([]);
   const formRef = useRef<OnboardingForm>(form);
   const accountKindRef = useRef<AccountKind | null>(null);
+  // Last coverage set written to `provider_service_areas`, so step saves only
+  // re-run the RPC when the user actually edited the areas.
+  const serviceAreasSyncRef = useRef<string>("[]");
 
   listingIdRef.current = listingId;
   slugRef.current = slug;
@@ -223,6 +236,7 @@ export function useOnboarding() {
           country: listing.country ?? "Uganda",
           city: listing.city ?? "Kampala",
           neighborhood: listing.neighborhood ?? "",
+          locationCode: listing.location_code ?? "",
           travelKm: listing.travel_km ?? "10",
           whatsappNumber: listing.whatsapp_number ?? nextForm.whatsappNumber,
           whatsappCode: listing.whatsapp_code ?? "+256",
@@ -292,6 +306,12 @@ export function useOnboarding() {
                 : 4
           );
         }
+
+        // Coverage areas live in their own table; restore them into the form so
+        // the editor round-trips, and seed the sync guard with the same set.
+        const savedAreas = await fetchProviderServiceAreas(listing.id);
+        nextForm.serviceAreas = savedAreas;
+        serviceAreasSyncRef.current = areasSignature(savedAreas);
       }
 
       if (!cancelled) {
@@ -414,6 +434,18 @@ export function useOnboarding() {
     [currentStep, modelServiceOptions, modelServicesError, queue.failedCount, queue.hasActiveUploads, readyCounts]
   );
 
+  /** Atomically mirrors the form's coverage areas after a successful save. */
+  const syncServiceAreas = useCallback(
+    async (targetId: string, areas: ProviderServiceArea[]) => {
+      const signature = areasSignature(areas);
+      if (signature === serviceAreasSyncRef.current) return;
+      // Soft-fail: a coverage hiccup must not block saving the profile itself.
+      const areasError = await saveProviderServiceAreas(targetId, areas);
+      if (!areasError) serviceAreasSyncRef.current = signature;
+    },
+    []
+  );
+
   /** Writes the current form into the listing row. Assumes a session exists. */
   const writeListing = useCallback(
     async (submit: boolean): Promise<{ ok: boolean; message?: string }> => {
@@ -449,6 +481,7 @@ export function useOnboarding() {
         country: current.country,
         city: current.city,
         neighborhood: current.neighborhood,
+        location_code: current.locationCode.trim() || null,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
         hourly_rate: 0,
@@ -489,6 +522,7 @@ export function useOnboarding() {
           .eq("id", id)
           .eq("user_id", payload.user_id);
         if (updateError) return { ok: false, message: updateError.message };
+        await syncServiceAreas(id, current.serviceAreas);
         return { ok: true };
       }
       const { data: inserted, error: insertError } = await supabase
@@ -501,9 +535,10 @@ export function useOnboarding() {
       }
       setListingId(inserted.id);
       setSlug(profileSlug);
+      await syncServiceAreas(inserted.id, current.serviceAreas);
       return { ok: true };
     },
-    [currentStep]
+    [currentStep, syncServiceAreas]
   );
 
   /** Re-checks any video still transcoding so a saved draft self-heals. */

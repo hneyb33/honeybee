@@ -10,7 +10,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "honeybee-app",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2025-06-01",
+  "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true,
@@ -35,14 +35,14 @@
   },
   "vars": {
     "NEXT_PUBLIC_SITE_URL": "https://honeysbees.com",
-    "NEXT_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "your-anon-key",
-    "CF_ACCOUNT_ID": "your-account-id",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://kzcyuwufspujthgbiiau.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Y3l1d3Vmc3B1anRoZ2JpaWF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1OTIxNDksImV4cCI6MjEwNzE2ODE0OX0.dapN8vSCzaMam9iRykQEyyJZU2wpkm004vq7MoAo3KI",
+    "CF_ACCOUNT_ID": "3ee3207222df398ed800b54f0d6fc4b5",
     "R2_ORIGINALS_BUCKET": "hb-originals",
     "R2_MEDIA_BUCKET": "hb-media",
     "R2_ENV": "production",
     "NEXT_PUBLIC_MEDIA_DOMAIN": "media.honeysbees.com",
-    "CLOUDFLARE_STREAM_ACCOUNT_ID": "your-account-id",
-    "NEXT_PUBLIC_TURNSTILE_SITEKEY": "your-turnstile-sitekey",
+    "CLOUDFLARE_STREAM_ACCOUNT_ID": "3ee3207222df398ed800b54f0d6fc4b5",
+    "NEXT_PUBLIC_TURNSTILE_SITEKEY": "0x4B0A845635074961952D",
   },
 }

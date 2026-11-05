@@ -73,9 +73,23 @@ npx wrangler queues consumer workers add hb-media-process --worker-name honeybee
 ## Phase 4 - Deploy the app
 
 ```bash
-npm run build:cf        # open-next build
+npm run build:cf        # opennextjs-cloudflare build (runs next build + emits .open-next/worker.js)
 npx wrangler deploy     # pushes the Next app + the media-processor worker
 ```
+
+**Workers Builds (CI) gotcha:** the dashboard build command must be
+`npm run build:cf`, not `npm run build`. Plain `next build` produces no
+`.open-next/` output and `wrangler deploy` then fails with "Could not find
+compiled Open Next config, did you run the build command?". Deploy command
+stays `npx wrangler deploy` (it auto-detects the OpenNext project). CI does
+not read `.env.local`: keep non-secret values in `wrangler.jsonc` `vars`
+(replace the placeholders) and set secrets via the dashboard's build settings
+or `wrangler secret put`.
+
+**Stream deferred:** with `CLOUDFLARE_STREAM_API_TOKEN` unset the app
+auto-falls back to the legacy Cloudinary flow for every video upload, so
+`CLOUDINARY_*` vars must stay deployed until Phase 3 is done and
+`--include-videos` migration runs.
 
 Point the zone `A/CNAME` for the app hostname at the Workers deployment
 (`.workers.dev` preview first for a smoke test), then run
@@ -114,10 +128,15 @@ Run after the app is live on Workers and dual-read (cloudinary + r2/stream
 rows) is verified:
 
 ```bash
-node scripts/migrate-cloudinary-to-r2.mjs --dry --limit 5   # rehearsal
-node scripts/migrate-cloudinary-to-r2.mjs                    # full run, resumable
-node scripts/migrate-cloudinary-to-r2.mjs --videos           # optional Stream leg
+node --env-file=.env.local scripts/migrate-cloudinary-to-r2.mjs --dry --limit 5   # rehearsal
+node --env-file=.env.local scripts/migrate-cloudinary-to-r2.mjs                    # full run, resumable
+node --env-file=.env.local scripts/migrate-cloudinary-to-r2.mjs --include-videos   # optional Stream leg
 ```
+
+(`--env-file` points at whichever file holds the production values: Supabase,
+Cloudinary, `CF_ACCOUNT_ID`, `R2_*` and, for videos, `CLOUDFLARE_STREAM_*`.
+Progress is tracked in `.cloudinary-migration-checkpoint.json` - keep it to
+resume, delete it to force a full re-walk.)
 
 Then remove `CLOUDINARY_*` vars from the deployment, keep the Cloudinary
 account warm for 30 days, and delete it.

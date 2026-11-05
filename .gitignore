@@ -20,6 +20,11 @@
 .env.production
 .env.example
 
+# cloudflare / open-next build artifacts
+.open-next/
+.wrangler/
+.cloudinary-migration-checkpoint.json
+
 # vercel
 .vercel
 

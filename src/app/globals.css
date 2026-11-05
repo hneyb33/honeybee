@@ -103,3 +103,14 @@
 .hb-transition {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Featured ads marquee — the track renders two identical groups, so shifting
+   -50% loops seamlessly to the left. */
+@keyframes ads-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
