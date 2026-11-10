@@ -7,44 +7,69 @@
 //   CLOUDFLARE_STREAM_API_TOKEN, CLOUDFLARE_STREAM_WEBHOOK_SECRET,
 //   TURNSTILE_SECRET
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "honeybee-app",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2026-06-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1,
-  },
-  "assets": {
-    "binding": "ASSETS",
-    "directory": ".open-next/assets",
-  },
-  "r2_buckets": [
-    // Private forever - holds browser-uploaded originals, never attached to a
-    // public domain.
-    { "binding": "HB_ORIGINALS", "bucket_name": "hb-originals" },
-    // Variant bucket, served through media.honeysbees.com (dashboard step).
-    { "binding": "HB_MEDIA", "bucket_name": "hb-media" },
-  ],
-  "queues": {
-    // Finalize/diagnostics can re-drive a stuck asset by publishing manually.
-    "producers": [
-      { "binding": "MEDIA_PROCESS", "queue": "hb-media-process" },
-    ],
-  },
-  "vars": {
-    "NEXT_PUBLIC_SITE_URL": "https://honeysbees.com",
-    "NEXT_PUBLIC_SUPABASE_URL": "https://kzcyuwufspujthgbiiau.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Y3l1d3Vmc3B1anRoZ2JpaWF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1OTIxNDksImV4cCI6MjEwNzE2ODE0OX0.dapN8vSCzaMam9iRykQEyyJZU2wpkm004vq7MoAo3KI",
-    "CLOUDFLARE_ACCOUNT_ID": "3ee3207222df398ed800b54f0d6fc4b5",
-    "R2_ORIGINALS_BUCKET": "hb-originals",
-    "R2_MEDIA_BUCKET": "hb-media",
-    "R2_ENV": "production",
-    "NEXT_PUBLIC_MEDIA_DOMAIN": "media.honeysbees.com",
-    "CLOUDFLARE_STREAM_ACCOUNT_ID": "3ee3207222df398ed800b54f0d6fc4b5",
-    // Served to the browser at runtime by GET /api/security/turnstile; must be
-    // the sitekey of the widget whose secret is in TURNSTILE_SECRET.
-    "NEXT_PUBLIC_TURNSTILE_SITEKEY": "0x4AAAAAAFyz_GtCOm0VSa9o",
-  },
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "honeybee-app",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2026-06-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+	},
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".open-next/assets",
+	},
+	"r2_buckets": [
+		// Private forever - holds browser-uploaded originals, never attached to a
+		// public domain.
+		{
+			"binding": "HB_ORIGINALS",
+			"bucket_name": "hb-originals"
+		},
+		// Variant bucket, served through media.honeysbees.com (dashboard step).
+		{
+			"binding": "HB_MEDIA",
+			"bucket_name": "hb-media"
+		},
+	],
+	"queues": {
+		// Finalize/diagnostics can re-drive a stuck asset by publishing manually.
+		"producers": [
+			{
+				"binding": "MEDIA_PROCESS",
+				"queue": "hb-media-process"
+			},
+		],
+	},
+	"vars": {
+		"NEXT_PUBLIC_SITE_URL": "https://honeysbees.com",
+		"NEXT_PUBLIC_SUPABASE_URL": "https://kzcyuwufspujthgbiiau.supabase.co",
+		"NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Y3l1d3Vmc3B1anRoZ2JpaWF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1OTIxNDksImV4cCI6MjEwNzE2ODE0OX0.dapN8vSCzaMam9iRykQEyyJZU2wpkm004vq7MoAo3KI",
+		"CLOUDFLARE_ACCOUNT_ID": "3ee3207222df398ed800b54f0d6fc4b5",
+		"R2_ORIGINALS_BUCKET": "hb-originals",
+		"R2_MEDIA_BUCKET": "hb-media",
+		"R2_ENV": "production",
+		"NEXT_PUBLIC_MEDIA_DOMAIN": "media.honeysbees.com",
+		"CLOUDFLARE_STREAM_ACCOUNT_ID": "3ee3207222df398ed800b54f0d6fc4b5",
+		// Served to the browser at runtime by GET /api/security/turnstile; must be
+		// the sitekey of the widget whose secret is in TURNSTILE_SECRET.
+		"NEXT_PUBLIC_TURNSTILE_SITEKEY": "0x4AAAAAAFyz_GtCOm0VSa9o",
+    "SUPABASE_URL": "https://kzcyuwufspujthgbiiau.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Y3l1d3Vmc3B1anRoZ2JpaWF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1OTIxNDksImV4cCI6MjEwNzE2ODE0OX0.dapN8vSCzaMam9iRykQEyyJZU2wpkm004vq7MoAo3KI"
+	},
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "2be7fb2abb3a4451aadcd18c0ca348ed",
+      "localConnectionString": "postgresql://postgres:iMJZneKdXppR4rWA@db.kzcyuwufspujthgbiiau.supabase.co:5432/postgres?sslmode=require"
+		},
+		{
+			"binding": "HYPERDRIVE_FRESH",
+			"id": "24b01a885b00495f977a34fc0138e470",
+      "localConnectionString": "postgresql://postgres:iMJZneKdXppR4rWA@db.kzcyuwufspujthgbiiau.supabase.co:5432/postgres?sslmode=require"
+		}
+	],
 }
