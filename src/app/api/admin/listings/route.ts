@@ -15,6 +15,14 @@ const listingSchema = z.object({
   ethnicity: z.string().trim().max(80).nullable(),
   city: z.string().trim().min(1).max(80),
   neighborhood: z.string().trim().min(1).max(100),
+  // Gazetteer wiring mirrors the provider onboarding payload.
+  country: z.string().trim().max(60).optional(),
+  location_code: z.string().trim().max(40).nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  travel_km: z.string().trim().max(20).nullable().optional(),
+  experience_band: z.string().trim().max(60).nullable().optional(),
+  profile_details: z.record(z.string(), z.unknown()).optional(),
   hourly_rate: z.number().int().min(0).max(999999999),
   monthly_price: z.number().int().min(0).max(999999999),
   whatsapp_code: z.string().trim().max(8),
@@ -25,8 +33,10 @@ const listingSchema = z.object({
   about_me: z.string().trim().max(10000).nullable(),
   services_offered: z.array(z.string().trim().min(1).max(120)).max(50),
   languages: z.array(z.string().trim().min(1).max(80)).max(30),
-  cover_image: z.string().url().nullable(),
-  images: z.array(z.string().url()).max(50),
+  // Portfolio media now lands through the admin media relay (profile_media
+  // rows + R2/Stream pipeline), so the denormalised URL columns stay empty.
+  cover_image: z.string().url().nullable().optional(),
+  images: z.array(z.string().url()).max(50).optional(),
   verification_status: z.literal("pending"),
 });
 

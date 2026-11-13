@@ -276,8 +276,23 @@ export function StepLocation({ c }: { c: OnboardingController }) {
           const legacyCountry = EAST_AFRICAN_COUNTRIES.find((item) => item.name === pick.country?.name);
           update("country", pick.country.name);
           if (legacyCountry) update("whatsappCode", legacyCountry.callingCode);
-          if (pick.city) update("city", pick.city.name);
-          update("neighborhood", pick.neighborhood?.name ?? "");
+          const deepest = pick.trail.length > 1 ? pick.trail[pick.trail.length - 1] ?? null : null;
+          const deepestType = deepest?.location_type;
+          // Districts like Mukono stand in for the city when the trail has no
+          // CITY/TOWN node of its own.
+          const cityNode =
+            pick.city ?? (deepestType === "ADMIN2" || deepestType === "ADMIN_AREA" ? deepest : null);
+          if (cityNode) update("city", cityNode.name);
+          // Kampala hangs neighbourhoods under a DIVISION tier and leaf towns
+          // (Entebbe, Kasangati) have nothing below them at all, so resolve
+          // the neighbourhood from the closest thing to one. Without this the
+          // cascader shows a complete, correct trail while the step's
+          // "city and neighbourhood" validation blocks Save & continue.
+          const hoodNode =
+            pick.neighborhood ??
+            (deepestType === "DIVISION" || deepestType === "ADMIN_AREA" ? deepest : null) ??
+            (pick.isLeaf ? cityNode : null);
+          update("neighborhood", hoodNode?.name ?? "");
           update("locationCode", (pick.trail[pick.trail.length - 1] ?? pick.country).code);
         }}
       />

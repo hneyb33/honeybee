@@ -13,13 +13,20 @@ export function useUrlFilters(defaults: Record<string, string> = {}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Callers pass inline literals (`useUrlFilters({ page: "1" })`), so `defaults`
+  // is a new object on every render. Depend on its serialized form instead; a
+  // `defaults` identity dependency made `values`→`filters`→`load` change every
+  // render, re-firing the list-fetch effect in an endless loop until the browser
+  // aborted requests with ERR_INSUFFICIENT_RESOURCES.
+  const defaultsKey = JSON.stringify(defaults);
+
   const values = useMemo<Record<string, string>>(() => {
-    const merged: Record<string, string> = { ...defaults };
+    const merged = JSON.parse(defaultsKey) as Record<string, string>;
     searchParams.forEach((value, key) => {
       merged[key] = value;
     });
     return merged;
-  }, [searchParams, defaults]);
+  }, [searchParams, defaultsKey]);
 
   const commit = useCallback(
     (patch: Record<string, string>) => {

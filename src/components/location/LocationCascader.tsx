@@ -15,6 +15,8 @@ export interface LocationPick {
   country: GazetteerNode | null;
   city: GazetteerNode | null;
   neighborhood: GazetteerNode | null;
+  /** True when the deepest selected node has no children: nothing deeper to pick. */
+  isLeaf: boolean;
 }
 
 interface LocationCascaderProps {
@@ -28,12 +30,13 @@ interface LocationCascaderProps {
   className?: string;
 }
 
-function toPick(trail: GazetteerNode[]): LocationPick {
+function toPick(trail: GazetteerNode[], isLeaf = false): LocationPick {
   return {
     trail,
     country: trail[0] ?? null,
     city: trail.find((node) => node.location_type === "CITY" || node.location_type === "TOWN") ?? null,
     neighborhood: trail.find((node) => node.location_type === "NEIGHBOURHOOD") ?? null,
+    isLeaf,
   };
 }
 
@@ -93,12 +96,14 @@ export function LocationCascader({
       if (cancelled) return;
       setTrail(next);
       // Load children for every level of the restored chain.
+      let deepestKids: GazetteerNode[] = [];
       for (const node of next) {
         const kids = await fetchLocationChildren(node.code);
         if (cancelled) return;
         setChildrenByCode((current) => ({ ...current, [node.code]: kids }));
+        deepestKids = kids;
       }
-      onChangeRef.current(toPick(next));
+      onChangeRef.current(toPick(next, next.length > 0 && deepestKids.length === 0));
       setBootstrapping(false);
     };
     void seed();
@@ -125,10 +130,11 @@ export function LocationCascader({
       }
       const next = [...base, node];
       setTrail(next);
-      onChangeRef.current(toPick(next));
-      if (!(node.code in childrenByCode)) {
-        await loadLevel(node.code);
-      }
+      // Resolve the pick only after the child tier is known, so callers can
+      // tell "Kampala → choose a division" apart from a leaf town like
+      // Entebbe that has nothing below it.
+      const kids = childrenByCode[node.code] ?? (await loadLevel(node.code));
+      onChangeRef.current(toPick(next, kids.length === 0));
     },
     [trail, childrenByCode, loadLevel],
   );

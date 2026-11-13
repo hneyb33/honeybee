@@ -202,6 +202,62 @@ export default {
       // READS — HYPERDRIVE (cached)
       // =========================================================================
 
+      // Health check — proves the Hyperdrive path reaches Postgres end to end.
+      // Reuses the request-scoped `sql` client (cached binding) instead of
+      // opening a third pool here.
+      if (url.pathname === "/api/health") {
+        try {
+          const [{ now }] = await sql`SELECT NOW() as now`;
+          const [{ version }] = await sql`SELECT version() as version`;
+          return Response.json({
+            status: "connected",
+            database_time: now,
+            pg_version: version,
+            via: "hyperdrive",
+          });
+        } catch (e) {
+          const err = e as { message?: string };
+          return Response.json(
+            { status: "error", message: err.message },
+            { status: 500 }
+          );
+        }
+      }
+
+      // Timing probe — runs the same read twice through the cached binding and
+      // reports per-pass duration. With Hyperdrive caching active the second
+      // pass should be dramatically faster while the cache window is open;
+      // pass ?binding=fresh to run both passes on HYPERDRIVE_FRESH (no cache)
+      // as the baseline comparison.
+      if (url.pathname === "/api/health/timing") {
+        const db =
+          url.searchParams.get("binding") === "fresh" ? sqlFresh : sql;
+        const read = db`
+          SELECT id, title, slug, created_at
+          FROM public.listings
+          WHERE verification_status = 'verified'
+          ORDER BY created_at DESC
+          LIMIT 50
+        `;
+
+        const t1 = performance.now();
+        const pass1 = await read;
+        const ms1 = performance.now() - t1;
+
+        const t2 = performance.now();
+        const pass2 = await read;
+        const ms2 = performance.now() - t2;
+
+        return Response.json({
+          binding: db === sqlFresh ? "HYPERDRIVE_FRESH" : "HYPERDRIVE",
+          rows_returned: pass2.length,
+          same_result: pass1.length === pass2.length,
+          pass1_ms: Math.round(ms1 * 100) / 100,
+          pass2_ms: Math.round(ms2 * 100) / 100,
+          speedup_x: ms2 > 0 ? Math.round((ms1 / ms2) * 100) / 100 : null,
+        });
+      }
+
       // Text search over the verified directory (title / blurb / description /
       // services), same corpus the public pages show, featured-first ordering.
       if (url.pathname === "/api/search") {
