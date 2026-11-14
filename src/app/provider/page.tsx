@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, Clock, Star } from "lucide-react";
+import { ArrowRight, Calendar, Clock, IdCard, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -245,6 +245,29 @@ export default function ProviderOperationsDashboard() {
           <span className="text-[11px] text-muted-foreground">{reviewCount} verified reviews</span>
         </Card>
       </div>
+
+      <Card className="flex flex-col gap-4 rounded-3xl border-airbnb-coral/40 bg-gradient-to-br from-rose-50/60 via-card to-card p-6 sm:flex-row sm:items-center sm:justify-between dark:from-rose-950/20">
+        <div className="min-w-0 space-y-2">
+          <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+            <IdCard className="h-5 w-5 text-airbnb-coral" /> My Account
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Review your profile status, then update your identity, services, availability, location, coverage and portfolio media.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {listings.map((listing) => (
+              <Badge key={listing.id} variant={listing.verification_status === "verified" ? "default" : "secondary"} className="rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize">
+                {listing.title} · {listing.verification_status.replaceAll("_", " ")}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        <Link href="/provider/account" className="shrink-0">
+          <Button className="w-full rounded-xl bg-airbnb-coral text-white hover:bg-[#AD3039] sm:w-auto">
+            Manage my account <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+      </Card>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <section className="space-y-4 lg:col-span-2">

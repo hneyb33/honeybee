@@ -31,9 +31,21 @@ npx wrangler r2 bucket create-domains hb-media --domain media.honeysbees.com
   - originals: `{env}/{userId}/{scope}/{targetId}/{assetId}/original.{ext}` in `hb-originals`
   - variants:  `{env}/{userId}/{assetId}/{thumb|card|detail}.webp` in `hb-media`
 
-**CORS** (browser PUTs to the S3 endpoint): R2 dashboard -> hb-originals ->
-CORS policy, allow the site origin(s) with methods `PUT, POST` and headers
-`Content-Type, Content-Length`; expose `ETag`.
+**CORS** (browser PUTs to the S3 endpoint): the `hb-originals` bucket MUST
+carry a CORS policy that allows every site origin, or presigned photo uploads
+fail in the browser with `403 Forbidden` + "No 'Access-Control-Allow-Origin'
+header" even though the presigned URL itself is valid. The policy lives in
+`docs/r2-originals-cors.json` (apex + www origins, `PUT/POST/HEAD`,
+`Content-Type`/`Content-Length` headers, expose `ETag`):
+
+```bash
+npx wrangler r2 bucket cors set hb-originals --file docs/r2-originals-cors.json
+npx wrangler r2 bucket cors list hb-originals   # verify; propagation can take ~30s
+```
+
+Dashboard equivalent: R2 -> hb-originals -> Settings -> CORS Policy -> paste
+the same rules as a S3-style JSON array (`AllowedOrigins`/`AllowedMethods`).
+Add every new hostname here BEFORE pointing uploads at it.
 
 **S3 API tokens** (scoped, not the account-global keys):
 - Account -> R2 -> Manage R2 API Keys -> create a token limited to

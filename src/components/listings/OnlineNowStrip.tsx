@@ -3,11 +3,52 @@
 import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { Listing } from "@/lib/supabase/types";
+import { useVipAccess } from "@/lib/vip-access";
 
 interface OnlineNowStripProps {
   listings: Listing[];
+}
+
+/** One avatar bubble; VIP profiles blur and redirect to /subscribe when gated. */
+function OnlineBubble({ listing }: { listing: Listing }) {
+  const vip = useVipAccess(listing);
+  return (
+    <Link
+      href={vip.gated ? vip.subscribeUrl : `/profiles/${listing.slug}`}
+      aria-label={
+        vip.gated
+          ? `Subscribe to view ${listing.title}, a VIP profile`
+          : `View ${listing.title}, ${listing.kind === "service" ? "service provider" : "model"}, online now`
+      }
+      className="group flex w-[4.75rem] shrink-0 flex-col items-center gap-2"
+    >
+      <span className="relative block h-[4.5rem] w-[4.5rem] rounded-full bg-gradient-to-tr from-[#d3444d] via-[#e0ba69] to-[#d3444d] p-[3px]">
+        <span className="relative block h-full w-full overflow-hidden rounded-full border-2 border-background bg-neutral-800">
+          <Image
+            src={listing.cover_image || listing.images[0] || "/images/logo.jpeg"}
+            alt=""
+            fill
+            sizes="72px"
+            className={`object-cover transition-transform ${vip.gated ? "scale-125 blur-xl" : "group-hover:scale-110"}`}
+          />
+          {vip.gated && (
+            <span className="absolute inset-0 z-[1] flex items-center justify-center bg-black/35 text-white">
+              <Lock className="h-4 w-4" />
+            </span>
+          )}
+        </span>
+        <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
+      </span>
+      <span className="w-full truncate text-center text-xs font-semibold text-foreground group-hover:text-[#f17d83]">
+        {listing.title}
+      </span>
+      <span className="-mt-1 text-[10px] text-muted-foreground">
+        {listing.kind === "service" ? "Provider" : "Model"}
+      </span>
+    </Link>
+  );
 }
 
 export function OnlineNowStrip({ listings }: OnlineNowStripProps) {
@@ -41,31 +82,7 @@ export function OnlineNowStrip({ listings }: OnlineNowStripProps) {
       ) : (
         <div ref={trackRef} className="flex gap-5 overflow-x-auto pb-2 no-scrollbar">
           {listings.map((listing) => (
-            <Link
-              key={listing.id}
-              href={`/profiles/${listing.slug}`}
-              aria-label={`View ${listing.title}, ${listing.kind === "service" ? "service provider" : "model"}, online now`}
-              className="group flex w-[4.75rem] shrink-0 flex-col items-center gap-2"
-            >
-              <span className="relative block h-[4.5rem] w-[4.5rem] rounded-full bg-gradient-to-tr from-[#d3444d] via-[#e0ba69] to-[#d3444d] p-[3px]">
-                <span className="relative block h-full w-full overflow-hidden rounded-full border-2 border-background bg-neutral-800">
-                  <Image
-                    src={listing.cover_image || listing.images[0] || "/images/logo.jpeg"}
-                    alt=""
-                    fill
-                    sizes="72px"
-                    className="object-cover transition-transform group-hover:scale-110"
-                  />
-                </span>
-                <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500" />
-              </span>
-              <span className="w-full truncate text-center text-xs font-semibold text-foreground group-hover:text-[#f17d83]">
-                {listing.title}
-              </span>
-              <span className="-mt-1 text-[10px] text-muted-foreground">
-                {listing.kind === "service" ? "Provider" : "Model"}
-              </span>
-            </Link>
+            <OnlineBubble key={listing.id} listing={listing} />
           ))}
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Image as ImageIcon, Video } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Lock, Video } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase/client";
 import { MediaVideo } from "@/components/media/MediaVideo";
@@ -11,6 +11,7 @@ import {
   getMediaImageUrl,
   isPublicMediaReady,
 } from "@/lib/media-urls";
+import { useVipAccess, VipBlurOverlay } from "@/lib/vip-access";
 
 type MediaItem = {
   id: string;
@@ -29,7 +30,54 @@ type MediaItem = {
   kind: string;
   category: string;
   advertiser_type: string | null;
+  escort_tier: string | null;
+  user_id: string | null;
 };
+
+/** One gallery tile; VIP media blurs and links to /subscribe when gated. */
+function MediaTile({ item, isVideo }: { item: MediaItem; isVideo: boolean }) {
+  const vip = useVipAccess(item);
+  const href = vip.gated ? vip.subscribeUrl : `/profiles/${item.slug}`;
+  return (
+    <Card className="relative overflow-hidden rounded-2xl border-neutral-800 bg-[#101211]">
+      <div className={vip.gated ? "pointer-events-none select-none" : undefined}>
+        {isVideo ? (
+          <MediaVideo
+            source={item}
+            className="aspect-[3/4] w-full bg-black object-cover"
+            ariaLabel={`Video from ${item.title}`}
+          />
+        ) : (
+          <Link href={href} className="group block">
+            <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900">
+              <Image src={getMediaImageUrl(item, "card")} alt={`Photo from ${item.title}`} fill unoptimized sizes="(max-width: 640px) 50vw, 25vw" className={`object-cover transition-transform duration-300 ${vip.gated ? "scale-110 blur-2xl" : "group-hover:scale-105"}`} />
+            </div>
+          </Link>
+        )}
+      </div>
+      {vip.gated && <VipBlurOverlay className="z-[5]" />}
+      <Link href={href} className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
+        <span className="truncate text-sm font-semibold text-foreground">{item.title}</span>
+        {vip.gated ? (
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-amber-200">
+            <Lock className="h-3.5 w-3.5" /> VIP
+          </span>
+        ) : (
+          <ArrowRight className="h-4 w-4 shrink-0 text-[#f17d83]" />
+        )}
+      </Link>
+      <div className="px-3 pb-3">
+        <span className="inline-flex rounded-full border border-neutral-700 px-2 py-1 text-[10px] font-semibold capitalize text-neutral-300">
+          {item.kind === "service"
+            ? "Specialist"
+            : item.advertiser_type === "agency"
+              ? "Agency"
+              : item.category}
+        </span>
+      </div>
+    </Card>
+  );
+}
 
 export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -50,7 +98,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
     const loadMedia = async () => {
       const { data: listings, error: listingsError } = await client
         .from("listings")
-        .select("id,title,slug,kind,category,advertiser_type")
+        .select("id,title,slug,kind,category,advertiser_type,escort_tier,user_id")
         .eq("verification_status", "verified");
 
       if (listingsError) {
@@ -102,6 +150,8 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
                   kind: listing.kind,
                   category: listing.category,
                   advertiser_type: listing.advertiser_type,
+                  escort_tier: listing.escort_tier ?? null,
+                  user_id: listing.user_id ?? null,
                 }]
               : [];
           })
@@ -142,34 +192,7 @@ export function PublicMediaDirectory({ kind }: { kind: "photo" | "video" }) {
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
           {items.map((item) => (
-            <Card key={item.id} className="overflow-hidden rounded-2xl border-neutral-800 bg-[#101211]">
-              {isVideo ? (
-                <MediaVideo
-                  source={item}
-                  className="aspect-[3/4] w-full bg-black object-cover"
-                  ariaLabel={`Video from ${item.title}`}
-                />
-              ) : (
-                <Link href={`/profiles/${item.slug}`} className="group block">
-                  <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900">
-                    <Image src={getMediaImageUrl(item, "card")} alt={`Photo from ${item.title}`} fill unoptimized sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
-                  </div>
-                </Link>
-              )}
-              <Link href={`/profiles/${item.slug}`} className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
-                <span className="truncate text-sm font-semibold text-foreground">{item.title}</span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-[#f17d83]" />
-              </Link>
-              <div className="px-3 pb-3">
-                <span className="inline-flex rounded-full border border-neutral-700 px-2 py-1 text-[10px] font-semibold capitalize text-neutral-300">
-                  {item.kind === "service"
-                    ? "Specialist"
-                    : item.advertiser_type === "agency"
-                      ? "Agency"
-                      : item.category}
-                </span>
-              </div>
-            </Card>
+            <MediaTile key={item.id} item={item} isVideo={isVideo} />
           ))}
         </div>
       )}

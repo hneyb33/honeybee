@@ -142,6 +142,8 @@ type OwnedListing = { id: string; title: string; kind: string; verification_stat
 function SubscribeContent() {
   const searchParams = useSearchParams();
   const requestedListingId = searchParams.get("listing_id") ?? "";
+  // Set when a gated VIP profile redirects a visitor here.
+  const vipReason = searchParams.get("reason") === "vip";
   const [planPrices, setPlanPrices] = useState<Record<string, number>>(
     Object.fromEntries(plans.map((plan) => [plan.id, plan.price]))
   );
@@ -280,6 +282,18 @@ function SubscribeContent() {
           <p className="text-xs text-neutral-400">All prices are in UGX and cover one month.</p>
         </div>
 
+        {vipReason && (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-400/30 bg-rose-400/[0.07] p-4 text-sm text-rose-100">
+            <Crown className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+            <p className="leading-6">
+              You reached a <strong className="font-semibold">VIP profile</strong>. The{" "}
+              <strong className="font-semibold">Client VIP Access</strong> plan below unlocks full
+              photos, videos and contact details for every VIP profile while your subscription is
+              active.
+            </p>
+          </div>
+        )}
+
         {requestedListingId && (
           <div className="mb-6 rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-4 text-sm text-amber-100">
             Choose Advertising below to submit this listing for a one-month featured campaign.
@@ -305,7 +319,7 @@ function SubscribeContent() {
                 id={plan.id === "advertiser_premium" ? "advertising-card" : undefined}
                 className={`relative flex h-full flex-col overflow-hidden rounded-3xl border bg-neutral-900/80 text-white transition duration-200 hover:-translate-y-1 hover:shadow-xl ${style.border} ${
                   plan.popular ? "shadow-lg shadow-rose-950/30" : "border-neutral-800"
-                }`}
+                } ${vipReason && plan.id === "client_premium" ? "ring-2 ring-rose-400/70" : ""}`}
               >
                 {plan.popular && <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-400 via-[#d3444d] to-amber-300" />}
                 <CardContent className="flex flex-1 flex-col p-6">

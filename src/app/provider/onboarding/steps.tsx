@@ -587,6 +587,7 @@ export function StepPortfolio({ c }: { c: OnboardingController }) {
 
 export function StepReview({ c }: { c: OnboardingController }) {
   const { form, isModel } = c;
+  const [tierBusy, setTierBusy] = useState(false);
   const preparingCount =
     c.existingMedia.filter(
       (item) => item.storageProvider === "cloudinary" && item.processingStatus !== "ready"
@@ -643,6 +644,33 @@ export function StepReview({ c }: { c: OnboardingController }) {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">About</p>
         <p className="text-sm leading-relaxed">{form.description || "Add a description before submitting."}</p>
       </div>
+      {isModel && (
+        <div className="rounded-2xl border border-border p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Companion visibility tier
+          </p>
+          <RadioGroup
+            name="onboarding-model-tier"
+            value={c.modelTier}
+            onChange={(value) => {
+              setTierBusy(true);
+              void c.changeModelTier(value as "premium" | "vip").finally(() => setTierBusy(false));
+            }}
+            options={["premium", "vip"]}
+            labels={["Premium (shown normally once verified)", "VIP (blurred for non-subscribers)"]}
+          />
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            {c.modelTier === "vip"
+              ? "VIP profiles stay blurred to visitors until they hold a subscriber plan - tapping one sends them to Subscribe. Chosen during registration; you can switch any time here or in My Account."
+              : "Premium profiles are fully visible to everyone once a moderator verifies them."}
+          </p>
+          {tierBusy && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> Saving tier…
+            </p>
+          )}
+        </div>
+      )}
       {previews.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {previews.map((item, index) => (

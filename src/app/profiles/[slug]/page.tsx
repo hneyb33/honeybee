@@ -12,10 +12,12 @@ import {
   Clock,
   Compass,
   Check,
+  Crown,
   Globe2,
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { Listing } from "@/lib/supabase/types";
@@ -35,6 +37,7 @@ import { ServiceOfferings } from "@/components/listings/ServiceOfferings";
 import { ReviewSection } from "@/components/listings/ReviewSection";
 import { StickyBookingBar } from "@/components/booking/StickyBookingBar";
 import { YouMayAlsoLike } from "@/components/listings/YouMayAlsoLike";
+import { useVipAccess } from "@/lib/vip-access";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -57,6 +60,9 @@ export default function ProfileDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const videoReelRef = useRef<HTMLDivElement>(null);
+  // VIP profiles keep their gallery and booking CTA behind a subscription:
+  // media renders as a locked panel instead of leaking photo/video URLs.
+  const vip = useVipAccess(listing);
 
   useEffect(() => {
     let cancelled = false;
@@ -346,8 +352,28 @@ export default function ProfileDetailPage() {
       </div>
 
       <section aria-label="Profile photo gallery">
-        <PhotoMosaic images={listing.images} title={listing.title} blurhashes={listing.blurhashes} />
+        {vip.gated ? (
+          <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl border border-neutral-800 bg-gradient-to-br from-[#171310] via-[#101211] to-[#0c0f0d] px-6 text-center md:aspect-[21/9]">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#fff4d8] text-[#75501a] shadow-lg">
+              <Lock className="h-6 w-6" />
+            </span>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-white sm:text-xl">
+              <Crown className="h-5 w-5 text-amber-300" /> VIP profile
+            </h2>
+            <p className="max-w-md text-sm leading-6 text-neutral-300">
+              Photos, videos and direct contact for this profile are reserved for Honeybee subscribers.
+            </p>
+            <Link href="/subscribe?reason=vip">
+              <Button className="mt-1 rounded-full bg-[#d3444d] px-6 text-white hover:bg-[#ad3039]">
+                Subscribe to view <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <PhotoMosaic images={listing.images} title={listing.title} blurhashes={listing.blurhashes} />
+        )}
       </section>
+      {!vip.gated && (
       <section className="mt-8 space-y-4" aria-labelledby="profile-videos-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -409,6 +435,7 @@ export default function ProfileDetailPage() {
           </p>
         )}
       </section>
+      )}
 
       {/* Profile Information & Highlights */}
       <div className="mt-8 border-b border-border pb-8">
@@ -538,8 +565,23 @@ export default function ProfileDetailPage() {
 
       <YouMayAlsoLike current={listing} listings={relatedListings} />
 
-      {/* Sticky Bottom Booking & Chat Bar */}
-      <StickyBookingBar listing={listing} />
+      {/* Sticky Bottom Booking & Chat Bar (VIP: subscribe prompt for gated viewers) */}
+      {vip.gated ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+            <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Lock className="h-4 w-4 text-amber-500" /> Subscribe to contact this VIP profile
+            </p>
+            <Link href="/subscribe?reason=vip">
+              <Button size="sm" className="rounded-full bg-airbnb-coral text-white hover:bg-[#AD3039]">
+                View plans
+              </Button>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <StickyBookingBar listing={listing} />
+      )}
     </div>
   );
 }

@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["https://honeysbees.com", "https://www.honeysbees.com"],
+        "methods": ["PUT", "POST", "HEAD"],
+        "headers": ["Content-Type", "Content-Length"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 86400
+    }
+  ]
+}

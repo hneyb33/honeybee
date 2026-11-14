@@ -15,7 +15,7 @@ import {
   type MediaTarget,
 } from "@/lib/media-policy";
 import { uploadVideoToStream } from "@/lib/stream-upload";
-import { refreshPendingMedia } from "@/lib/media-lifecycle";
+import { abandonMediaAsset, refreshPendingMedia } from "@/lib/media-lifecycle";
 
 /**
  * Provider-agnostic media upload entry point.
@@ -209,25 +209,35 @@ async function uploadPhoto(
   };
 
   let attempt = 0;
-  while (true) {
-    if (options.signal?.aborted) {
-      throw new MediaUploadError("The upload was cancelled.", { status: null });
+  try {
+    while (true) {
+      if (options.signal?.aborted) {
+        throw new MediaUploadError("The upload was cancelled.", { status: null });
+      }
+      try {
+        await presignedPut(signature, file, options.signal, report);
+        break;
+      } catch (error) {
+        if (isAbortError(error) || options.signal?.aborted) throw error;
+        attempt += 1;
+        const retryable = error instanceof MediaUploadError && (error.retryable || error.status === null);
+        if (!retryable || attempt >= MAX_PUT_ATTEMPTS) throw error;
+        // Re-lease: presigned URLs are short-lived, so a retry always uploads
+        // against a freshly signed target for the same immutable key.
+        await delay(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), options.signal);
+        const refreshed = await requestPresign(target, accessToken, file, signature.mediaKey);
+        if (!refreshed) throw error;
+        signature = refreshed;
+      }
     }
-    try {
-      await presignedPut(signature, file, options.signal, report);
-      break;
-    } catch (error) {
-      if (isAbortError(error) || options.signal?.aborted) throw error;
-      attempt += 1;
-      const retryable = error instanceof MediaUploadError && (error.retryable || error.status === null);
-      if (!retryable || attempt >= MAX_PUT_ATTEMPTS) throw error;
-      // Re-lease: presigned URLs are short-lived, so a retry always uploads
-      // against a freshly signed target for the same immutable key.
-      await delay(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1), options.signal);
-      const refreshed = await requestPresign(target, accessToken, file, signature.mediaKey);
-      if (!refreshed) throw error;
-      signature = refreshed;
-    }
+  } catch (error) {
+    // The PUT never landed, so this asset can never finalize. Free the
+    // portfolio slot immediately instead of leaving the open upload intent
+    // to squander it for the full TTL window - repeated blocked uploads
+    // would otherwise pile up intents until the signature route reports
+    // the photo limit (409).
+    await abandonMediaAsset({ mediaKey: signature.mediaKey }, target, accessToken).catch(() => undefined);
+    throw error;
   }
 
   return {

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Users, Crown, ChefHat, Building2, Zap, UserRound, Eye, EyeOff } from "lucide-react";
+import { Users, Crown, ChefHat, Building2, Zap, UserRound, Eye, EyeOff, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,6 +15,10 @@ export default function RegisterPage() {
   const router = useRouter();
   const [role, setRole] = useState<"client" | "specialist" | "model" | "agency">("client");
   const [advertiserType, setAdvertiserType] = useState<"fast" | "independent" | "agency" | null>(null);
+  // Two-screen registration: (1) choose who to register as, (2) credentials.
+  const [screen, setScreen] = useState<"choose" | "details">("choose");
+  const [modelTier, setModelTier] = useState<"premium" | "vip">("premium");
+  const [identityChosen, setIdentityChosen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,12 +39,14 @@ export default function RegisterPage() {
     const requestedKind = params.get("account_kind");
     if (requestedKind === "specialist") {
       setRole("specialist");
+      setIdentityChosen(true);
       return;
     }
     const requestedType = params.get("advertiser_type");
     if (requestedType === "fast" || requestedType === "independent" || requestedType === "agency") {
       setAdvertiserType(requestedType);
       setRole(requestedType === "agency" ? "agency" : "model");
+      setIdentityChosen(true);
     }
   }, []);
 
@@ -84,6 +90,7 @@ export default function RegisterPage() {
           country: selectedCountry.name,
           account_kind: role,
           advertiser_type: advertiserType ?? (role === "agency" ? "agency" : role === "model" ? "independent" : null),
+          model_tier: role === "model" || role === "agency" ? modelTier : undefined,
         },
       },
     });
@@ -106,126 +113,173 @@ export default function RegisterPage() {
     router.refresh();
   };
 
+  const IDENTITY_CARDS = [
+    {
+      id: "client",
+      title: "Client",
+      blurb: "Browse verified listings, schedule appointments, and write reviews.",
+      icon: Users,
+      tone: "text-airbnb-coral",
+    },
+    {
+      id: "model_premium",
+      title: "Companion — Premium",
+      blurb: "List as a companion model. Your profile shows normally once verified.",
+      icon: Crown,
+      tone: "text-amber-500",
+    },
+    {
+      id: "model_vip",
+      title: "Companion — VIP",
+      blurb: "Elite visibility: your profile stays blurred to visitors until they hold a subscriber plan.",
+      icon: Sparkles,
+      tone: "text-[#d3444d]",
+    },
+    {
+      id: "specialist",
+      title: "Service provider",
+      blurb: "Provide home services (private chef, laundry, massage, or repairs).",
+      icon: ChefHat,
+      tone: "text-emerald-600",
+    },
+    {
+      id: "agency",
+      title: "Agency advertiser",
+      blurb: "Submit agency-managed profiles for verification and ad placement.",
+      icon: Building2,
+      tone: "text-[#d3444d]",
+    },
+  ] as const;
+
+  const applyChoice = (id: (typeof IDENTITY_CARDS)[number]["id"]) => {
+    setIdentityChosen(true);
+    if (id === "client") {
+      setRole("client");
+      setAdvertiserType(null);
+    } else if (id === "model_premium") {
+      setRole("model");
+      setModelTier("premium");
+    } else if (id === "model_vip") {
+      setRole("model");
+      setModelTier("vip");
+    } else if (id === "specialist") {
+      setRole("specialist");
+      setAdvertiserType(null);
+    } else {
+      setRole("agency");
+      setAdvertiserType("agency");
+    }
+  };
+
+  const isChoiceActive = (id: (typeof IDENTITY_CARDS)[number]["id"]) => {
+    if (!identityChosen) return false;
+    if (id === "client") return role === "client";
+    if (id === "model_premium") return role === "model" && modelTier === "premium";
+    if (id === "model_vip") return role === "model" && modelTier === "vip";
+    if (id === "specialist") return role === "specialist";
+    return role === "agency";
+  };
+
+  const identityLabel =
+    role === "agency"
+      ? "Agency"
+      : role === "specialist"
+        ? "Service provider"
+        : role === "model"
+          ? modelTier === "vip"
+            ? "VIP companion"
+            : "Companion"
+          : "Client";
+
   return (
-    <div className="mx-auto flex min-h-[80vh] max-w-lg items-center px-4 py-12">
+    <div className="mx-auto flex min-h-[80vh] w-full max-w-xl items-center px-4 py-12">
       <Card className="w-full rounded-3xl border-border shadow-xl">
         <CardHeader className="text-center pb-4">
           <CardTitle className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Register for Honeybee
+            {screen === "choose" ? "Register for Honeybee" : `Create your ${identityLabel} account`}
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            Choose the account type that matches what you want to do.
+            {screen === "choose"
+              ? "Step 1 of 2 — choose how you want to use Honeybee."
+              : "Step 2 of 2 — your profile stays private until an admin verifies it."}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <div className="rounded-2xl border border-border bg-muted/50 p-3">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">Advertising as</p>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                { id: "fast", label: "Fast ad", icon: Zap },
-                { id: "independent", label: "Independent", icon: UserRound },
-                { id: "agency", label: "Agency", icon: Building2 },
-              ] as const).map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={advertiserType === id}
-                  onClick={() => {
-                    setAdvertiserType(id);
-                    setRole(id === "agency" ? "agency" : "model");
-                  }}
-                  className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-[11px] font-semibold transition ${
-                    advertiserType === id
-                      ? "border-[#d3444d] bg-rose-50 text-[#a8323c] dark:bg-rose-950/30 dark:text-rose-200"
-                      : "border-border bg-background text-muted-foreground hover:border-foreground/30"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" /> {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Role Choice Cards */}
-          <div className="space-y-2.5">
-            <button
-              type="button"
-              onClick={() => setRole("client")}
-              className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                role === "client"
-                  ? "border-neutral-900 bg-neutral-50 dark:border-white dark:bg-neutral-900"
-                  : "border-border hover:border-foreground/40"
-              }`}
-            >
-              <Users className="h-5 w-5 text-airbnb-coral mt-0.5 shrink-0" />
-              <div>
-                <span className="block font-bold text-sm text-foreground">Client</span>
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  Browse verified listings, schedule appointments, and write reviews.
-                </span>
+          {screen === "choose" ? (
+            <>
+              <div className="space-y-2.5">
+                {IDENTITY_CARDS.map((card) => {
+                  const Icon = card.icon;
+                  const active = isChoiceActive(card.id);
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => applyChoice(card.id)}
+                      className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
+                        active
+                          ? "border-airbnb-coral bg-rose-50 dark:bg-rose-950/30"
+                          : "border-border hover:border-foreground/40"
+                      }`}
+                    >
+                      <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${card.tone}`} />
+                      <div>
+                        <span className="block text-sm font-bold text-foreground">{card.title}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{card.blurb}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            </button>
 
-            <button
-              type="button"
-              onClick={() => setRole("specialist")}
-              className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                role === "specialist"
-                  ? "border-neutral-900 bg-neutral-50 dark:border-white dark:bg-neutral-900"
-                  : "border-border hover:border-foreground/40"
-              }`}
-            >
-              <ChefHat className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
-              <div>
-                <span className="block font-bold text-sm text-foreground">Specialist</span>
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  Provide home services (private chef, laundry, massage, or repairs).
-                </span>
-              </div>
-            </button>
+              {identityChosen && role === "model" && (
+                <div className="rounded-2xl border border-border bg-muted/50 p-3">
+                  <p className="mb-2 text-xs font-semibold text-muted-foreground">Advertising style</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { id: "fast", label: "Fast ad", icon: Zap },
+                      { id: "independent", label: "Independent", icon: UserRound },
+                    ] as const).map(({ id, label, icon: AdIcon }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={advertiserType === id}
+                        onClick={() => setAdvertiserType(id)}
+                        className={`flex min-h-12 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-[11px] font-semibold transition ${
+                          advertiserType === id
+                            ? "border-[#d3444d] bg-rose-50 text-[#a8323c] dark:bg-rose-950/30 dark:text-rose-200"
+                            : "border-border bg-background text-muted-foreground hover:border-foreground/30"
+                        }`}
+                      >
+                        <AdIcon className="h-4 w-4" /> {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            <button
-              type="button"
-              onClick={() => setRole("model")}
-              className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                role === "model"
-                  ? "border-neutral-900 bg-neutral-50 dark:border-white dark:bg-neutral-900"
-                  : "border-border hover:border-foreground/40"
-              }`}
-            >
-              <Crown className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-              <div>
-                <span className="block font-bold text-sm text-foreground">VIP Companion</span>
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  Provide verified companion and entertainment hosting services.
-                </span>
-              </div>
-            </button>
+              <Button
+                type="button"
+                disabled={!identityChosen}
+                onClick={() => setScreen("details")}
+                className="h-11 w-full rounded-xl bg-airbnb-coral font-bold text-white shadow-md hover:bg-[#AD3039]"
+              >
+                Continue
+              </Button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setScreen("choose")}
+                className="text-xs font-semibold text-airbnb-coral hover:underline"
+              >
+                ← Change account type
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setRole("agency");
-                setAdvertiserType("agency");
-              }}
-              className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                role === "agency"
-                  ? "border-neutral-900 bg-neutral-50 dark:border-white dark:bg-neutral-900"
-                  : "border-border hover:border-foreground/40"
-              }`}
-            >
-              <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-[#d3444d]" />
-              <div>
-                <span className="block text-sm font-bold text-foreground">Agency advertiser</span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Submit agency-managed profiles for verification and ad placement.
-                </span>
-              </div>
-            </button>
-          </div>
-
-          {/* Registration Fields */}
+              {/* Registration Fields */}
           <form onSubmit={handleRegister} className="space-y-4 pt-2">
             <div>
               <label htmlFor="name" className="text-xs font-semibold text-foreground">Full Name</label>
@@ -372,6 +426,8 @@ export default function RegisterPage() {
               {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
+            </>
+          )}
 
           <div className="text-center text-xs text-muted-foreground pt-2">
             Already have an account?{" "}

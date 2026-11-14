@@ -2,12 +2,65 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Send } from "lucide-react";
+import { ArrowRight, Lock, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { MOCK_LISTINGS } from "@/lib/data/mock-profiles";
 import { mapListingRow } from "@/lib/supabase/map-listing";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { Listing } from "@/lib/supabase/types";
+import { useVipAccess } from "@/lib/vip-access";
+
+/**
+ * One Telegram contact card. VIP listings hide their handle and send gated
+ * viewers to /subscribe instead of the profile page.
+ */
+function TelegramCard({ listing }: { listing: Listing }) {
+  const vip = useVipAccess(listing);
+  const username = listing.telegram?.trim().replace(/^@/, "");
+  if (!username) return null;
+  const tag = listing.kind === "service"
+    ? "Specialist"
+    : listing.advertiser_type === "agency"
+      ? "Agency"
+      : listing.category;
+
+  return (
+    <Card className="flex flex-col gap-4 rounded-2xl border-neutral-800 bg-[#101211] p-5">
+      <div className="min-w-0">
+        <span className="inline-flex rounded-full border border-neutral-700 px-2 py-1 text-[10px] font-semibold capitalize text-neutral-300">
+          {tag}
+        </span>
+        <h2 className="mt-3 truncate text-lg font-semibold text-white">{listing.title}</h2>
+        <p className="mt-1 truncate text-sm text-neutral-400">{listing.neighborhood}, {listing.city}</p>
+        {vip.gated ? (
+          <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-200">
+            <Lock className="h-3.5 w-3.5" /> VIP profile — subscribe to view
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-neutral-300">@{username}</p>
+        )}
+      </div>
+      <div className="mt-auto flex flex-wrap gap-2">
+        <Link
+          href={vip.gated ? vip.subscribeUrl : `/profiles/${listing.slug}`}
+          className="inline-flex items-center gap-2 rounded-full border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-200 transition hover:border-neutral-400"
+        >
+          {vip.gated ? "Subscribe to view" : "View profile"} <ArrowRight className="h-4 w-4" />
+        </Link>
+        {!vip.gated && (
+          <a
+            href={`https://t.me/${encodeURIComponent(username)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600"
+          >
+            <Send className="h-4 w-4" /> Telegram
+          </a>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 export function TelegramDirectory() {
   const [listings, setListings] = useState<Listing[]>(
@@ -78,44 +131,9 @@ export function TelegramDirectory() {
         </Card>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {listings.map((listing) => {
-            const username = listing.telegram?.trim().replace(/^@/, "");
-            if (!username) return null;
-            const tag = listing.kind === "service"
-              ? "Specialist"
-              : listing.advertiser_type === "agency"
-                ? "Agency"
-                : listing.category;
-
-            return (
-              <Card key={listing.id} className="flex flex-col gap-4 rounded-2xl border-neutral-800 bg-[#101211] p-5">
-                <div className="min-w-0">
-                  <span className="inline-flex rounded-full border border-neutral-700 px-2 py-1 text-[10px] font-semibold capitalize text-neutral-300">
-                    {tag}
-                  </span>
-                  <h2 className="mt-3 truncate text-lg font-semibold text-white">{listing.title}</h2>
-                  <p className="mt-1 truncate text-sm text-neutral-400">{listing.neighborhood}, {listing.city}</p>
-                  <p className="mt-2 text-sm text-neutral-300">@{username}</p>
-                </div>
-                <div className="mt-auto flex flex-wrap gap-2">
-                  <Link
-                    href={`/profiles/${listing.slug}`}
-                    className="inline-flex items-center gap-2 rounded-full border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-200 transition hover:border-neutral-400"
-                  >
-                    View profile <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <a
-                    href={`https://t.me/${encodeURIComponent(username)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600"
-                  >
-                    <Send className="h-4 w-4" /> Telegram
-                  </a>
-                </div>
-              </Card>
-            );
-          })}
+          {listings.map((listing) => (
+            <TelegramCard key={listing.id} listing={listing} />
+          ))}
         </div>
       )}
     </main>

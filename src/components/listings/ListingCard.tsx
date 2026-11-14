@@ -9,12 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase/client";
 import { CountryFlagBadge } from "@/components/listings/CountryFlagBadge";
 import { BlurHashFallback } from "@/components/media/BlurHashFallback";
+import { useVipAccess, VipBlurOverlay } from "@/lib/vip-access";
 
 interface ListingCardProps {
   listing: Listing;
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
+  // VIP cards are blurred and redirect to /subscribe for visitors without an
+  // active client_premium plan; owners and entitled viewers see them normally.
+  const vip = useVipAccess(listing);
+  const cardHref = vip.gated ? vip.subscribeUrl : `/profiles/${listing.slug}`;
   const [photoIndex, setPhotoIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
@@ -124,8 +129,8 @@ export function ListingCard({ listing }: ListingCardProps) {
     <article className="group min-w-0">
       <div className="relative mb-3 aspect-[4/4.7] overflow-hidden rounded-[1.35rem] bg-[#eeeee8] shadow-[0_4px_18px_rgba(35,53,41,0.06)] dark:bg-neutral-800">
         <Link
-          href={`/profiles/${listing.slug}`}
-          aria-label={`View ${listing.title}'s profile`}
+          href={cardHref}
+          aria-label={vip.gated ? `Subscribe to view ${listing.title}'s VIP profile` : `View ${listing.title}'s profile`}
           className="absolute inset-0"
         >
           {currentHash && loadedPhoto !== currentPhoto && (
@@ -141,11 +146,14 @@ export function ListingCard({ listing }: ListingCardProps) {
             alt={listing.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            className={`object-cover transition-transform duration-500 ${
+              vip.gated ? "scale-110 blur-2xl" : "group-hover:scale-[1.04]"
+            }`}
             onLoad={() => setLoadedPhoto(photos[photoIndex])}
           />
           <span className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 to-transparent" />
         </Link>
+        {vip.gated && <VipBlurOverlay />}
         <CountryFlagBadge country={listing.country} />
 
         <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5">
@@ -179,7 +187,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           />
         </button>
 
-        {photos.length > 1 && (
+        {photos.length > 1 && !vip.gated && (
           <>
             <button
               type="button"
@@ -211,7 +219,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         )}
       </div>
 
-      <Link href={`/profiles/${listing.slug}`} className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#367458]">
+      <Link href={cardHref} className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#367458]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="truncate text-[15px] font-bold tracking-tight text-[#21372c] transition-colors group-hover:text-[#367458] dark:text-neutral-100 dark:group-hover:text-emerald-300">

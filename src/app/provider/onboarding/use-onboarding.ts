@@ -56,6 +56,9 @@ export function useOnboarding() {
   // The profile-kind choice is a dedicated screen shown before the stepped
   // wizard. It stays closed for anyone who already has a saved draft.
   const [typeChosen, setTypeChosen] = useState(false);
+  // Companion visibility tier picked on /register; mirrored into
+  // listings.escort_tier on every save.
+  const [modelTier, setModelTierState] = useState<"premium" | "vip">("premium");
   const [listingId, setListingId] = useState<string | null>(null);
   const [slug, setSlug] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
@@ -81,6 +84,11 @@ export function useOnboarding() {
   existingMediaRef.current = existingMedia;
   formRef.current = form;
   accountKindRef.current = accountKind;
+  const modelTierRef = useRef<"premium" | "vip">("premium");
+  modelTierRef.current = modelTier;
+  // Verification status of the row being edited; a save over a previously
+  // verified listing must land in 'pending' (re-moderation), never 'draft'.
+  const listingStatusRef = useRef<string>("");
   const modelServiceOptionsRef = useRef<string[]>([]);
   modelServiceOptionsRef.current = modelServiceOptions;
 
@@ -129,6 +137,7 @@ export function useOnboarding() {
         title: currentForm.title.trim() || "Untitled Honeybee profile",
         slug: profileSlug,
         kind: model ? "escort" : "service",
+        escort_tier: model ? modelTierRef.current : "standard",
         description: currentForm.description.trim() || "Profile in progress.",
         verification_status: "draft",
       })
@@ -172,7 +181,7 @@ export function useOnboarding() {
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("account_kind,name,phone,phone_country,country")
+        .select("account_kind,name,phone,phone_country,country,model_tier")
         .eq("id", authData.user.id)
         .maybeSingle();
       if (profileError) {
@@ -189,6 +198,7 @@ export function useOnboarding() {
 
       const nextKind = profile.account_kind as AccountKind;
       accountKindRef.current = nextKind;
+      if (profile.model_tier === "vip") setModelTierState("vip");
       if (nextKind !== "specialist") {
         const { data: serviceOptions, error: serviceOptionsError } = await supabase
           .from("escort_service_options")
@@ -227,6 +237,10 @@ export function useOnboarding() {
 
       if (listing) {
         const details = listing.profile_details ?? {};
+        listingStatusRef.current = String(listing.verification_status ?? "");
+        // The listing row is the source of truth once it exists (an admin may
+        // have changed the tier without touching the profile).
+        setModelTierState(listing.escort_tier === "vip" ? "vip" : "premium");
         Object.assign(nextForm, {
           title: listing.title ?? nextForm.title,
           age: listing.age ? String(listing.age) : "",
@@ -317,9 +331,10 @@ export function useOnboarding() {
       if (!cancelled) {
         setAccountKind(nextKind);
         setForm(nextForm);
-        // A provider returning to a saved draft skips the chooser; a brand-new
-        // one lands on it so the profile-kind choice is its own step.
-        setTypeChosen(Boolean(listing));
+        // Registration now decides the profile kind (and companion tier) before
+        // the first wizard visit, so the chooser screen is skipped entirely for
+        // provider accounts; non-providers are redirected to /register above.
+        setTypeChosen(true);
         setLoading(false);
       }
     };
@@ -472,7 +487,7 @@ export function useOnboarding() {
         title: current.title.trim() || "Untitled Honeybee profile",
         slug: profileSlug,
         kind: isEscort ? "escort" : "service",
-        escort_tier: isEscort ? "premium" : "standard",
+        escort_tier: isEscort ? modelTierRef.current : "standard",
         category: isEscort ? (current.gender || "female").toLowerCase() : "service",
         service_type: isEscort ? null : current.serviceType,
         age: isEscort ? Number(current.age) || null : null,
@@ -492,7 +507,7 @@ export function useOnboarding() {
         services_offered: current.services,
         languages: current.languages,
         availability,
-        verification_status: submit ? "pending" : "draft",
+        verification_status: submit || listingStatusRef.current === "verified" ? "pending" : "draft",
         verification_notes: null,
         whatsapp_number: current.whatsappNumber.replace(/\D/g, ""),
         whatsapp_code: current.whatsappCode,
@@ -654,6 +669,21 @@ export function useOnboarding() {
     [getAccessToken]
   );
 
+  /** Persists the companion visibility tier (premium vs VIP) on the profile. */
+  const changeModelTier = useCallback(async (tier: "premium" | "vip") => {
+    if (!supabase) return;
+    const { error: tierError } = await supabase.rpc("update_own_profile", {
+      p_name: null,
+      p_phone: null,
+      p_model_tier: tier,
+    });
+    if (tierError) {
+      setError(tierError.message);
+      return;
+    }
+    setModelTierState(tier);
+  }, []);
+
   const startOver = useCallback(() => {
     setListingId(null);
     setSlug("");
@@ -701,6 +731,8 @@ export function useOnboarding() {
     toggleChoice,
     accountKind,
     isModel,
+    modelTier,
+    changeModelTier,
     phase,
     typeChosen,
     chooseType,
